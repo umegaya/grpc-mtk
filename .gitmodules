@@ -1,0 +1,4 @@
+[submodule "grpc"]
+	path = grpc
+	url = https://github.com/umegaya/grpc
+	branch = umegaya/remote_peer_close

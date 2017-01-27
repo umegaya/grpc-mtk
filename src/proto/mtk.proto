@@ -1,0 +1,44 @@
+syntax = "proto3";
+package mtk;
+
+// generic payload
+message Error {
+    int32 error_code = 1;
+    bytes payload = 2;
+}
+
+message SystemPayload {
+	message Connect {
+		uint64 id = 1;
+		bytes payload = 2;
+	}
+	message Ping {
+		uint64 now = 1;
+		bytes payload = 2;
+	}
+}
+
+message Request {
+	enum Kind {
+		Normal = 0;
+		Ping = 1;
+		Connect = 2;
+	}
+	uint32 type = 1;
+    uint32 msgid = 2;
+    Kind kind = 3;
+	bytes payload = 10;
+}
+
+message Reply {
+	uint32 type = 1;
+    uint32 msgid = 2;
+    Error error = 3;
+	bytes payload = 10;
+}
+
+// service definition
+service Stream {
+	rpc Read(stream Request) returns (stream Reply) {}
+    rpc Write(stream Request) returns (stream Reply) {}
+}
