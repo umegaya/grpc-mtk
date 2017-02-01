@@ -31,14 +31,6 @@ class Stream GRPC_FINAL {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
-    virtual ::grpc::Status Connect(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::mtk::ConnectReply* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::mtk::ConnectReply>> AsyncConnect(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::mtk::ConnectReply>>(AsyncConnectRaw(context, request, cq));
-    }
-    virtual ::grpc::Status Ping(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::mtk::PingReply* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::mtk::PingReply>> AsyncPing(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::mtk::PingReply>>(AsyncPingRaw(context, request, cq));
-    }
     std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::mtk::Request, ::mtk::Reply>> Read(::grpc::ClientContext* context) {
       return std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::mtk::Request, ::mtk::Reply>>(ReadRaw(context));
     }
@@ -52,8 +44,6 @@ class Stream GRPC_FINAL {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::mtk::Request, ::mtk::Reply>>(AsyncWriteRaw(context, cq, tag));
     }
   private:
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::mtk::ConnectReply>* AsyncConnectRaw(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::mtk::PingReply>* AsyncPingRaw(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientReaderWriterInterface< ::mtk::Request, ::mtk::Reply>* ReadRaw(::grpc::ClientContext* context) = 0;
     virtual ::grpc::ClientAsyncReaderWriterInterface< ::mtk::Request, ::mtk::Reply>* AsyncReadRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
     virtual ::grpc::ClientReaderWriterInterface< ::mtk::Request, ::mtk::Reply>* WriteRaw(::grpc::ClientContext* context) = 0;
@@ -62,14 +52,6 @@ class Stream GRPC_FINAL {
   class Stub GRPC_FINAL : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
-    ::grpc::Status Connect(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::mtk::ConnectReply* response) GRPC_OVERRIDE;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::mtk::ConnectReply>> AsyncConnect(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::mtk::ConnectReply>>(AsyncConnectRaw(context, request, cq));
-    }
-    ::grpc::Status Ping(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::mtk::PingReply* response) GRPC_OVERRIDE;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::mtk::PingReply>> AsyncPing(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::mtk::PingReply>>(AsyncPingRaw(context, request, cq));
-    }
     std::unique_ptr< ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>> Read(::grpc::ClientContext* context) {
       return std::unique_ptr< ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>>(ReadRaw(context));
     }
@@ -85,14 +67,10 @@ class Stream GRPC_FINAL {
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
-    ::grpc::ClientAsyncResponseReader< ::mtk::ConnectReply>* AsyncConnectRaw(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::grpc::CompletionQueue* cq) GRPC_OVERRIDE;
-    ::grpc::ClientAsyncResponseReader< ::mtk::PingReply>* AsyncPingRaw(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::grpc::CompletionQueue* cq) GRPC_OVERRIDE;
     ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* ReadRaw(::grpc::ClientContext* context) GRPC_OVERRIDE;
     ::grpc::ClientAsyncReaderWriter< ::mtk::Request, ::mtk::Reply>* AsyncReadRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) GRPC_OVERRIDE;
     ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* WriteRaw(::grpc::ClientContext* context) GRPC_OVERRIDE;
     ::grpc::ClientAsyncReaderWriter< ::mtk::Request, ::mtk::Reply>* AsyncWriteRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) GRPC_OVERRIDE;
-    const ::grpc::RpcMethod rpcmethod_Connect_;
-    const ::grpc::RpcMethod rpcmethod_Ping_;
     const ::grpc::RpcMethod rpcmethod_Read_;
     const ::grpc::RpcMethod rpcmethod_Write_;
   };
@@ -102,50 +80,8 @@ class Stream GRPC_FINAL {
    public:
     Service();
     virtual ~Service();
-    virtual ::grpc::Status Connect(::grpc::ServerContext* context, const ::mtk::ConnectRequest* request, ::mtk::ConnectReply* response);
-    virtual ::grpc::Status Ping(::grpc::ServerContext* context, const ::mtk::PingRequest* request, ::mtk::PingReply* response);
     virtual ::grpc::Status Read(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream);
     virtual ::grpc::Status Write(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream);
-  };
-  template <class BaseClass>
-  class WithAsyncMethod_Connect : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithAsyncMethod_Connect() {
-      ::grpc::Service::MarkMethodAsync(0);
-    }
-    ~WithAsyncMethod_Connect() GRPC_OVERRIDE {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status Connect(::grpc::ServerContext* context, const ::mtk::ConnectRequest* request, ::mtk::ConnectReply* response) GRPC_FINAL GRPC_OVERRIDE {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestConnect(::grpc::ServerContext* context, ::mtk::ConnectRequest* request, ::grpc::ServerAsyncResponseWriter< ::mtk::ConnectReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
-    }
-  };
-  template <class BaseClass>
-  class WithAsyncMethod_Ping : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithAsyncMethod_Ping() {
-      ::grpc::Service::MarkMethodAsync(1);
-    }
-    ~WithAsyncMethod_Ping() GRPC_OVERRIDE {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status Ping(::grpc::ServerContext* context, const ::mtk::PingRequest* request, ::mtk::PingReply* response) GRPC_FINAL GRPC_OVERRIDE {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestPing(::grpc::ServerContext* context, ::mtk::PingRequest* request, ::grpc::ServerAsyncResponseWriter< ::mtk::PingReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
-    }
   };
   template <class BaseClass>
   class WithAsyncMethod_Read : public BaseClass {
@@ -153,7 +89,7 @@ class Stream GRPC_FINAL {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithAsyncMethod_Read() {
-      ::grpc::Service::MarkMethodAsync(2);
+      ::grpc::Service::MarkMethodAsync(0);
     }
     ~WithAsyncMethod_Read() GRPC_OVERRIDE {
       BaseClassMustBeDerivedFromService(this);
@@ -164,7 +100,7 @@ class Stream GRPC_FINAL {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRead(::grpc::ServerContext* context, ::grpc::ServerAsyncReaderWriter< ::mtk::Reply, ::mtk::Request>* stream, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncBidiStreaming(2, context, stream, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncBidiStreaming(0, context, stream, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -173,7 +109,7 @@ class Stream GRPC_FINAL {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithAsyncMethod_Write() {
-      ::grpc::Service::MarkMethodAsync(3);
+      ::grpc::Service::MarkMethodAsync(1);
     }
     ~WithAsyncMethod_Write() GRPC_OVERRIDE {
       BaseClassMustBeDerivedFromService(this);
@@ -184,51 +120,17 @@ class Stream GRPC_FINAL {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestWrite(::grpc::ServerContext* context, ::grpc::ServerAsyncReaderWriter< ::mtk::Reply, ::mtk::Request>* stream, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncBidiStreaming(3, context, stream, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncBidiStreaming(1, context, stream, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_Connect<WithAsyncMethod_Ping<WithAsyncMethod_Read<WithAsyncMethod_Write<Service > > > > AsyncService;
-  template <class BaseClass>
-  class WithGenericMethod_Connect : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithGenericMethod_Connect() {
-      ::grpc::Service::MarkMethodGeneric(0);
-    }
-    ~WithGenericMethod_Connect() GRPC_OVERRIDE {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status Connect(::grpc::ServerContext* context, const ::mtk::ConnectRequest* request, ::mtk::ConnectReply* response) GRPC_FINAL GRPC_OVERRIDE {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-  };
-  template <class BaseClass>
-  class WithGenericMethod_Ping : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service *service) {}
-   public:
-    WithGenericMethod_Ping() {
-      ::grpc::Service::MarkMethodGeneric(1);
-    }
-    ~WithGenericMethod_Ping() GRPC_OVERRIDE {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status Ping(::grpc::ServerContext* context, const ::mtk::PingRequest* request, ::mtk::PingReply* response) GRPC_FINAL GRPC_OVERRIDE {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-  };
+  typedef WithAsyncMethod_Read<WithAsyncMethod_Write<Service > > AsyncService;
   template <class BaseClass>
   class WithGenericMethod_Read : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithGenericMethod_Read() {
-      ::grpc::Service::MarkMethodGeneric(2);
+      ::grpc::Service::MarkMethodGeneric(0);
     }
     ~WithGenericMethod_Read() GRPC_OVERRIDE {
       BaseClassMustBeDerivedFromService(this);
@@ -245,7 +147,7 @@ class Stream GRPC_FINAL {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithGenericMethod_Write() {
-      ::grpc::Service::MarkMethodGeneric(3);
+      ::grpc::Service::MarkMethodGeneric(1);
     }
     ~WithGenericMethod_Write() GRPC_OVERRIDE {
       BaseClassMustBeDerivedFromService(this);

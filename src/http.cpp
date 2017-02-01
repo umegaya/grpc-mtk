@@ -13,12 +13,15 @@ extern "C" {
 #include <memory.h>
 #include <stdlib.h>
 
+#include <thread>
+
 static gpr_mu *g_polling_mu;
 static grpc_pollset *g_pollset = nullptr;
 static grpc_exec_ctx g_exec_ctx = GRPC_EXEC_CTX_INIT;
 
-extern std::string root_cert;
-extern std::string cl_ca;
+static std::string g_root_cert;
+static std::thread g_webthr;
+static bool g_http_alive = false;
 
 namespace mtk {
 
@@ -76,10 +79,11 @@ namespace mtk {
     } RequestContext;
 
     static grpc_ssl_roots_override_result pemer(char **pem) {
-        *pem = (char *)root_cert.c_str();
+        *pem = (char *)g_root_cert.c_str();
         return GRPC_SSL_ROOTS_OVERRIDE_OK;
     }
-    void HttpClient::Init() {
+    void HttpClient::Init(const std::string &root_cert) {
+        g_root_cert = root_cert;
         if (g_pollset == nullptr) {
             g_pollset = (grpc_pollset *)malloc(grpc_pollset_size());
             grpc_pollset_init(g_pollset, &g_polling_mu);
@@ -127,6 +131,26 @@ namespace mtk {
                           uint32_t timeout_msec) {
         RequestContext *ctx = new RequestContext();
         ctx->Init(host, path, headers, n_headers, body, blen, cb, ssl, timeout_msec);
+    }
+    void HttpClient::Start(const std::string &root_cert) {
+        if (g_http_alive) {
+            return;
+        }
+        g_webthr = std::move(std::thread([&root_cert] {
+            g_http_alive = true;
+            HttpClient::Init(root_cert);
+            while (g_http_alive) {
+                HttpClient::Update();
+            }
+            HttpClient::Fin();
+        }));
+    }
+    void HttpClient::Stop() {
+        if (!g_http_alive) {
+            return;
+        }
+        g_http_alive = false;
+        g_webthr.join();
     }
 }
 

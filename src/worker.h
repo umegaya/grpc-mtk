@@ -2,6 +2,7 @@
 
 #include <grpc++/server_builder.h>
 #include <thread>
+#include "conn.h"
 
 namespace {
     using grpc::ServerCompletionQueue;
@@ -26,18 +27,17 @@ namespace mtk {
         virtual void *New() = 0;
         virtual void Process(bool ok, void *tag) = 0;
     };
-    template <class C>
     class Worker : public IWorker {
     public:
         Worker(Service *service, IHandler *handler, ServerBuilder &builder) :
             IWorker(service, handler, builder) {}
         virtual void *New() {
-            C *c = new C(service_, handler_, cq_.get());
+            IConn *c = handler_->NewConn(service_, handler_, cq_.get());
             c->Step();
             return c;
         }
         virtual void Process(bool ok, void *tag) {
-            C *c = static_cast<C*>(tag);
+            IConn *c = static_cast<IConn*>(tag);
             if (!ok) {
                 c->Destroy();
             } else {

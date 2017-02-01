@@ -16,8 +16,6 @@
 namespace mtk {
 
 static const char* Stream_method_names[] = {
-  "/mtk.Stream/Connect",
-  "/mtk.Stream/Ping",
   "/mtk.Stream/Read",
   "/mtk.Stream/Write",
 };
@@ -28,27 +26,9 @@ std::unique_ptr< Stream::Stub> Stream::NewStub(const std::shared_ptr< ::grpc::Ch
 }
 
 Stream::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
-  : channel_(channel), rpcmethod_Connect_(Stream_method_names[0], ::grpc::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_Ping_(Stream_method_names[1], ::grpc::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_Read_(Stream_method_names[2], ::grpc::RpcMethod::BIDI_STREAMING, channel)
-  , rpcmethod_Write_(Stream_method_names[3], ::grpc::RpcMethod::BIDI_STREAMING, channel)
+  : channel_(channel), rpcmethod_Read_(Stream_method_names[0], ::grpc::RpcMethod::BIDI_STREAMING, channel)
+  , rpcmethod_Write_(Stream_method_names[1], ::grpc::RpcMethod::BIDI_STREAMING, channel)
   {}
-
-::grpc::Status Stream::Stub::Connect(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::mtk::ConnectReply* response) {
-  return ::grpc::BlockingUnaryCall(channel_.get(), rpcmethod_Connect_, context, request, response);
-}
-
-::grpc::ClientAsyncResponseReader< ::mtk::ConnectReply>* Stream::Stub::AsyncConnectRaw(::grpc::ClientContext* context, const ::mtk::ConnectRequest& request, ::grpc::CompletionQueue* cq) {
-  return new ::grpc::ClientAsyncResponseReader< ::mtk::ConnectReply>(channel_.get(), cq, rpcmethod_Connect_, context, request);
-}
-
-::grpc::Status Stream::Stub::Ping(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::mtk::PingReply* response) {
-  return ::grpc::BlockingUnaryCall(channel_.get(), rpcmethod_Ping_, context, request, response);
-}
-
-::grpc::ClientAsyncResponseReader< ::mtk::PingReply>* Stream::Stub::AsyncPingRaw(::grpc::ClientContext* context, const ::mtk::PingRequest& request, ::grpc::CompletionQueue* cq) {
-  return new ::grpc::ClientAsyncResponseReader< ::mtk::PingReply>(channel_.get(), cq, rpcmethod_Ping_, context, request);
-}
 
 ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* Stream::Stub::ReadRaw(::grpc::ClientContext* context) {
   return new ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>(channel_.get(), rpcmethod_Read_, context);
@@ -70,41 +50,17 @@ Stream::Service::Service() {
   (void)Stream_method_names;
   AddMethod(new ::grpc::RpcServiceMethod(
       Stream_method_names[0],
-      ::grpc::RpcMethod::NORMAL_RPC,
-      new ::grpc::RpcMethodHandler< Stream::Service, ::mtk::ConnectRequest, ::mtk::ConnectReply>(
-          std::mem_fn(&Stream::Service::Connect), this)));
-  AddMethod(new ::grpc::RpcServiceMethod(
-      Stream_method_names[1],
-      ::grpc::RpcMethod::NORMAL_RPC,
-      new ::grpc::RpcMethodHandler< Stream::Service, ::mtk::PingRequest, ::mtk::PingReply>(
-          std::mem_fn(&Stream::Service::Ping), this)));
-  AddMethod(new ::grpc::RpcServiceMethod(
-      Stream_method_names[2],
       ::grpc::RpcMethod::BIDI_STREAMING,
       new ::grpc::BidiStreamingHandler< Stream::Service, ::mtk::Request, ::mtk::Reply>(
           std::mem_fn(&Stream::Service::Read), this)));
   AddMethod(new ::grpc::RpcServiceMethod(
-      Stream_method_names[3],
+      Stream_method_names[1],
       ::grpc::RpcMethod::BIDI_STREAMING,
       new ::grpc::BidiStreamingHandler< Stream::Service, ::mtk::Request, ::mtk::Reply>(
           std::mem_fn(&Stream::Service::Write), this)));
 }
 
 Stream::Service::~Service() {
-}
-
-::grpc::Status Stream::Service::Connect(::grpc::ServerContext* context, const ::mtk::ConnectRequest* request, ::mtk::ConnectReply* response) {
-  (void) context;
-  (void) request;
-  (void) response;
-  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-}
-
-::grpc::Status Stream::Service::Ping(::grpc::ServerContext* context, const ::mtk::PingRequest* request, ::mtk::PingReply* response) {
-  (void) context;
-  (void) request;
-  (void) response;
-  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
 ::grpc::Status Stream::Service::Read(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) {

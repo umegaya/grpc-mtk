@@ -4,22 +4,30 @@
 #include <mutex>
 #include "codec.h"
 #include "atomic_compat.h"
+#include "mtk.grpc.pb.h"
 
 namespace {
     using grpc::ServerAsyncReaderWriter;
     using grpc::ServerCompletionQueue;
     using grpc::Status;
+    using grpc::ServerContext;
     using Service = ::mtk::Stream::AsyncService;
 }
 
 namespace mtk {
+    class IConn {
+    public:
+        virtual void Step() = 0;
+        virtual void Destroy() = 0;
+    };
     class IHandler {
     public:
-        virtual void Handle() = 0;
+        virtual grpc::Status Handle(IConn *c, Request &req) = 0;
+        virtual IConn *NewConn(Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
     };
-    typedef uint64_t ObjectId;
+    typedef uint64_t ConnectionId;
     typedef uint32_t MessageType;
-    class ConnBase {
+    class SVStream {
     public:
         enum StepId {
             INIT,
@@ -31,24 +39,24 @@ namespace mtk {
             CLOSE,
         };
     protected:
-        Service* service_;
-        Handler* handler_;
-        ServerCompletionQueue* cq_;
+        Service *service_;
+        IHandler *handler_;
+        ServerCompletionQueue *cq_;
         ServerContext ctx_;
         ServerAsyncReaderWriter<Reply, Request> io_;
         Request req_;
         StepId step_;
         void *tag_;
-        ObjectId owner_uid_;
+        ConnectionId owner_uid_;
     public:
-        ConnBase(Service* service, Handler *handler, ServerCompletionQueue* cq, void *tag) :
+        SVStream(Service *service, IHandler *handler, ServerCompletionQueue *cq, void *tag) :
         service_(service), handler_(handler), cq_(cq), ctx_(), io_(&ctx_), req_(),
         step_(StepId::INIT), tag_(tag), owner_uid_(0) {}
-        virtual ~ConnBase() {}
+        virtual ~SVStream() {}
         virtual void Step() {}
         grpc::string RemoteAddress() const { return ctx_.peer(); }
-        void SetId(ObjectId uid) { owner_uid_ = uid; }
-        ObjectId Id() const { return owner_uid_; }
+        void SetId(ConnectionId uid) { owner_uid_ = uid; }
+        ConnectionId Id() const { return owner_uid_; }
         void InternalClose() {
             step_ = StepId::CLOSE;
         }
@@ -61,7 +69,7 @@ namespace mtk {
         template <class W>
         bool SetupPayload(Reply &rep, const W &w) {
             uint8_t buffer[w.ByteSize()];
-            if (CPbCodec::Pack(w, buffer, w.ByteSize()) < 0) {
+            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
                 return false;
             }
             rep.set_payload(buffer, w.ByteSize());
@@ -95,19 +103,19 @@ namespace mtk {
             //g_logger->error("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), spdlog_ex::Formatter(fmt, args...));
         }
     };
-    template <> bool ConnBase::SetupPayload<std::string>(Reply &rep, const std::string &w);
-    class WConnBase : public ConnBase {
+    template <> bool SVStream::SetupPayload<std::string>(Reply &rep, const std::string &w);
+    class WSVStream : public SVStream {
     private:
         std::mutex mtx_; //TODO: if mtx overhead is matter, need to do some trick with atomic primitives
         //but on recent linux this does not seem big issue any more (http://stackoverflow.com/questions/1277627/overhead-of-pthread-mutexes)
         bool is_sending_;
         std::queue<Reply*> queue_;
     public:
-        WConnBase(Service* service, Handler *handler, ServerCompletionQueue* cq, void *tag) :
-            ConnBase(service, handler, cq, tag), mtx_(), is_sending_(false), queue_() {}
-        virtual ~WConnBase() {
+        WSVStream(Service *service, IHandler *handler, ServerCompletionQueue *cq, void *tag) :
+            SVStream(service, handler, cq, tag), mtx_(), is_sending_(false), queue_() {}
+        virtual ~WSVStream() {
             Cleanup();
-            TRACE("WConnBase destroy %p(%llu)\n", this, Id());
+            LogInfo("WSVStream destroy {}({}})", this, Id());
         }
         void Step();
 
@@ -118,7 +126,7 @@ namespace mtk {
                 Send(r);
             }
         }
-        template <class W> void Reply(uint32_t msgid, const W &w) {
+        template <class W> void Rep(uint32_t msgid, const W &w) {
             if (step_ != StepId::CLOSE) {
                 Reply *r = new Reply(); //todo: get r from cache
                 if (!SetupReply(*r, msgid, w)) { return; }
@@ -145,7 +153,7 @@ namespace mtk {
         }
     protected:
         friend class ServiceImpl;
-        friend class RConnBase;
+        friend class RSVStream;
         void Terminate();
         void Cleanup() {
             while (queue_.size() > 0) {
@@ -156,22 +164,22 @@ namespace mtk {
             }
         }
     };
-    class RConnBase : public ConnBase {
+    class RSVStream : public SVStream {
     private:
-        std::shared_ptr<WConnBase> sender_;
+        std::shared_ptr<WSVStream> sender_;
         ATOMIC_INT closed_;
     public:
-        RConnBase(Service* service, Handler *handler, ServerCompletionQueue* cq, void *tag) :
-            ConnBase(service, handler, cq, tag), sender_(), closed_(0) {}
-        virtual ~RConnBase() {
+        RSVStream(Service *service, IHandler *handler, ServerCompletionQueue *cq, void *tag) :
+            SVStream(service, handler, cq, tag), sender_(), closed_(0) {}
+        virtual ~RSVStream() {
             Cleanup();
-            TRACE("RConnBase destroy %p(%llu)\n", this, Id());
+            LogInfo("RSVStream destroy {}({}})\n", this, Id());
         }
-        void SetSender(std::shared_ptr<WConnBase> &c) { sender_ = c; }
+        void SetStream(std::shared_ptr<WSVStream> &c) { sender_ = c; }
         virtual void Step();
-        template <class W> void Reply(uint32_t msgid, const W &w) {
+        template <class W> void Rep(uint32_t msgid, const W &w) {
             if (sender_ != nullptr) {
-                sender_->Reply(msgid, w);
+                sender_->Rep(msgid, w);
             } else { //only 1 thread do this. so no need to lock.
                 Reply r;
                 SetupReply(r, msgid, w);
@@ -205,46 +213,46 @@ namespace mtk {
         }
     };
     template <class T>
-    class TRConn : public RConnBase {
-        T cache_;
+    class TRSVStream : public RSVStream {
+        T context_;
     public:
-        TRConn(Service* service, Handler *handler, ServerCompletionQueue* cq, void *tag) :
-            RConnBase(service, handler, cq, tag) {}
-        virtual ~TRConn() {}
-        T &Cache() { return cache_; }
-        const T &Cache() const { return cache_; }
+        TRSVStream(Service *service, IHandler *handler, ServerCompletionQueue *cq, void *tag) :
+            RSVStream(service, handler, cq, tag) {}
+        virtual ~TRSVStream() {}
+        T &Context() { return context_; }
+        const T &Context() const { return context_; }
     };
-    template <class C>
-    class ConnContainer {
+    template <class S>
+    class Conn : IConn {
     public:
-        typedef std::map<ObjectId, ConnContainer*> Map;
-        typedef std::shared_ptr<C> Sender;
+        typedef std::map<ConnectionId, Conn*> Map;
+        typedef std::shared_ptr<S> Stream;
     protected:
-        Sender sender_;
+        Stream stream_;
         static Map cmap_;
-        static Sender default_;
+        static Stream default_;
         static std::mutex cmap_mtx_;
     public:
-        ConnContainer(Service* service, Handler *handler, ServerCompletionQueue* cq) :
-            sender_(new C(service, handler, cq, this)) {}
-        virtual ~ConnContainer() {}
-        inline ObjectId Id() { return sender_->Id(); }
-        inline std::shared_ptr<C> &GetSender() { return sender_; }
-        template <class W> void Reply(uint32_t msgid, const W &w) { sender_->Reply(msgid, w); }
-        template <class W> void Notify(MessageType type, const W &w) { sender_->Notify(type, w); }
-        void Throw(uint32_t msgid, Error *e) { sender_->Throw(msgid, e); }
-        void InternalClose() { sender_->InternalClose(); }
-        void Close() { sender_->Close(); }
-        bool IsClosed() { return sender_->IsClosed(); }
-        void Step() { sender_->Step(); }
-        grpc::string RemoteAddress() { return sender_->RemoteAddress(); }
+        Conn(Service* service, IHandler *handler, ServerCompletionQueue* cq) :
+            stream_(new S(service, handler, cq, this)) {}
+        virtual ~Conn() {}
+        inline ConnectionId Id() { return stream_->Id(); }
+        inline std::shared_ptr<S> &GetStream() { return stream_; }
+        template <class W> void Rep(uint32_t msgid, const W &w) { stream_->Rep(msgid, w); }
+        template <class W> void Notify(MessageType type, const W &w) { stream_->Notify(type, w); }
+        void Throw(uint32_t msgid, Error *e) { stream_->Throw(msgid, e); }
+        void InternalClose() { stream_->InternalClose(); }
+        void Close() { stream_->Close(); }
+        bool IsClosed() { return stream_->IsClosed(); }
+        void Step() { stream_->Step(); }
+        grpc::string RemoteAddress() { return stream_->RemoteAddress(); }
     public:
-        static Sender &Get(ObjectId uid) {
+        static Stream &Get(ConnectionId uid) {
             cmap_mtx_.lock();
             auto it = cmap_.find(uid);
             if (it != cmap_.end()) {
                 cmap_mtx_.unlock();
-                return (*it).second->GetSender();
+                return (*it).second->GetStream();
             }
             cmap_mtx_.unlock();
             return default_;
@@ -256,21 +264,21 @@ namespace mtk {
         }
     protected:
         void Finish() {
-            sender_->Finish();
+            stream_->Finish();
         }
-        void Register(ObjectId uid) {
+        void Register(ConnectionId uid) {
             cmap_mtx_.lock();
             cmap_[uid] = this;
-            sender_->SetId(uid);
+            stream_->SetId(uid);
             //LogInfo("ev:register to map");
             cmap_mtx_.unlock();
         }
         void Unregister() {
             cmap_mtx_.lock();
-            auto it = cmap_.find(sender_->Id());
+            auto it = cmap_.find(stream_->Id());
             if (it != cmap_.end()) {
                 if (it->second == this) {
-                    cmap_.erase(sender_->Id());
+                    cmap_.erase(stream_->Id());
                 }
             }
             //LogInfo("ev:unregister to map");
@@ -278,16 +286,16 @@ namespace mtk {
         }
     public:
         template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
-            sender_->LogDebug(fmt, args...);
+            stream_->LogDebug(fmt, args...);
         }
         template <typename... Args> void LogInfo(const char* fmt, const Args&... args) {
-            sender_->LogInfo(fmt, args...);
+            stream_->LogInfo(fmt, args...);
         }
         template <typename... Args> void LogError(const char* fmt, const Args&... args) {
-            sender_->LogError(fmt, args...);
+            stream_->LogError(fmt, args...);
         }
     };
-    template<typename T> typename ConnContainer<T>::Map ConnContainer<T>::cmap_;
-    template<typename T> typename ConnContainer<T>::Sender ConnContainer<T>::default_;
-    template<typename T> std::mutex ConnContainer<T>::cmap_mtx_;
+    template<typename T> typename Conn<T>::Map Conn<T>::cmap_;
+    template<typename T> typename Conn<T>::Stream Conn<T>::default_;
+    template<typename T> std::mutex Conn<T>::cmap_mtx_;
 }

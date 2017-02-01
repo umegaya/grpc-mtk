@@ -3,16 +3,22 @@
 namespace mtk {
 	void StreamDelegate::Connect(std::function<void(Error *)> finished) {
 		SystemPayload::Connect payload;
-	    payload.set_id(delegate_->Id());
-	    payload.set_payload(clconf_.connect_payload, clconf_.connect_payload_len)
-	    Call(Request::Kind::Connect, payload, [stream_, &clconf_](Reply *rep, Error *err) {
-	        if (rep != nullptr) {
-	            stream_->status_ = NetworkStatus::CONNECT;
-	            clconf_.login_cb(0, rep->payload().c_str(), rep->payload().length());
+	    payload.set_id(Id());
+	    payload.set_payload(clconf_.connect_payload, clconf_.connect_payload_len);
+	    Call<SystemPayload::Connect>(Request::Connect, payload, [this, finished](mtk_result_t r, const char *p, size_t len) {
+	        if (r >= 0) {
+	            status_ = NetworkStatus::CONNECT;
+	            clconf_.login_cb(r, p, len);
+	            finished(nullptr);
 	        } else {
-	            stream_->replys_.enqueue(DISCONNECT_EVENT);
-	            clconf_.login_cb(err->error_code(), err->payload().c_str(), err->payload().length());
+	            replys_.enqueue(DISCONNECT_EVENT);
+	            clconf_.login_cb(r, p, len);
+	            Error e;
+	            if (Codec::Unpack((uint8_t *)p, len, e) < 0) {
+		        	e.set_error_code(MTK_APPLICATION_ERROR);
+		        }
+		        finished(&e);
 	        }
-	    });
+	    }, WRITE);
 	}
 }

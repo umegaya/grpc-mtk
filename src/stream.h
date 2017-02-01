@@ -3,7 +3,7 @@
 #include "mtk.h"
 #include "proto/src/mtk.grpc.pb.h"
 #include "codec.h"
-#include "timespace.h"
+#include "timespec.h"
 #include <MoodyCamel/concurrentqueue.h>
 #include <thread>
 #include <mutex>
@@ -29,10 +29,11 @@ namespace {
 
 namespace grpc {
     class SslCredentialsOptions;
+    class SslServerCredentialsOptions;
 }
 
-class IDuplexStreamDelegate;
 namespace mtk {
+    class IDuplexStreamDelegate;
     class DuplexStream {
     public:
         enum NetworkStatus {
@@ -44,18 +45,18 @@ namespace mtk {
             CONNECT,
         };
         enum StreamIndex {
-            REQUEST,
-            NOTIFY,
+            WRITE,
+            READ,
             NUM_STREAM,
         };
         static Reply *DISCONNECT_EVENT;
         static Reply *ESTABLISHED_EVENT;
         static Request *ESTABLISH_REQUEST;
-        static const timespec_t TIMEOUT_DURATION = time::sec(30); //30sec
-        static const Error *TIMEOUT_ERROR;
-        typedef Error Error;
+        static constexpr timespec_t TIMEOUT_DURATION = time::sec(30); //30sec
+        static Error *TIMEOUT_ERROR;
         typedef Stream::Stub Stub;
         typedef grpc::SslCredentialsOptions CredOptions;
+        typedef grpc::SslServerCredentialsOptions ServerCredOptions;
         typedef mtk_addr_t CredSettings;
         struct SEntry {
             typedef std::function<void (mtk_result_t, const char *, size_t)> Callback;
@@ -64,9 +65,9 @@ namespace mtk {
             SEntry(Callback cb) : cb_(cb) { start_at_ = time::clock(); }
             void operator () (const Reply *rep, const Error *err) {
                 if (rep != nullptr) {
-                    cb(rep->type(), rep->payload().c_str(), rep->payload().length());
+                    cb_(rep->type(), rep->payload().c_str(), rep->payload().length());
                 } else {
-                    cb(err->error_code(), err->payload().c_str(), err->payload().length());                
+                    cb_(err->error_code(), err->payload().c_str(), err->payload().length());                
                 }
             }
         };
@@ -86,7 +87,7 @@ namespace mtk {
         Reply *reply_work_[NUM_STREAM];
         CompletionQueue cq_;
         std::thread thr_;
-        timespace_t last_checked_, reconnect_when_;
+        timespec_t last_checked_, reconnect_when_;
         ATOMIC_INT msgid_seed_;
         int reconnect_attempt_;
         uint32_t connect_sequence_num_;
@@ -113,8 +114,9 @@ namespace mtk {
         void HandleEvent(bool ok, void *tag);
         //credential
         static bool CreateCred(CredSettings &settings, CredOptions &options);
+        static bool CreateCred(CredSettings &settings, ServerCredOptions &options);
         //handshakers
-        void Watch();
+        void StartRead();
         inline bool IsConnected() const { return status_ == CONNECT; }
         inline int32_t NewMsgId() {
             while (true) {
@@ -123,18 +125,23 @@ namespace mtk {
                 if (desired >= 2000000000) {
                     desired = 1;
                 }
+#if defined(ANDROID)
+                ASSERT(false);
+                return desired;
+#else
                 if (atomic_compare_exchange_weak(&msgid_seed_, &expect, desired)) {
                     return desired;
                 }
+#endif
             }
             ASSERT(false);
             return 0;
         }
         inline bool IsConnecting() const { return status_ >= CONNECTING && status_ <= INITIALIZING; }
-        timespace_t ReconnectWaitUsec();
-        static timespace_t CalcReconnectWaitDuration(int n_attempt);
-        static timespace_t CalcJitter(timespace_t base);
-        static timespace_t Tick();
+        timespec_t ReconnectWaitUsec();
+        static timespec_t CalcReconnectWaitDuration(int n_attempt);
+        static timespec_t CalcJitter(timespec_t base);
+        static timespec_t Tick();
         void InitInternalCallback();
         void DrainQueue();
         //stream open/close
@@ -152,20 +159,20 @@ namespace mtk {
         void Open() {
             Close();
             connect_sequence_num_++;
-            context_[REQUEST] = new ClientContext();
-            context_[NOTIFY] = new ClientContext();
-            SetDeadline(*context_[REQUEST], UINT32_MAX);
-            SetDeadline(*context_[NOTIFY], UINT32_MAX);
-            conn_[REQUEST] = stub_->AsyncConnect(context_[REQUEST], &cq_, GenerateReadTag(connect_sequence_num_, REQUEST));
-            conn_[NOTIFY] = stub_->AsyncWatch(context_[NOTIFY], &cq_, GenerateReadTag(connect_sequence_num_, NOTIFY));
+            context_[WRITE] = new ClientContext();
+            context_[READ] = new ClientContext();
+            SetDeadline(*context_[WRITE], UINT32_MAX);
+            SetDeadline(*context_[READ], UINT32_MAX);
+            conn_[WRITE] = stub_->AsyncWrite(context_[WRITE], &cq_, GenerateReadTag(connect_sequence_num_, WRITE));
+            conn_[READ] = stub_->AsyncRead(context_[READ], &cq_, GenerateReadTag(connect_sequence_num_, READ));
         }
         //call rpc via stream. not thread safe
         void Call(uint32_t type,
                   const char *buff, size_t len,
                   SEntry::Callback cb,
                   uint32_t timeout_msec = 30000,
-                  StreamIndex sidx = REQUEST, 
-                  Request::Kind kind = Request::Kind::Normal) {
+                  StreamIndex sidx = WRITE, 
+                  Request::Kind kind = Request::Normal) {
             if (status_ < NetworkStatus::ESTABLISHED) {
                 ASSERT(false);
                 return;
@@ -184,8 +191,8 @@ namespace mtk {
         }
         template <class PAYLOAD>
         void Call(Request::Kind kind, const PAYLOAD &spl, SEntry::Callback cb, StreamIndex sidx) {
-            uint8_t buffer[spl.ByteSize()];
-            int len = Codec::Pack(spl, buffer, spl.ByteSize());
+            char buffer[spl.ByteSize()];
+            int len = Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize());
             if (len < 0) {
                 ASSERT(false);
                 return;
@@ -193,10 +200,6 @@ namespace mtk {
             Call(0, buffer, spl.ByteSize(), cb, UINT32_MAX, sidx, kind);
         }
     protected:
-        template <class REQ>
-        void Send(uint32_t msgid, REQ &req) {
-
-        }
         static inline void *GenerateWriteTag(uint32_t msgid, StreamIndex idx) {
             return reinterpret_cast<void *>((msgid << 8) + (uint8_t)(idx << 1) + 1);
         }
@@ -217,6 +220,9 @@ namespace mtk {
             return (uint32_t)(((uintptr_t)tag) >> 8);
         }
         static void NopInternalCallback(::google::protobuf::Message &);
+        //about gpr_timespec
+        static void SetDeadline(ClientContext &ctx, uint32_t duration_msec);
+        static gpr_timespec GRPCTime(uint32_t duration_msec);
     };
 
     class IDuplexStreamDelegate {

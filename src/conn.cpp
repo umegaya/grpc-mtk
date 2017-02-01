@@ -1,25 +1,32 @@
-#include "common.h"
 #include "conn.h"
+#if !defined(ASSERT)
+#if defined(DEBUG)
+#define ASSERT(...) assert(__VA_ARGS__)
+#else
+#define ASSERT(...)
+#endif
+#endif
 
 namespace mtk {
     template <>
-    bool ConnBase::SetupPayload<std::string>(Reply &rep, const std::string &w) {
+    bool SVStream::SetupPayload<std::string>(Reply &rep, const std::string &w) {
         rep.set_payload(w.c_str(), w.length());
         return true;
     }
-    void RConnBase::Step() {
+    void RSVStream::Step() {
         switch(step_) {
             case StepId::INIT:
                 step_ = StepId::ACCEPT;
-                service_->RequestConnect(&ctx_, &io_, cq_, cq_, tag_);
+                //server read stream read from write stream of client
+                service_->RequestWrite(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
-                (new RConn(service_, handler_, cq_))->Step(); //create next waiter
+                handler_->NewConn(service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::LOGIN;
                 io_.Read(&req_, tag_);
                 break;
             case StepId::LOGIN: {
-                Status st = handler_->LoginHandle((RConn *)tag_, req_);
+                Status st = handler_->Handle((IConn *)tag_, req_);
                 if (step_ == StepId::CLOSE) {
                     this->LogError("ev:app closed by Login failure");
                     Finish();
@@ -40,7 +47,7 @@ namespace mtk {
                     Finish();
                     break;
                 }
-                Status st = handler_->Handle((RConn *)tag_, req_);
+                Status st = handler_->Handle((IConn *)tag_, req_);
                 if (st.ok() && step_ != StepId::CLOSE) {
                     io_.Read(&req_, tag_);
                 } else {
@@ -49,29 +56,29 @@ namespace mtk {
                 }
             } break;
             case StepId::CLOSE: {
-                ((RConn *)tag_)->Destroy();
+                ((IConn *)tag_)->Destroy();
             } break;
             default:
                 this->LogDebug("ev:unknown step,step:{}", step_);
                 step_ = StepId::CLOSE;
                 Finish();
                 break;
-                
         }
     }
-    void WConnBase::Step() {
+    void WSVStream::Step() {
         switch(step_) {
             case StepId::INIT:
                 step_ = StepId::ACCEPT;
-                service_->RequestWatch(&ctx_, &io_, cq_, cq_, tag_);
+                //server write stream write to read stream of client
+                service_->RequestRead(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
-                (new WConn(service_, handler_, cq_))->Step(); //create next waiter
+                handler_->NewConn(service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::READ;
                 io_.Read(&req_, tag_);
                 break;
             case StepId::READ: {
-                Status st = handler_->NotifyHandle((WConn *)tag_, req_);
+                Status st = handler_->Handle((IConn *)tag_, req_);
                 if (st.ok()) {
                     step_ = StepId::WRITE;
                 }
@@ -92,14 +99,14 @@ namespace mtk {
                     queue_.pop();
                 } else {
                     //turn off sending flag so that next Send call kick io.Write again
-                    //otherwise, WConnBase never processed by this worker thread.
+                    //otherwise, WSVStream never processed by this worker thread.
                     is_sending_ = false;
                 }
                 mtx_.unlock();
                 break;
             }
             case StepId::CLOSE: {
-                ((WConn *)tag_)->Destroy();
+                ((IConn *)tag_)->Destroy();
             } break;
             default:
                 this->LogDebug("ev:unknown step,step:{}", step_);
@@ -107,7 +114,7 @@ namespace mtk {
                 break;
         }
     }
-    void WConnBase::Terminate() {
+    void WSVStream::Terminate() {
         mtx_.lock();
         //indicate destroying WConn
         if (step_ == StepId::WRITE) {

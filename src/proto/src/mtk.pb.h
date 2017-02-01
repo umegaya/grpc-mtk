@@ -26,6 +26,7 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
+#include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 
@@ -36,391 +37,36 @@ void protobuf_AddDesc_mtk_2eproto();
 void protobuf_AssignDesc_mtk_2eproto();
 void protobuf_ShutdownFile_mtk_2eproto();
 
-class ConnectReply;
-class ConnectRequest;
 class Error;
-class PingReply;
-class PingRequest;
 class Reply;
 class Request;
+class SystemPayload;
+class SystemPayload_Connect;
+class SystemPayload_Ping;
 
+enum Request_Kind {
+  Request_Kind_Normal = 0,
+  Request_Kind_Ping = 1,
+  Request_Kind_Connect = 2,
+  Request_Kind_Request_Kind_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  Request_Kind_Request_Kind_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool Request_Kind_IsValid(int value);
+const Request_Kind Request_Kind_Kind_MIN = Request_Kind_Normal;
+const Request_Kind Request_Kind_Kind_MAX = Request_Kind_Connect;
+const int Request_Kind_Kind_ARRAYSIZE = Request_Kind_Kind_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* Request_Kind_descriptor();
+inline const ::std::string& Request_Kind_Name(Request_Kind value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    Request_Kind_descriptor(), value);
+}
+inline bool Request_Kind_Parse(
+    const ::std::string& name, Request_Kind* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<Request_Kind>(
+    Request_Kind_descriptor(), name, value);
+}
 // ===================================================================
-
-class ConnectRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.ConnectRequest) */ {
- public:
-  ConnectRequest();
-  virtual ~ConnectRequest();
-
-  ConnectRequest(const ConnectRequest& from);
-
-  inline ConnectRequest& operator=(const ConnectRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const ConnectRequest& default_instance();
-
-  void Swap(ConnectRequest* other);
-
-  // implements Message ----------------------------------------------
-
-  inline ConnectRequest* New() const { return New(NULL); }
-
-  ConnectRequest* New(::google::protobuf::Arena* arena) const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const ConnectRequest& from);
-  void MergeFrom(const ConnectRequest& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(ConnectRequest* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // optional uint64 id = 1;
-  void clear_id();
-  static const int kIdFieldNumber = 1;
-  ::google::protobuf::uint64 id() const;
-  void set_id(::google::protobuf::uint64 value);
-
-  // optional bytes data = 3;
-  void clear_data();
-  static const int kDataFieldNumber = 3;
-  const ::std::string& data() const;
-  void set_data(const ::std::string& value);
-  void set_data(const char* value);
-  void set_data(const void* value, size_t size);
-  ::std::string* mutable_data();
-  ::std::string* release_data();
-  void set_allocated_data(::std::string* data);
-
-  // @@protoc_insertion_point(class_scope:mtk.ConnectRequest)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  bool _is_default_instance_;
-  ::google::protobuf::uint64 id_;
-  ::google::protobuf::internal::ArenaStringPtr data_;
-  mutable int _cached_size_;
-  friend void  protobuf_AddDesc_mtk_2eproto();
-  friend void protobuf_AssignDesc_mtk_2eproto();
-  friend void protobuf_ShutdownFile_mtk_2eproto();
-
-  void InitAsDefaultInstance();
-  static ConnectRequest* default_instance_;
-};
-// -------------------------------------------------------------------
-
-class ConnectReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.ConnectReply) */ {
- public:
-  ConnectReply();
-  virtual ~ConnectReply();
-
-  ConnectReply(const ConnectReply& from);
-
-  inline ConnectReply& operator=(const ConnectReply& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const ConnectReply& default_instance();
-
-  void Swap(ConnectReply* other);
-
-  // implements Message ----------------------------------------------
-
-  inline ConnectReply* New() const { return New(NULL); }
-
-  ConnectReply* New(::google::protobuf::Arena* arena) const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const ConnectReply& from);
-  void MergeFrom(const ConnectReply& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(ConnectReply* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // optional uint64 id = 1;
-  void clear_id();
-  static const int kIdFieldNumber = 1;
-  ::google::protobuf::uint64 id() const;
-  void set_id(::google::protobuf::uint64 value);
-
-  // optional bytes data = 3;
-  void clear_data();
-  static const int kDataFieldNumber = 3;
-  const ::std::string& data() const;
-  void set_data(const ::std::string& value);
-  void set_data(const char* value);
-  void set_data(const void* value, size_t size);
-  ::std::string* mutable_data();
-  ::std::string* release_data();
-  void set_allocated_data(::std::string* data);
-
-  // @@protoc_insertion_point(class_scope:mtk.ConnectReply)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  bool _is_default_instance_;
-  ::google::protobuf::uint64 id_;
-  ::google::protobuf::internal::ArenaStringPtr data_;
-  mutable int _cached_size_;
-  friend void  protobuf_AddDesc_mtk_2eproto();
-  friend void protobuf_AssignDesc_mtk_2eproto();
-  friend void protobuf_ShutdownFile_mtk_2eproto();
-
-  void InitAsDefaultInstance();
-  static ConnectReply* default_instance_;
-};
-// -------------------------------------------------------------------
-
-class PingRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.PingRequest) */ {
- public:
-  PingRequest();
-  virtual ~PingRequest();
-
-  PingRequest(const PingRequest& from);
-
-  inline PingRequest& operator=(const PingRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const PingRequest& default_instance();
-
-  void Swap(PingRequest* other);
-
-  // implements Message ----------------------------------------------
-
-  inline PingRequest* New() const { return New(NULL); }
-
-  PingRequest* New(::google::protobuf::Arena* arena) const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const PingRequest& from);
-  void MergeFrom(const PingRequest& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(PingRequest* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // optional uint64 now = 1;
-  void clear_now();
-  static const int kNowFieldNumber = 1;
-  ::google::protobuf::uint64 now() const;
-  void set_now(::google::protobuf::uint64 value);
-
-  // optional bytes data = 2;
-  void clear_data();
-  static const int kDataFieldNumber = 2;
-  const ::std::string& data() const;
-  void set_data(const ::std::string& value);
-  void set_data(const char* value);
-  void set_data(const void* value, size_t size);
-  ::std::string* mutable_data();
-  ::std::string* release_data();
-  void set_allocated_data(::std::string* data);
-
-  // @@protoc_insertion_point(class_scope:mtk.PingRequest)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  bool _is_default_instance_;
-  ::google::protobuf::uint64 now_;
-  ::google::protobuf::internal::ArenaStringPtr data_;
-  mutable int _cached_size_;
-  friend void  protobuf_AddDesc_mtk_2eproto();
-  friend void protobuf_AssignDesc_mtk_2eproto();
-  friend void protobuf_ShutdownFile_mtk_2eproto();
-
-  void InitAsDefaultInstance();
-  static PingRequest* default_instance_;
-};
-// -------------------------------------------------------------------
-
-class PingReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.PingReply) */ {
- public:
-  PingReply();
-  virtual ~PingReply();
-
-  PingReply(const PingReply& from);
-
-  inline PingReply& operator=(const PingReply& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const PingReply& default_instance();
-
-  void Swap(PingReply* other);
-
-  // implements Message ----------------------------------------------
-
-  inline PingReply* New() const { return New(NULL); }
-
-  PingReply* New(::google::protobuf::Arena* arena) const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const PingReply& from);
-  void MergeFrom(const PingReply& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(PingReply* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // optional uint64 now = 1;
-  void clear_now();
-  static const int kNowFieldNumber = 1;
-  ::google::protobuf::uint64 now() const;
-  void set_now(::google::protobuf::uint64 value);
-
-  // optional bytes data = 2;
-  void clear_data();
-  static const int kDataFieldNumber = 2;
-  const ::std::string& data() const;
-  void set_data(const ::std::string& value);
-  void set_data(const char* value);
-  void set_data(const void* value, size_t size);
-  ::std::string* mutable_data();
-  ::std::string* release_data();
-  void set_allocated_data(::std::string* data);
-
-  // @@protoc_insertion_point(class_scope:mtk.PingReply)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  bool _is_default_instance_;
-  ::google::protobuf::uint64 now_;
-  ::google::protobuf::internal::ArenaStringPtr data_;
-  mutable int _cached_size_;
-  friend void  protobuf_AddDesc_mtk_2eproto();
-  friend void protobuf_AssignDesc_mtk_2eproto();
-  friend void protobuf_ShutdownFile_mtk_2eproto();
-
-  void InitAsDefaultInstance();
-  static PingReply* default_instance_;
-};
-// -------------------------------------------------------------------
 
 class Error : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.Error) */ {
  public:
@@ -488,35 +134,23 @@ class Error : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
   ::google::protobuf::int32 error_code() const;
   void set_error_code(::google::protobuf::int32 value);
 
-  // optional string message = 2;
-  void clear_message();
-  static const int kMessageFieldNumber = 2;
-  const ::std::string& message() const;
-  void set_message(const ::std::string& value);
-  void set_message(const char* value);
-  void set_message(const char* value, size_t size);
-  ::std::string* mutable_message();
-  ::std::string* release_message();
-  void set_allocated_message(::std::string* message);
-
-  // optional bytes data = 3;
-  void clear_data();
-  static const int kDataFieldNumber = 3;
-  const ::std::string& data() const;
-  void set_data(const ::std::string& value);
-  void set_data(const char* value);
-  void set_data(const void* value, size_t size);
-  ::std::string* mutable_data();
-  ::std::string* release_data();
-  void set_allocated_data(::std::string* data);
+  // optional bytes payload = 2;
+  void clear_payload();
+  static const int kPayloadFieldNumber = 2;
+  const ::std::string& payload() const;
+  void set_payload(const ::std::string& value);
+  void set_payload(const char* value);
+  void set_payload(const void* value, size_t size);
+  ::std::string* mutable_payload();
+  ::std::string* release_payload();
+  void set_allocated_payload(::std::string* payload);
 
   // @@protoc_insertion_point(class_scope:mtk.Error)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   bool _is_default_instance_;
-  ::google::protobuf::internal::ArenaStringPtr message_;
-  ::google::protobuf::internal::ArenaStringPtr data_;
+  ::google::protobuf::internal::ArenaStringPtr payload_;
   ::google::protobuf::int32 error_code_;
   mutable int _cached_size_;
   friend void  protobuf_AddDesc_mtk_2eproto();
@@ -525,6 +159,272 @@ class Error : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
 
   void InitAsDefaultInstance();
   static Error* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class SystemPayload_Connect : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload.Connect) */ {
+ public:
+  SystemPayload_Connect();
+  virtual ~SystemPayload_Connect();
+
+  SystemPayload_Connect(const SystemPayload_Connect& from);
+
+  inline SystemPayload_Connect& operator=(const SystemPayload_Connect& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SystemPayload_Connect& default_instance();
+
+  void Swap(SystemPayload_Connect* other);
+
+  // implements Message ----------------------------------------------
+
+  inline SystemPayload_Connect* New() const { return New(NULL); }
+
+  SystemPayload_Connect* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SystemPayload_Connect& from);
+  void MergeFrom(const SystemPayload_Connect& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(SystemPayload_Connect* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 id = 1;
+  void clear_id();
+  static const int kIdFieldNumber = 1;
+  ::google::protobuf::uint64 id() const;
+  void set_id(::google::protobuf::uint64 value);
+
+  // optional bytes payload = 2;
+  void clear_payload();
+  static const int kPayloadFieldNumber = 2;
+  const ::std::string& payload() const;
+  void set_payload(const ::std::string& value);
+  void set_payload(const char* value);
+  void set_payload(const void* value, size_t size);
+  ::std::string* mutable_payload();
+  ::std::string* release_payload();
+  void set_allocated_payload(::std::string* payload);
+
+  // @@protoc_insertion_point(class_scope:mtk.SystemPayload.Connect)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  bool _is_default_instance_;
+  ::google::protobuf::uint64 id_;
+  ::google::protobuf::internal::ArenaStringPtr payload_;
+  mutable int _cached_size_;
+  friend void  protobuf_AddDesc_mtk_2eproto();
+  friend void protobuf_AssignDesc_mtk_2eproto();
+  friend void protobuf_ShutdownFile_mtk_2eproto();
+
+  void InitAsDefaultInstance();
+  static SystemPayload_Connect* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class SystemPayload_Ping : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload.Ping) */ {
+ public:
+  SystemPayload_Ping();
+  virtual ~SystemPayload_Ping();
+
+  SystemPayload_Ping(const SystemPayload_Ping& from);
+
+  inline SystemPayload_Ping& operator=(const SystemPayload_Ping& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SystemPayload_Ping& default_instance();
+
+  void Swap(SystemPayload_Ping* other);
+
+  // implements Message ----------------------------------------------
+
+  inline SystemPayload_Ping* New() const { return New(NULL); }
+
+  SystemPayload_Ping* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SystemPayload_Ping& from);
+  void MergeFrom(const SystemPayload_Ping& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(SystemPayload_Ping* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 now = 1;
+  void clear_now();
+  static const int kNowFieldNumber = 1;
+  ::google::protobuf::uint64 now() const;
+  void set_now(::google::protobuf::uint64 value);
+
+  // optional bytes payload = 2;
+  void clear_payload();
+  static const int kPayloadFieldNumber = 2;
+  const ::std::string& payload() const;
+  void set_payload(const ::std::string& value);
+  void set_payload(const char* value);
+  void set_payload(const void* value, size_t size);
+  ::std::string* mutable_payload();
+  ::std::string* release_payload();
+  void set_allocated_payload(::std::string* payload);
+
+  // @@protoc_insertion_point(class_scope:mtk.SystemPayload.Ping)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  bool _is_default_instance_;
+  ::google::protobuf::uint64 now_;
+  ::google::protobuf::internal::ArenaStringPtr payload_;
+  mutable int _cached_size_;
+  friend void  protobuf_AddDesc_mtk_2eproto();
+  friend void protobuf_AssignDesc_mtk_2eproto();
+  friend void protobuf_ShutdownFile_mtk_2eproto();
+
+  void InitAsDefaultInstance();
+  static SystemPayload_Ping* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class SystemPayload : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload) */ {
+ public:
+  SystemPayload();
+  virtual ~SystemPayload();
+
+  SystemPayload(const SystemPayload& from);
+
+  inline SystemPayload& operator=(const SystemPayload& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SystemPayload& default_instance();
+
+  void Swap(SystemPayload* other);
+
+  // implements Message ----------------------------------------------
+
+  inline SystemPayload* New() const { return New(NULL); }
+
+  SystemPayload* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SystemPayload& from);
+  void MergeFrom(const SystemPayload& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(SystemPayload* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  typedef SystemPayload_Connect Connect;
+  typedef SystemPayload_Ping Ping;
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:mtk.SystemPayload)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  bool _is_default_instance_;
+  mutable int _cached_size_;
+  friend void  protobuf_AddDesc_mtk_2eproto();
+  friend void protobuf_AssignDesc_mtk_2eproto();
+  friend void protobuf_ShutdownFile_mtk_2eproto();
+
+  void InitAsDefaultInstance();
+  static SystemPayload* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -586,6 +486,34 @@ class Request : public ::google::protobuf::Message /* @@protoc_insertion_point(c
 
   // nested types ----------------------------------------------------
 
+  typedef Request_Kind Kind;
+  static const Kind Normal =
+    Request_Kind_Normal;
+  static const Kind Ping =
+    Request_Kind_Ping;
+  static const Kind Connect =
+    Request_Kind_Connect;
+  static inline bool Kind_IsValid(int value) {
+    return Request_Kind_IsValid(value);
+  }
+  static const Kind Kind_MIN =
+    Request_Kind_Kind_MIN;
+  static const Kind Kind_MAX =
+    Request_Kind_Kind_MAX;
+  static const int Kind_ARRAYSIZE =
+    Request_Kind_Kind_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor*
+  Kind_descriptor() {
+    return Request_Kind_descriptor();
+  }
+  static inline const ::std::string& Kind_Name(Kind value) {
+    return Request_Kind_Name(value);
+  }
+  static inline bool Kind_Parse(const ::std::string& name,
+      Kind* value) {
+    return Request_Kind_Parse(name, value);
+  }
+
   // accessors -------------------------------------------------------
 
   // optional uint32 type = 1;
@@ -599,6 +527,12 @@ class Request : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   static const int kMsgidFieldNumber = 2;
   ::google::protobuf::uint32 msgid() const;
   void set_msgid(::google::protobuf::uint32 value);
+
+  // optional .mtk.Request.Kind kind = 3;
+  void clear_kind();
+  static const int kKindFieldNumber = 3;
+  ::mtk::Request_Kind kind() const;
+  void set_kind(::mtk::Request_Kind value);
 
   // optional bytes payload = 10;
   void clear_payload();
@@ -619,6 +553,7 @@ class Request : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   ::google::protobuf::uint32 type_;
   ::google::protobuf::uint32 msgid_;
   ::google::protobuf::internal::ArenaStringPtr payload_;
+  int kind_;
   mutable int _cached_size_;
   friend void  protobuf_AddDesc_mtk_2eproto();
   friend void protobuf_AssignDesc_mtk_2eproto();
@@ -744,254 +679,6 @@ class Reply : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
 // ===================================================================
 
 #if !PROTOBUF_INLINE_NOT_IN_HEADERS
-// ConnectRequest
-
-// optional uint64 id = 1;
-inline void ConnectRequest::clear_id() {
-  id_ = GOOGLE_ULONGLONG(0);
-}
-inline ::google::protobuf::uint64 ConnectRequest::id() const {
-  // @@protoc_insertion_point(field_get:mtk.ConnectRequest.id)
-  return id_;
-}
-inline void ConnectRequest::set_id(::google::protobuf::uint64 value) {
-  
-  id_ = value;
-  // @@protoc_insertion_point(field_set:mtk.ConnectRequest.id)
-}
-
-// optional bytes data = 3;
-inline void ConnectRequest::clear_data() {
-  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline const ::std::string& ConnectRequest::data() const {
-  // @@protoc_insertion_point(field_get:mtk.ConnectRequest.data)
-  return data_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void ConnectRequest::set_data(const ::std::string& value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:mtk.ConnectRequest.data)
-}
-inline void ConnectRequest::set_data(const char* value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mtk.ConnectRequest.data)
-}
-inline void ConnectRequest::set_data(const void* value, size_t size) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mtk.ConnectRequest.data)
-}
-inline ::std::string* ConnectRequest::mutable_data() {
-  
-  // @@protoc_insertion_point(field_mutable:mtk.ConnectRequest.data)
-  return data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* ConnectRequest::release_data() {
-  // @@protoc_insertion_point(field_release:mtk.ConnectRequest.data)
-  
-  return data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void ConnectRequest::set_allocated_data(::std::string* data) {
-  if (data != NULL) {
-    
-  } else {
-    
-  }
-  data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
-  // @@protoc_insertion_point(field_set_allocated:mtk.ConnectRequest.data)
-}
-
-// -------------------------------------------------------------------
-
-// ConnectReply
-
-// optional uint64 id = 1;
-inline void ConnectReply::clear_id() {
-  id_ = GOOGLE_ULONGLONG(0);
-}
-inline ::google::protobuf::uint64 ConnectReply::id() const {
-  // @@protoc_insertion_point(field_get:mtk.ConnectReply.id)
-  return id_;
-}
-inline void ConnectReply::set_id(::google::protobuf::uint64 value) {
-  
-  id_ = value;
-  // @@protoc_insertion_point(field_set:mtk.ConnectReply.id)
-}
-
-// optional bytes data = 3;
-inline void ConnectReply::clear_data() {
-  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline const ::std::string& ConnectReply::data() const {
-  // @@protoc_insertion_point(field_get:mtk.ConnectReply.data)
-  return data_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void ConnectReply::set_data(const ::std::string& value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:mtk.ConnectReply.data)
-}
-inline void ConnectReply::set_data(const char* value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mtk.ConnectReply.data)
-}
-inline void ConnectReply::set_data(const void* value, size_t size) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mtk.ConnectReply.data)
-}
-inline ::std::string* ConnectReply::mutable_data() {
-  
-  // @@protoc_insertion_point(field_mutable:mtk.ConnectReply.data)
-  return data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* ConnectReply::release_data() {
-  // @@protoc_insertion_point(field_release:mtk.ConnectReply.data)
-  
-  return data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void ConnectReply::set_allocated_data(::std::string* data) {
-  if (data != NULL) {
-    
-  } else {
-    
-  }
-  data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
-  // @@protoc_insertion_point(field_set_allocated:mtk.ConnectReply.data)
-}
-
-// -------------------------------------------------------------------
-
-// PingRequest
-
-// optional uint64 now = 1;
-inline void PingRequest::clear_now() {
-  now_ = GOOGLE_ULONGLONG(0);
-}
-inline ::google::protobuf::uint64 PingRequest::now() const {
-  // @@protoc_insertion_point(field_get:mtk.PingRequest.now)
-  return now_;
-}
-inline void PingRequest::set_now(::google::protobuf::uint64 value) {
-  
-  now_ = value;
-  // @@protoc_insertion_point(field_set:mtk.PingRequest.now)
-}
-
-// optional bytes data = 2;
-inline void PingRequest::clear_data() {
-  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline const ::std::string& PingRequest::data() const {
-  // @@protoc_insertion_point(field_get:mtk.PingRequest.data)
-  return data_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void PingRequest::set_data(const ::std::string& value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:mtk.PingRequest.data)
-}
-inline void PingRequest::set_data(const char* value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mtk.PingRequest.data)
-}
-inline void PingRequest::set_data(const void* value, size_t size) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mtk.PingRequest.data)
-}
-inline ::std::string* PingRequest::mutable_data() {
-  
-  // @@protoc_insertion_point(field_mutable:mtk.PingRequest.data)
-  return data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* PingRequest::release_data() {
-  // @@protoc_insertion_point(field_release:mtk.PingRequest.data)
-  
-  return data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void PingRequest::set_allocated_data(::std::string* data) {
-  if (data != NULL) {
-    
-  } else {
-    
-  }
-  data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
-  // @@protoc_insertion_point(field_set_allocated:mtk.PingRequest.data)
-}
-
-// -------------------------------------------------------------------
-
-// PingReply
-
-// optional uint64 now = 1;
-inline void PingReply::clear_now() {
-  now_ = GOOGLE_ULONGLONG(0);
-}
-inline ::google::protobuf::uint64 PingReply::now() const {
-  // @@protoc_insertion_point(field_get:mtk.PingReply.now)
-  return now_;
-}
-inline void PingReply::set_now(::google::protobuf::uint64 value) {
-  
-  now_ = value;
-  // @@protoc_insertion_point(field_set:mtk.PingReply.now)
-}
-
-// optional bytes data = 2;
-inline void PingReply::clear_data() {
-  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline const ::std::string& PingReply::data() const {
-  // @@protoc_insertion_point(field_get:mtk.PingReply.data)
-  return data_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void PingReply::set_data(const ::std::string& value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:mtk.PingReply.data)
-}
-inline void PingReply::set_data(const char* value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mtk.PingReply.data)
-}
-inline void PingReply::set_data(const void* value, size_t size) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mtk.PingReply.data)
-}
-inline ::std::string* PingReply::mutable_data() {
-  
-  // @@protoc_insertion_point(field_mutable:mtk.PingReply.data)
-  return data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* PingReply::release_data() {
-  // @@protoc_insertion_point(field_release:mtk.PingReply.data)
-  
-  return data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void PingReply::set_allocated_data(::std::string* data) {
-  if (data != NULL) {
-    
-  } else {
-    
-  }
-  data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
-  // @@protoc_insertion_point(field_set_allocated:mtk.PingReply.data)
-}
-
-// -------------------------------------------------------------------
-
 // Error
 
 // optional int32 error_code = 1;
@@ -1008,93 +695,177 @@ inline void Error::set_error_code(::google::protobuf::int32 value) {
   // @@protoc_insertion_point(field_set:mtk.Error.error_code)
 }
 
-// optional string message = 2;
-inline void Error::clear_message() {
-  message_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// optional bytes payload = 2;
+inline void Error::clear_payload() {
+  payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline const ::std::string& Error::message() const {
-  // @@protoc_insertion_point(field_get:mtk.Error.message)
-  return message_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline const ::std::string& Error::payload() const {
+  // @@protoc_insertion_point(field_get:mtk.Error.payload)
+  return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Error::set_message(const ::std::string& value) {
+inline void Error::set_payload(const ::std::string& value) {
   
-  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:mtk.Error.message)
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtk.Error.payload)
 }
-inline void Error::set_message(const char* value) {
+inline void Error::set_payload(const char* value) {
   
-  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mtk.Error.message)
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtk.Error.payload)
 }
-inline void Error::set_message(const char* value, size_t size) {
+inline void Error::set_payload(const void* value, size_t size) {
   
-  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mtk.Error.message)
+  // @@protoc_insertion_point(field_set_pointer:mtk.Error.payload)
 }
-inline ::std::string* Error::mutable_message() {
+inline ::std::string* Error::mutable_payload() {
   
-  // @@protoc_insertion_point(field_mutable:mtk.Error.message)
-  return message_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  // @@protoc_insertion_point(field_mutable:mtk.Error.payload)
+  return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* Error::release_message() {
-  // @@protoc_insertion_point(field_release:mtk.Error.message)
+inline ::std::string* Error::release_payload() {
+  // @@protoc_insertion_point(field_release:mtk.Error.payload)
   
-  return message_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Error::set_allocated_message(::std::string* message) {
-  if (message != NULL) {
+inline void Error::set_allocated_payload(::std::string* payload) {
+  if (payload != NULL) {
     
   } else {
     
   }
-  message_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), message);
-  // @@protoc_insertion_point(field_set_allocated:mtk.Error.message)
+  payload_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), payload);
+  // @@protoc_insertion_point(field_set_allocated:mtk.Error.payload)
 }
 
-// optional bytes data = 3;
-inline void Error::clear_data() {
-  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// -------------------------------------------------------------------
+
+// SystemPayload_Connect
+
+// optional uint64 id = 1;
+inline void SystemPayload_Connect::clear_id() {
+  id_ = GOOGLE_ULONGLONG(0);
 }
-inline const ::std::string& Error::data() const {
-  // @@protoc_insertion_point(field_get:mtk.Error.data)
-  return data_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::google::protobuf::uint64 SystemPayload_Connect::id() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Connect.id)
+  return id_;
 }
-inline void Error::set_data(const ::std::string& value) {
+inline void SystemPayload_Connect::set_id(::google::protobuf::uint64 value) {
   
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:mtk.Error.data)
+  id_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Connect.id)
 }
-inline void Error::set_data(const char* value) {
-  
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mtk.Error.data)
+
+// optional bytes payload = 2;
+inline void SystemPayload_Connect::clear_payload() {
+  payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Error::set_data(const void* value, size_t size) {
+inline const ::std::string& SystemPayload_Connect::payload() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Connect.payload)
+  return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SystemPayload_Connect::set_payload(const ::std::string& value) {
   
-  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Connect.payload)
+}
+inline void SystemPayload_Connect::set_payload(const char* value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtk.SystemPayload.Connect.payload)
+}
+inline void SystemPayload_Connect::set_payload(const void* value, size_t size) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mtk.Error.data)
+  // @@protoc_insertion_point(field_set_pointer:mtk.SystemPayload.Connect.payload)
 }
-inline ::std::string* Error::mutable_data() {
+inline ::std::string* SystemPayload_Connect::mutable_payload() {
   
-  // @@protoc_insertion_point(field_mutable:mtk.Error.data)
-  return data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.Connect.payload)
+  return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* Error::release_data() {
-  // @@protoc_insertion_point(field_release:mtk.Error.data)
+inline ::std::string* SystemPayload_Connect::release_payload() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.Connect.payload)
   
-  return data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Error::set_allocated_data(::std::string* data) {
-  if (data != NULL) {
+inline void SystemPayload_Connect::set_allocated_payload(::std::string* payload) {
+  if (payload != NULL) {
     
   } else {
     
   }
-  data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
-  // @@protoc_insertion_point(field_set_allocated:mtk.Error.data)
+  payload_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), payload);
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.Connect.payload)
 }
+
+// -------------------------------------------------------------------
+
+// SystemPayload_Ping
+
+// optional uint64 now = 1;
+inline void SystemPayload_Ping::clear_now() {
+  now_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 SystemPayload_Ping::now() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Ping.now)
+  return now_;
+}
+inline void SystemPayload_Ping::set_now(::google::protobuf::uint64 value) {
+  
+  now_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Ping.now)
+}
+
+// optional bytes payload = 2;
+inline void SystemPayload_Ping::clear_payload() {
+  payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& SystemPayload_Ping::payload() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Ping.payload)
+  return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SystemPayload_Ping::set_payload(const ::std::string& value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Ping.payload)
+}
+inline void SystemPayload_Ping::set_payload(const char* value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtk.SystemPayload.Ping.payload)
+}
+inline void SystemPayload_Ping::set_payload(const void* value, size_t size) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtk.SystemPayload.Ping.payload)
+}
+inline ::std::string* SystemPayload_Ping::mutable_payload() {
+  
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.Ping.payload)
+  return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* SystemPayload_Ping::release_payload() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.Ping.payload)
+  
+  return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SystemPayload_Ping::set_allocated_payload(::std::string* payload) {
+  if (payload != NULL) {
+    
+  } else {
+    
+  }
+  payload_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), payload);
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.Ping.payload)
+}
+
+// -------------------------------------------------------------------
+
+// SystemPayload
 
 // -------------------------------------------------------------------
 
@@ -1126,6 +897,20 @@ inline void Request::set_msgid(::google::protobuf::uint32 value) {
   
   msgid_ = value;
   // @@protoc_insertion_point(field_set:mtk.Request.msgid)
+}
+
+// optional .mtk.Request.Kind kind = 3;
+inline void Request::clear_kind() {
+  kind_ = 0;
+}
+inline ::mtk::Request_Kind Request::kind() const {
+  // @@protoc_insertion_point(field_get:mtk.Request.kind)
+  return static_cast< ::mtk::Request_Kind >(kind_);
+}
+inline void Request::set_kind(::mtk::Request_Kind value) {
+  
+  kind_ = value;
+  // @@protoc_insertion_point(field_set:mtk.Request.kind)
 }
 
 // optional bytes payload = 10;
@@ -1297,12 +1082,24 @@ inline void Reply::set_allocated_payload(::std::string* payload) {
 
 // -------------------------------------------------------------------
 
-// -------------------------------------------------------------------
-
 
 // @@protoc_insertion_point(namespace_scope)
 
 }  // namespace mtk
+
+#ifndef SWIG
+namespace google {
+namespace protobuf {
+
+template <> struct is_proto_enum< ::mtk::Request_Kind> : ::google::protobuf::internal::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::mtk::Request_Kind>() {
+  return ::mtk::Request_Kind_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
+#endif  // SWIG
 
 // @@protoc_insertion_point(global_scope)
 
