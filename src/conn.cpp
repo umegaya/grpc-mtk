@@ -21,12 +21,12 @@ namespace mtk {
                 service_->RequestWrite(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
-                handler_->NewConn(service_, handler_, cq_)->Step(); //create next waiter
+                handler_->NewReader(worker_, service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::LOGIN;
                 io_.Read(&req_, tag_);
                 break;
             case StepId::LOGIN: {
-                Status st = handler_->Handle((IConn *)tag_, req_);
+                Status st = handler_->Handle(tag_, req_);
                 if (step_ == StepId::CLOSE) {
                     this->LogError("ev:app closed by Login failure");
                     Finish();
@@ -73,12 +73,12 @@ namespace mtk {
                 service_->RequestRead(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
-                handler_->NewConn(service_, handler_, cq_)->Step(); //create next waiter
+                handler_->NewWriter(worker_, service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::READ;
                 io_.Read(&req_, tag_);
                 break;
             case StepId::READ: {
-                Status st = handler_->Handle((IConn *)tag_, req_);
+                Status st = handler_->Handle(tag_, req_);
                 if (st.ok()) {
                     step_ = StepId::WRITE;
                 }

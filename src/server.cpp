@@ -26,14 +26,14 @@ void ServerRunner::Run(Config &conf, IHandler *handler, DuplexStream::ServerCred
     // Register service and start sv
     builder.RegisterService(&service);
     // setup worker thread (need to do before BuildAndStart because completion queue should be created before it)
-    std::vector<Worker*> read_workers;
+    std::vector<IWorker*> read_workers;
     for (int i = 0; i < conf.thread.n_reader; i++) {
-        Worker *w = new Worker(&service, handler, builder);
+        IWorker *w = new ReadWorker(&service, handler, builder);
         read_workers.push_back(w);
     }
-    std::vector<Worker*> write_workers;
+    std::vector<IWorker*> write_workers;
     for (int i = 0; i < conf.thread.n_writer; i++) {
-        Worker *w = new Worker(&service, handler, builder);
+        IWorker *w = new WriteWorker(&service, handler, builder);
         write_workers.push_back(w);
     }
     

@@ -12,6 +12,7 @@ namespace {
 
 namespace mtk {
     class IHandler;
+    //worker base
     class IWorker {
     protected:
         std::thread thr_;
@@ -20,29 +21,35 @@ namespace mtk {
         std::unique_ptr<ServerCompletionQueue> cq_;
     public:
         IWorker(Service *service, IHandler *handler, ServerBuilder &builder) :
-            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()) {}
+            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
+            connections_() {}
         ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
         void Launch();
-        void Run();
-        virtual void *New() = 0;
-        virtual void Process(bool ok, void *tag) = 0;
+        IConn *New();
+        inline void Process(bool ok, void *tag);
+        virtual void Run();
+        virtual void OnRegister(IConn *c) {}
+        virtual void OnUnregister(IConn *) {}
     };
-    class Worker : public IWorker {
+    //worker which does IO and periodically call ConsumeTask for each connection
+    class TaskConsumableWorker : public IWorker {
+    protected:
+        std::vector<IConn *> connections_;
     public:
-        Worker(Service *service, IHandler *handler, ServerBuilder &builder) :
-            IWorker(service, handler, builder) {}
-        virtual void *New() {
-            IConn *c = handler_->NewConn(service_, handler_, cq_.get());
-            c->Step();
-            return c;
-        }
-        virtual void Process(bool ok, void *tag) {
-            IConn *c = static_cast<IConn*>(tag);
-            if (!ok) {
-                c->Destroy();
-            } else {
-                c->Step();
-            }
-        }
+        void Run();
+        void OnRegister(IConn *c) { connections_.push_back(c); }
+        void OnUnregister(IConn *);
     };
+    //inlines
+    void IWorker::Process(bool ok, void *tag) {
+        IConn *c = static_cast<IConn*>(tag);
+        if (!ok) {
+            c->Destroy();
+        } else {
+            c->Step();
+        }
+    }
+    //default definition
+    typedef IWorker WriteWorker;
+    typedef TaskConsumableWorker ReadWorker;
 }
