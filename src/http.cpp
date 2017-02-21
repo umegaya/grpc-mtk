@@ -146,14 +146,14 @@ namespace mtk {
         if (g_http_alive) {
             return;
         }
-        g_webthr = std::move(std::thread([&root_cert] {
+        g_webthr = std::thread([&root_cert] {
             g_http_alive = true;
             HttpClient::Init(root_cert);
             while (g_http_alive) {
                 HttpClient::Update();
             }
             HttpClient::Fin();
-        }));
+        });
     }
     void HttpClient::Stop() {
         if (!g_http_alive) {
@@ -661,6 +661,7 @@ namespace mtk {
             gpr_slice_buffer_init(&body_);
             FSM().reset(512);
         }
+        virtual ~HttpServContext() {}
         inline HttpFSM &FSM() { return fsm_; }
         void Close(grpc_exec_ctx *exec_ctx) {
             gpr_slice_buffer_destroy(&buffer_);

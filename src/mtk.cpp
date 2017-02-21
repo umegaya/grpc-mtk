@@ -26,6 +26,7 @@ public:
 };
 typedef FunctionHandler<RSVStream> ReadHandler;
 typedef FunctionHandler<WSVStream> WriteHandler;
+typedef Conn<RSVStream> RConn;
 
 
 
@@ -41,28 +42,55 @@ void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf) {
 		auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler));
 		ServerRunner::Instance().Run(*svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
 	} else {
-		g_svthread = std::move(std::thread([svconf, has_cred, &opts] {
+		g_svthread = std::thread([svconf, has_cred, &opts] {
 			auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler));
 			auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler));
 			ServerRunner::Instance().Run(*svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
-	    }));
+	    });
+	    g_svthread.join();
 	}
 }
-mtk_svconn_t mtk_svconn_find(uint64_t id) {
-	return nullptr;
+mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn) {
+	return ((RConn *)conn)->Id();
 }
-void mtk_svconn_id(mtk_svconn_t conn) {
-
+mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn) {
+	return ((RConn *)conn)->CurrentMsgId();
 }
-void mtk_svconn_send(mtk_svconn_t conn, const char *data, size_t datalen) {
-
+void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen) {
+	std::string buf(data, datalen);
+	((RConn *)conn)->Rep(msgid, buf);
 }
-void mtk_svconn_add_task(mtk_svconn_t conn, const char *data, size_t datalen) {
-
+void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen) {
+	std::string buf(data, datalen);
+	((RConn *)conn)->Notify(type, buf);
+}
+void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen) {
+	std::string buf(data, datalen);
+	((RConn *)conn)->AddTask(type, buf);
 }
 void mtk_svconn_close(mtk_svconn_t conn) {
+	((RConn *)conn)->InternalClose();
+}
+void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen) {
+	RConn::Stream s = RConn::Get(cid);
+	return mtk_svconn_send(s.get(), msgid, data, datalen);
+}
+void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen) {
+	RConn::Stream s = RConn::Get(cid);
+	return mtk_svconn_notify(s.get(), type, data, datalen);
 
 }
+void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen) {
+	RConn::Stream s = RConn::Get(cid);
+	return mtk_svconn_task(s.get(), type, data, datalen);
+
+}
+void mtk_cid_close(mtk_cid_t cid) {
+	RConn::Stream s = RConn::Get(cid);
+	return mtk_svconn_close(s.get());
+}
+
+
 
 mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
 	DuplexStream *ds = new StreamDelegate(clconf);
@@ -70,6 +98,10 @@ mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
 	bool has_cred = DuplexStream::CreateCred(*addr, opts);
 	ds->Initialize(addr->host, has_cred ? &opts : nullptr);
 	return (void *)ds;
+}
+mtk_cid_t mtk_conn_cid(mtk_conn_t c) {
+	DuplexStream *ds = (DuplexStream *)c;
+	return ds->Id();
 }
 void mtk_conn_poll(mtk_conn_t c) {
 	DuplexStream *ds = (DuplexStream *)c;
@@ -154,3 +186,14 @@ void mtk_http_server_write_body(mtk_http_server_response_t *res, char *buffer, s
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
 	writer->WriteBody((const uint8_t *)buffer, len);
 }
+
+
+
+/******* util API *******/
+mtk_time_t mtk_time() {
+	return 0;
+}
+void mtk_sleep(mtk_time_t d) {
+
+}
+

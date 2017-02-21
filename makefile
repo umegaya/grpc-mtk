@@ -29,6 +29,10 @@ bundle: proto filelist
 	- mkdir -p build/osx
 	cd build/osx && cmake -DCMAKE_TOOLCHAIN_FILE=$(BUILD_SETTING_PATH)/bundle.cmake $(PROJECT_ROOT) && make
 
+test: proto filelist
+	- mkdir -p build/test
+	cd build/test && cmake -DCMAKE_TOOLCHAIN_FILE=$(BUILD_SETTING_PATH)/testlib.cmake $(PROJECT_ROOT) && make
+
 ios: proto filelist
 	- mkdir -p build/ios.v7
 	- mkdir -p build/ios.64

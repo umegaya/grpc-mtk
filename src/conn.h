@@ -57,13 +57,14 @@ namespace mtk {
             worker_(worker), service_(service), handler_(handler), cq_(cq), ctx_(), io_(&ctx_), req_(),
         step_(StepId::INIT), tag_(tag), owner_uid_(0) {}
         virtual ~SVStream() {}
-        grpc::string RemoteAddress() const { return ctx_.peer(); }
-        void SetId(ConnectionId uid) { owner_uid_ = uid; }
-        ConnectionId Id() const { return owner_uid_; }
-        void InternalClose() {
+        inline grpc::string RemoteAddress() const { return ctx_.peer(); }
+        inline void SetId(ConnectionId uid) { owner_uid_ = uid; }
+        inline ConnectionId Id() const { return owner_uid_; }
+        inline uint32_t CurrentMsgId() const { return req_.msgid(); }
+        inline void InternalClose() {
             step_ = StepId::CLOSE;
         }
-        IWorker *AssignedWorker() { return worker_; }
+        inline IWorker *AssignedWorker() { return worker_; }
     protected:
         template <class W> void Write(const W &w) {
             if (step_ != StepId::CLOSE) {
@@ -77,6 +78,16 @@ namespace mtk {
                 return false;
             }
             rep.set_payload(buffer, w.ByteSize());
+            return true;
+        }
+        template <class W>
+        bool SetupRequest(Request &req, MessageType type, const W &w) {
+            uint8_t buffer[w.ByteSize()];
+            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+                return false;
+            }
+            req.set_type(type);
+            req.set_payload(buffer, w.ByteSize());
             return true;
         }
         template <class W>
@@ -108,6 +119,7 @@ namespace mtk {
         }
     };
     template <> bool SVStream::SetupPayload<std::string>(Reply &rep, const std::string &w);
+    template <> bool SVStream::SetupRequest<std::string>(Request &req, MessageType type, const std::string &w);
     class WSVStream : public SVStream {
     private:
         std::mutex mtx_; //TODO: if mtx overhead is matter, need to do some trick with atomic primitives
@@ -182,7 +194,7 @@ namespace mtk {
             Cleanup();
             LogInfo("RSVStream destroy {}({}})\n", this, Id());
         }
-        void SetStream(std::shared_ptr<WSVStream> &c) { sender_ = c; }
+        inline void SetStream(std::shared_ptr<WSVStream> &c) { sender_ = c; }
         void Step();
         void ConsumeTask(int n_process) {
             Request *t;
@@ -203,6 +215,11 @@ namespace mtk {
             if (sender_ != nullptr) {
                 sender_->Notify(type, w);
             }
+        }
+        template <class W> void AddTask(MessageType type, const W &w) {
+            Request *r = new Request(); //todo: get r from cache
+            SetupRequest(*r, type, w);
+            tasks_.enqueue(r);
         }
         void Throw(uint32_t msgid, Error *e) {
             if (sender_ != nullptr) {
@@ -253,15 +270,17 @@ namespace mtk {
         virtual void ConsumeTask(int n_process) { stream_->ConsumeTask(n_process); }
         virtual void Destroy() { delete this; }
         inline ConnectionId Id() { return stream_->Id(); }
+        inline uint32_t CurrentMsgId() const { return stream_->CurrentMsgId(); }
         inline std::shared_ptr<S> &GetStream() { return stream_; }
+        inline void Throw(uint32_t msgid, Error *e) { stream_->Throw(msgid, e); }
+        inline void InternalClose() { stream_->InternalClose(); }
+        inline void Close() { stream_->Close(); }
+        inline bool IsClosed() { return stream_->IsClosed(); }
+        inline void Step() { stream_->Step(); }
+        inline grpc::string RemoteAddress() { return stream_->RemoteAddress(); }
         template <class W> void Rep(uint32_t msgid, const W &w) { stream_->Rep(msgid, w); }
         template <class W> void Notify(MessageType type, const W &w) { stream_->Notify(type, w); }
-        void Throw(uint32_t msgid, Error *e) { stream_->Throw(msgid, e); }
-        void InternalClose() { stream_->InternalClose(); }
-        void Close() { stream_->Close(); }
-        bool IsClosed() { return stream_->IsClosed(); }
-        void Step() { stream_->Step(); }
-        grpc::string RemoteAddress() { return stream_->RemoteAddress(); }
+        template <class W> void AddTask(MessageType type, const W &w) { stream_->AddTask(type, w); }
     public:
         static Stream &Get(ConnectionId uid) {
             cmap_mtx_.lock();
@@ -279,7 +298,7 @@ namespace mtk {
             cmap_mtx_.unlock();
         }
     protected:
-        void Finish() {
+        inline void Finish() {
             stream_->Finish();
         }
         void Register(ConnectionId uid) {

@@ -33,7 +33,13 @@ namespace grpc {
 }
 
 namespace mtk {
-    class IDuplexStreamDelegate;
+    class IDuplexStreamDelegate {
+    public:
+        virtual uint64_t Id() const = 0;
+        virtual bool Valid() const = 0;
+        virtual void Connect(std::function<void(Error *)> finished) = 0;
+        virtual void Poll() = 0;
+    };
     class DuplexStream {
     public:
         enum NetworkStatus {
@@ -104,6 +110,7 @@ namespace mtk {
             memset(prev_conn_, 0, sizeof(prev_conn_));
         };
         ~DuplexStream() {}
+        uint64_t Id() const { return delegate_->Id(); }
         void SetDump() { dump_ = true; }
     public:
         int Initialize(const char *addr, CredOptions *options);
@@ -223,13 +230,5 @@ namespace mtk {
         //about gpr_timespec
         static void SetDeadline(ClientContext &ctx, uint32_t duration_msec);
         static gpr_timespec GRPCTime(uint32_t duration_msec);
-    };
-
-    class IDuplexStreamDelegate {
-    public:
-        virtual uint64_t Id() = 0;
-        virtual bool Valid() = 0;
-        virtual void Connect(std::function<void(Error *)> finished) = 0;
-        virtual void Poll() = 0;
     };
 }

@@ -1,0 +1,16 @@
+syntax = "proto3";
+package mtktest;
+
+enum MessageTypes {
+	Invalid = 0;
+	Ping = 1;
+}
+
+message PingRequest {
+	uint64 sent = 1;
+}
+
+message PingReply {
+	uint64 sent = 1;
+}
+

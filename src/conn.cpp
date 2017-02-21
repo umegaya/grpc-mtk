@@ -13,6 +13,12 @@ namespace mtk {
         rep.set_payload(w.c_str(), w.length());
         return true;
     }
+    template <>
+    bool SVStream::SetupRequest<std::string>(Request &req, MessageType type, const std::string &w) {
+        req.set_type(type);
+        req.set_payload(w.c_str(), w.length());
+        return true;
+    }
     void RSVStream::Step() {
         switch(step_) {
             case StepId::INIT:

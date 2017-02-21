@@ -1,10 +1,12 @@
-#include <mtk.h>
+#include "common.h"
 #include <thread>
-#include "tests/ping.h"
+#include "tests/rpc.h"
 
-std::thread s_test_thrd;
-void test_thread(mtk_conn_t c) {
+using namespace mtktest;
 
+void test_thread(mtk_conn_t c, test_finish_waiter &waiter) {
+	test_ping(c, waiter.bind());
+	//add more tests if neeeded.
 }
 
 int main(int argc, char *argv[]) {
@@ -15,12 +17,14 @@ int main(int argc, char *argv[]) {
 	mtk_clconf_t conf = {
 		.validate = nullptr,
 		.payload_len = 0,
-	}
+	};
 	auto c = mtk_connect(&addr, &conf);
-	s_test_thrd = std::move(std::thread([c] {
-		test_thread(c);
-	}))
-	while (true) {
+	test_finish_waiter waiter;
+	auto t = std::thread([c, &waiter] {
+		test_thread(c, waiter);
+	});
+	while (waiter.finished()) {
 		mtk_conn_poll(c);
 	}
+	t.join();
 }

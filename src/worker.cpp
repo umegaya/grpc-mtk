@@ -3,7 +3,7 @@
 
 namespace mtk {
     void IWorker::Launch() {
-        thr_ = std::move(std::thread([this](){ this->Run(); }));
+        thr_ = std::thread([this](){ this->Run(); });
     }
     IConn *IWorker::New() {
         IConn *c = handler_->NewConn(this, service_, handler_, cq_.get());

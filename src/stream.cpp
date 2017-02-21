@@ -200,7 +200,7 @@ void DuplexStream::Update() {
                 reconnect_attempt_++;
                 requests_[WRITE].enqueue(ESTABLISH_REQUEST);
                 if (!thr_.joinable()) {
-                    thr_ = std::move(std::thread(std::bind(&DuplexStream::Receive, this)));
+                    thr_ = std::thread(std::bind(&DuplexStream::Receive, this));
                 }
             }
         } return;
@@ -210,7 +210,7 @@ void DuplexStream::Update() {
             status_ = NetworkStatus::INITIALIZING;
             delegate_->Connect([self](Error *e) {
                 if (e != nullptr) {
-                    TRACE("login error: [%s](%d)\n", e->message().c_str(), e->error_code());
+                    TRACE("login error: [%s](%d)\n", e->payload().c_str(), e->error_code());
                     self->replys_.enqueue(DuplexStream::DISCONNECT_EVENT);
                 } else {
                     self->status_ = NetworkStatus::REGISTER;
