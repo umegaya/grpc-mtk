@@ -9,23 +9,27 @@ if (DEBUG)
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 endif()	
-file(GLOB_RECURSE src [
+file(GLOB_RECURSE libsrc [
 	# lib source
 	"src/*.cpp" 
 	"src/*.cc" 
 	# dependency source
-	"grpc/src/core/*.c"
+	# "grpc/src/core/*.c"
 	"grpc/src/cpp/*.cc"
 	"grpc/src/boringssl/*.c"
 	"grpc/third_party/boringssl/ssl/*.c"
 	"grpc/third_party/boringssl/crypto/*.c"
 	"grpc/third_party/protobuf/src/google/*.cc"
-	"grpc/third_party/nanopb/*.c"
 	# "grpc/third_party/zlib/*.c"
 ])
+include(${CMAKE_CURRENT_SOURCE_DIR}/tools/filelist/lists.cmake)
+set(src ${libsrc} ${grpc_core_src})
 file(GLOB_RECURSE rmsrc [
 	# grpc files
 	"grpc/src/core/lib/support/log_android.c"
+	"grpc/src/cpp/ext/*.cc"
+	"grpc/src/cpp/*cronet*"
+	"grpc/src/cpp/common/insecure_create_auth_context.cc"
 	# protobuf test files
 	"grpc/third_party/protobuf/src/google/*test.cc"
 	"grpc/third_party/protobuf/src/google/*test_util.cc"
@@ -54,9 +58,8 @@ if (OSXBUNDLE)
 	add_executable(mtk MACOSX_BUNDLE ${src}) 	
 	target_link_libraries(mtk "-lz")
 elseif(BUILD_ANDROID)
-message(STATUS "build ANDROID_NDK")
 	add_library(mtk SHARED ${src})
-	target_link_libraries(mtk "-lc++_static -lz")
+	target_link_libraries(mtk "-lc++_static -lz -llog")
 else()
 	add_library(mtk STATIC ${src})
 	target_link_libraries(mtk "-lz")
