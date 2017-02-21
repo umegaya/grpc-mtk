@@ -1,6 +1,6 @@
 PROTO_ROOT=./src/proto
 PROTO_SRC_PATH=$(PROTO_ROOT)/src
-GRPC_ROOT=./grpc
+GRPC_ROOT=./ext/grpc
 GRPC_PROTO_ROOT=$(GRPC_ROOT)/src/proto
 GRPC_CPP_PLUGIN=grpc_cpp_plugin
 GRPC_BIN_PATH=/usr/local/bin/grpc_cpp_plugin

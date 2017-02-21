@@ -1,4 +1,4 @@
-include ../../grpc/Makefile
+include ../../ext/grpc/Makefile
 
 list:
 	@echo $(LIBGRPC_SRC) $(LIBGPR_SRC)
