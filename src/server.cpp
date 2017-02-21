@@ -12,7 +12,7 @@ ServerRunner &ServerRunner::Instance() {
 	}
 	return *instance_;
 }
-void ServerRunner::Run(Config &conf, IHandler *handler, DuplexStream::ServerCredOptions *options) {
+void ServerRunner::Run(Config &conf, IHandler *rhandler, IHandler *whandler, DuplexStream::ServerCredOptions *options) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port
@@ -28,12 +28,12 @@ void ServerRunner::Run(Config &conf, IHandler *handler, DuplexStream::ServerCred
     // setup worker thread (need to do before BuildAndStart because completion queue should be created before it)
     std::vector<IWorker*> read_workers;
     for (int i = 0; i < conf.thread.n_reader; i++) {
-        IWorker *w = new ReadWorker(&service, handler, builder);
+        IWorker *w = new ReadWorker(&service, rhandler, builder);
         read_workers.push_back(w);
     }
     std::vector<IWorker*> write_workers;
     for (int i = 0; i < conf.thread.n_writer; i++) {
-        IWorker *w = new WriteWorker(&service, handler, builder);
+        IWorker *w = new WriteWorker(&service, whandler, builder);
         write_workers.push_back(w);
     }
     
@@ -41,10 +41,10 @@ void ServerRunner::Run(Config &conf, IHandler *handler, DuplexStream::ServerCred
     //g_logger->info("ev:Server listening start,a:{},r:{},s:{}", c.listen_at_.c_str(), c.role_.c_str(), secure ? "secure" : "insecure");
 
     // start worker thread
-    for (Worker *w : read_workers) {
+    for (IWorker *w : read_workers) {
         w->Launch();
     }
-    for (Worker *w : write_workers) {
+    for (IWorker *w : write_workers) {
         w->Launch();
     }
     

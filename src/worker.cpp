@@ -15,7 +15,7 @@ namespace mtk {
         void* tag;  // uniquely identifies a request.
         bool ok;
         while (true) {
-            GPR_ASSERT(cq_->Next(&tag, &ok));
+            cq_->Next(&tag, &ok);
             Process(ok, tag);
         }
     }

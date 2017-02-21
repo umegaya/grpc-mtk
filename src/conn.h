@@ -26,8 +26,7 @@ namespace mtk {
     class IHandler {
     public:
         virtual grpc::Status Handle(IConn *c, Request &req) = 0;
-        virtual IConn *NewReader(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
-        virtual IConn *NewWriter(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
+        virtual IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
     };
     typedef uint64_t ConnectionId;
     typedef uint32_t MessageType;
@@ -175,7 +174,7 @@ namespace mtk {
         std::shared_ptr<WSVStream> sender_;
         ATOMIC_INT closed_;
         IWorker *worker_;
-        ConcurrentQueue<Request> tasks_;
+        moodycamel::ConcurrentQueue<Request*> tasks_;
     public:
         RSVStream(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq, IConn *tag) :
             SVStream(worker, service, handler, cq, tag), sender_(), closed_(0), worker_(worker), tasks_() {}
@@ -235,9 +234,10 @@ namespace mtk {
         virtual ~TRSVStream() {}
         T &Context() { return context_; }
         const T &Context() const { return context_; }
+        void Destroy() { context_.Destroy(); }
     };
     template <class S>
-    class Conn : IConn {
+    class Conn : public IConn {
     public:
         typedef std::map<ConnectionId, Conn*> Map;
         typedef std::shared_ptr<S> Stream;
@@ -248,9 +248,10 @@ namespace mtk {
         static std::mutex cmap_mtx_;
     public:
         Conn(IWorker *worker, Service* service, IHandler *handler, ServerCompletionQueue* cq) :
-            stream_(new S(worker, service, handler, cq, this)) {}
+            stream_(std::make_shared<S>(worker, service, handler, cq, this)) {}
         virtual ~Conn() {}
         virtual void ConsumeTask(int n_process) { stream_->ConsumeTask(n_process); }
+        virtual void Destroy() { delete this; }
         inline ConnectionId Id() { return stream_->Id(); }
         inline std::shared_ptr<S> &GetStream() { return stream_; }
         template <class W> void Rep(uint32_t msgid, const W &w) { stream_->Rep(msgid, w); }
@@ -286,7 +287,7 @@ namespace mtk {
             cmap_[uid] = this;
             stream_->SetId(uid);
             //LogInfo("ev:register to map");
-            AssignedWorker()->OnRegister(this);
+            stream_->AssignedWorker()->OnRegister(this);
             cmap_mtx_.unlock();
         }
         void Unregister() {
@@ -297,7 +298,7 @@ namespace mtk {
                     cmap_.erase(stream_->Id());
                 }
             }
-            AssignedWorker()->OnUnregister(this);
+            stream_->AssignedWorker()->OnUnregister(this);
             //LogInfo("ev:unregister to map");
             cmap_mtx_.unlock();
         }

@@ -9,7 +9,7 @@ namespace mtk {
 	public:
 		StreamDelegate(mtk_clconf_t *clconf) : DuplexStream(this), clconf_(*clconf) {}
 		uint64_t Id() { return clconf_.id; }
-	   	bool Valid() { return clconf_.validate(); }
+	   	bool Valid() { return clconf_.validate == nullptr ? true : clconf_.validate(); }
 	    void Connect(std::function<void(Error *)> finished);
 	    void Poll() {}
 	};

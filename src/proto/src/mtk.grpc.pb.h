@@ -8,6 +8,7 @@
 
 #include <grpc++/impl/codegen/async_stream.h>
 #include <grpc++/impl/codegen/async_unary_call.h>
+#include <grpc++/impl/codegen/method_handler_impl.h>
 #include <grpc++/impl/codegen/proto_utils.h>
 #include <grpc++/impl/codegen/rpc_method.h>
 #include <grpc++/impl/codegen/service_type.h>
@@ -26,7 +27,7 @@ class ServerContext;
 namespace mtk {
 
 // service definition
-class Stream GRPC_FINAL {
+class Stream final {
  public:
   class StubInterface {
    public:
@@ -49,7 +50,7 @@ class Stream GRPC_FINAL {
     virtual ::grpc::ClientReaderWriterInterface< ::mtk::Request, ::mtk::Reply>* WriteRaw(::grpc::ClientContext* context) = 0;
     virtual ::grpc::ClientAsyncReaderWriterInterface< ::mtk::Request, ::mtk::Reply>* AsyncWriteRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
   };
-  class Stub GRPC_FINAL : public StubInterface {
+  class Stub final : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
     std::unique_ptr< ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>> Read(::grpc::ClientContext* context) {
@@ -67,10 +68,10 @@ class Stream GRPC_FINAL {
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
-    ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* ReadRaw(::grpc::ClientContext* context) GRPC_OVERRIDE;
-    ::grpc::ClientAsyncReaderWriter< ::mtk::Request, ::mtk::Reply>* AsyncReadRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) GRPC_OVERRIDE;
-    ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* WriteRaw(::grpc::ClientContext* context) GRPC_OVERRIDE;
-    ::grpc::ClientAsyncReaderWriter< ::mtk::Request, ::mtk::Reply>* AsyncWriteRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) GRPC_OVERRIDE;
+    ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* ReadRaw(::grpc::ClientContext* context) override;
+    ::grpc::ClientAsyncReaderWriter< ::mtk::Request, ::mtk::Reply>* AsyncReadRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
+    ::grpc::ClientReaderWriter< ::mtk::Request, ::mtk::Reply>* WriteRaw(::grpc::ClientContext* context) override;
+    ::grpc::ClientAsyncReaderWriter< ::mtk::Request, ::mtk::Reply>* AsyncWriteRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
     const ::grpc::RpcMethod rpcmethod_Read_;
     const ::grpc::RpcMethod rpcmethod_Write_;
   };
@@ -91,11 +92,11 @@ class Stream GRPC_FINAL {
     WithAsyncMethod_Read() {
       ::grpc::Service::MarkMethodAsync(0);
     }
-    ~WithAsyncMethod_Read() GRPC_OVERRIDE {
+    ~WithAsyncMethod_Read() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status Read(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) GRPC_FINAL GRPC_OVERRIDE {
+    ::grpc::Status Read(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) final override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -111,11 +112,11 @@ class Stream GRPC_FINAL {
     WithAsyncMethod_Write() {
       ::grpc::Service::MarkMethodAsync(1);
     }
-    ~WithAsyncMethod_Write() GRPC_OVERRIDE {
+    ~WithAsyncMethod_Write() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status Write(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) GRPC_FINAL GRPC_OVERRIDE {
+    ::grpc::Status Write(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) final override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -132,11 +133,11 @@ class Stream GRPC_FINAL {
     WithGenericMethod_Read() {
       ::grpc::Service::MarkMethodGeneric(0);
     }
-    ~WithGenericMethod_Read() GRPC_OVERRIDE {
+    ~WithGenericMethod_Read() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status Read(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) GRPC_FINAL GRPC_OVERRIDE {
+    ::grpc::Status Read(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) final override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -149,15 +150,18 @@ class Stream GRPC_FINAL {
     WithGenericMethod_Write() {
       ::grpc::Service::MarkMethodGeneric(1);
     }
-    ~WithGenericMethod_Write() GRPC_OVERRIDE {
+    ~WithGenericMethod_Write() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status Write(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) GRPC_FINAL GRPC_OVERRIDE {
+    ::grpc::Status Write(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::mtk::Reply, ::mtk::Request>* stream) final override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
   };
+  typedef Service StreamedUnaryService;
+  typedef Service SplitStreamedService;
+  typedef Service StreamedService;
 };
 
 }  // namespace mtk

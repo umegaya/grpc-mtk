@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <string>
+#include <map>
 extern "C" {
 #include "src/core/lib/http/parser.h"
 #include "src/core/lib/http/httpcli.h"
@@ -171,12 +173,16 @@ namespace mtk {
             void WriteResponse(const uint8_t *, size_t);
         };
         typedef std::function<void (HttpFSM &, IResponseWriter &)> Callback;
+        typedef struct {
+            int port;
+            Callback callback;
+        } ListenerEntry;
     public:
         static HttpServer &Instance();
         HttpServer();
         bool Init();
         bool Listen(int port, Callback cb);
-        void Run(int sleep_ms = 5);
+        bool Run(int sleep_ms = 5);
         void Fin();
         //callbacks
         void OnDestroy(grpc_exec_ctx *exec_ctx, grpc_error *error);
@@ -193,11 +199,12 @@ namespace mtk {
             ((HttpServer *)server)->OnAccept(exec_ctx, tcp, accepting_pollset, acceptor);
         }
         //handler adding
-        void AddHandler(Callback cb);
+        void AddHandler(int port, Callback cb);
+        bool DoListen(grpc_exec_ctx *exec_ctx, int port);
         
         //handler map
-        Callback *handlers_;
-        int n_handlers_, n_handlers_capacity_;
+        ListenerEntry *listeners_;
+        int n_listeners_, n_listeners_capacity_;
         //io
         gpr_mu *polling_mu_;
         grpc_pollset *pollset_;

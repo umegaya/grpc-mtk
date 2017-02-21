@@ -21,8 +21,7 @@ namespace mtk {
         std::unique_ptr<ServerCompletionQueue> cq_;
     public:
         IWorker(Service *service, IHandler *handler, ServerBuilder &builder) :
-            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
-            connections_() {}
+            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()) {}
         ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
         void Launch();
         IConn *New();
@@ -36,6 +35,8 @@ namespace mtk {
     protected:
         std::vector<IConn *> connections_;
     public:
+        TaskConsumableWorker(Service *service, IHandler *handler, ServerBuilder &builder) : 
+            IWorker(service, handler, builder), connections_() {}
         void Run();
         void OnRegister(IConn *c) { connections_.push_back(c); }
         void OnUnregister(IConn *);

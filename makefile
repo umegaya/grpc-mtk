@@ -2,7 +2,7 @@ PROTO_ROOT=./src/proto
 PROTO_SRC_PATH=$(PROTO_ROOT)/src
 GRPC_CPP_PLUGIN=grpc_cpp_plugin
 GRPC_BIN_PATH=/usr/local/bin/grpc_cpp_plugin
-DOCKER_IMAGE=umegaya/mgobuilder
+DOCKER_IMAGE=mtktool/builder
 # project root from build directory
 PROJECT_ROOT=../..
 BUILD_SETTING_PATH=$(PROJECT_ROOT)/tools/cmake
@@ -48,3 +48,5 @@ build: bundle ios android
 clean: 
 	rm -r build
 
+builder:
+	docker build -t mtktools/builder tools/builder

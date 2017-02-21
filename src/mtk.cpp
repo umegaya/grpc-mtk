@@ -10,22 +10,23 @@
 using namespace mtk;
 
 /******* internal bridge *******/
-class FunctionHandler : IHandler {
+template <class S>
+class FunctionHandler : public IHandler {
 protected:
 	mtk_server_callback_t handler_;
 public:
 	FunctionHandler(mtk_server_callback_t handler) : handler_(handler) {}
 	//implements IHandler
 	grpc::Status Handle(IConn *c, Request &req) {
-		return handler_(req.type(), req.payload(), req.payload().length()) >= 0 ? grpc::Status::OK : grpc::Status::CANCELLED;
+		return handler_(c, req.type(), req.payload().c_str(), req.payload().length()) >= 0 ? grpc::Status::OK : grpc::Status::CANCELLED;
 	}
-	IConn *NewReader(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
-		return new Conn<RSVStream>(worker, service, handler, cq);
-	}
-	IConn *NewWriter(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
-		return new Conn<WSVStream>(worker, service, handler, cq);
+	IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
+		return new Conn<S>(worker, service, handler, cq);
 	}
 };
+typedef FunctionHandler<RSVStream> ReadHandler;
+typedef FunctionHandler<WSVStream> WriteHandler;
+
 
 
 /******* grpc client/server API *******/
@@ -35,15 +36,34 @@ void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf) {
 	DuplexStream::ServerCredOptions opts;
 	bool has_cred = DuplexStream::CreateCred(*addr, opts);
 	svconf->listen_at = addr->host;
-	auto handler = new FunctionHandler(svconf.handler);
 	if (svconf->exclusive) {
-		ServerRunner::Instance().Run(*svconf, handler, has_cred ? &opts : nullptr);
+		auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler));
+		auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler));
+		ServerRunner::Instance().Run(*svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
 	} else {
 		g_svthread = std::move(std::thread([svconf, has_cred, &opts] {
-			ServerRunner::Instance().Run(*svconf, handler, has_cred ? &opts : nullptr);
+			auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler));
+			auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler));
+			ServerRunner::Instance().Run(*svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
 	    }));
 	}
 }
+mtk_svconn_t mtk_svconn_find(uint64_t id) {
+	return nullptr;
+}
+void mtk_svconn_id(mtk_svconn_t conn) {
+
+}
+void mtk_svconn_send(mtk_svconn_t conn, const char *data, size_t datalen) {
+
+}
+void mtk_svconn_add_task(mtk_svconn_t conn, const char *data, size_t datalen) {
+
+}
+void mtk_svconn_close(mtk_svconn_t conn) {
+
+}
+
 mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
 	DuplexStream *ds = new StreamDelegate(clconf);
 	DuplexStream::CredOptions opts;
@@ -55,11 +75,11 @@ void mtk_conn_poll(mtk_conn_t c) {
 	DuplexStream *ds = (DuplexStream *)c;
 	ds->Update();
 }
-void mtk_close(mtk_conn_t c) {
+void mtk_conn_close(mtk_conn_t c) {
 	DuplexStream *ds = (DuplexStream *)c;
 	ds->Release();
 }
-void mtk_send(mtk_conn_t c, uint32_t type, const char *p, size_t plen, mtk_callback_t cb) {
+void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, size_t plen, mtk_callback_t cb) {
 	DuplexStream *ds = (DuplexStream *)c;
 	ds->Call(type, p, plen, cb);
 }
@@ -75,7 +95,7 @@ void mtk_http_start(const char *root_cert, bool start_server) {
 	HttpClient::Start(root_cert);
 	if (s_num_websv_port > 0) {
 		s_websv_thread = std::thread([] {
-			HttpServer::Run();
+			HttpServer::Instance().Run();
 		});
 	}
 }
@@ -83,7 +103,7 @@ bool mtk_http_listen(int port, mtk_http_server_cb_t cb) {
 	if (s_num_websv_port <= 0) {
 		if (!HttpServer::Instance().Init()) { return false; }
 	}
-	if (!HttpServer::Instance().Listen(port, [cb](HttpFSM &req, IResponseWriter &rep) {
+	if (!HttpServer::Instance().Listen(port, [cb](HttpFSM &req, HttpServer::IResponseWriter &rep) {
 		cb((void *)&req, (void *)&rep);
 	})) { return false; }
 	s_num_websv_port++;
@@ -115,7 +135,7 @@ void mtk_http_post(const char *host, const char *path,
 extern bool mtk_http_server_read_header(mtk_http_server_request_t *req, const char *key, char *value, size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;
 	int inlen = *size, outlen;
-	if (fsm->hdrstr(key, value, inlen, outlen)) {
+	if (fsm->hdrstr(key, value, inlen, &outlen)) {
 		*size = outlen;
 		return true;
 	}
@@ -127,10 +147,10 @@ const char *mtk_http_server_read_body(mtk_http_server_request_t *req, size_t *si
 	return fsm->body();	
 }
 void mtk_http_server_write_header(mtk_http_server_response_t *res, int status, mtk_http_header_t *hds, size_t n_hds) {
-	IResponseWriter *writer = (IResponseWriter *)req;
-	writer->WriteHeader(status, (grpc_http_header *)hds, n_hds);
+	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
+	writer->WriteHeader((http_result_code_t)status, (grpc_http_header *)hds, n_hds);
 }
 void mtk_http_server_write_body(mtk_http_server_response_t *res, char *buffer, size_t len) {
-	IResponseWriter *writer = (IResponseWriter *)req;
-	writer->WriteBody(buffer, len);
+	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
+	writer->WriteBody((const uint8_t *)buffer, len);
 }

@@ -59,28 +59,26 @@ void protobuf_AssignDesc_mtk_2eproto() {
   Error_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
       Error_descriptor_,
-      Error::default_instance_,
+      Error::internal_default_instance(),
       Error_offsets_,
       -1,
       -1,
       -1,
       sizeof(Error),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Error, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Error, _is_default_instance_));
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Error, _internal_metadata_));
   SystemPayload_descriptor_ = file->message_type(1);
   static const int SystemPayload_offsets_[1] = {
   };
   SystemPayload_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
       SystemPayload_descriptor_,
-      SystemPayload::default_instance_,
+      SystemPayload::internal_default_instance(),
       SystemPayload_offsets_,
       -1,
       -1,
       -1,
       sizeof(SystemPayload),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, _is_default_instance_));
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, _internal_metadata_));
   SystemPayload_Connect_descriptor_ = SystemPayload_descriptor_->nested_type(0);
   static const int SystemPayload_Connect_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Connect, id_),
@@ -89,14 +87,13 @@ void protobuf_AssignDesc_mtk_2eproto() {
   SystemPayload_Connect_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
       SystemPayload_Connect_descriptor_,
-      SystemPayload_Connect::default_instance_,
+      SystemPayload_Connect::internal_default_instance(),
       SystemPayload_Connect_offsets_,
       -1,
       -1,
       -1,
       sizeof(SystemPayload_Connect),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Connect, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Connect, _is_default_instance_));
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Connect, _internal_metadata_));
   SystemPayload_Ping_descriptor_ = SystemPayload_descriptor_->nested_type(1);
   static const int SystemPayload_Ping_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Ping, now_),
@@ -105,14 +102,13 @@ void protobuf_AssignDesc_mtk_2eproto() {
   SystemPayload_Ping_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
       SystemPayload_Ping_descriptor_,
-      SystemPayload_Ping::default_instance_,
+      SystemPayload_Ping::internal_default_instance(),
       SystemPayload_Ping_offsets_,
       -1,
       -1,
       -1,
       sizeof(SystemPayload_Ping),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Ping, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Ping, _is_default_instance_));
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Ping, _internal_metadata_));
   Request_descriptor_ = file->message_type(2);
   static const int Request_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Request, type_),
@@ -123,14 +119,13 @@ void protobuf_AssignDesc_mtk_2eproto() {
   Request_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
       Request_descriptor_,
-      Request::default_instance_,
+      Request::internal_default_instance(),
       Request_offsets_,
       -1,
       -1,
       -1,
       sizeof(Request),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Request, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Request, _is_default_instance_));
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Request, _internal_metadata_));
   Request_Kind_descriptor_ = Request_descriptor_->enum_type(0);
   Reply_descriptor_ = file->message_type(3);
   static const int Reply_offsets_[4] = {
@@ -142,20 +137,19 @@ void protobuf_AssignDesc_mtk_2eproto() {
   Reply_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
       Reply_descriptor_,
-      Reply::default_instance_,
+      Reply::internal_default_instance(),
       Reply_offsets_,
       -1,
       -1,
       -1,
       sizeof(Reply),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Reply, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Reply, _is_default_instance_));
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Reply, _internal_metadata_));
 }
 
 namespace {
 
 GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AssignDescriptors_once_);
-inline void protobuf_AssignDescriptorsOnce() {
+void protobuf_AssignDescriptorsOnce() {
   ::google::protobuf::GoogleOnceInit(&protobuf_AssignDescriptors_once_,
                  &protobuf_AssignDesc_mtk_2eproto);
 }
@@ -164,43 +158,67 @@ void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      Error_descriptor_, &Error::default_instance());
+      Error_descriptor_, Error::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      SystemPayload_descriptor_, &SystemPayload::default_instance());
+      SystemPayload_descriptor_, SystemPayload::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      SystemPayload_Connect_descriptor_, &SystemPayload_Connect::default_instance());
+      SystemPayload_Connect_descriptor_, SystemPayload_Connect::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      SystemPayload_Ping_descriptor_, &SystemPayload_Ping::default_instance());
+      SystemPayload_Ping_descriptor_, SystemPayload_Ping::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      Request_descriptor_, &Request::default_instance());
+      Request_descriptor_, Request::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      Reply_descriptor_, &Reply::default_instance());
+      Reply_descriptor_, Reply::internal_default_instance());
 }
 
 }  // namespace
 
 void protobuf_ShutdownFile_mtk_2eproto() {
-  delete Error::default_instance_;
+  Error_default_instance_.Shutdown();
   delete Error_reflection_;
-  delete SystemPayload::default_instance_;
+  SystemPayload_default_instance_.Shutdown();
   delete SystemPayload_reflection_;
-  delete SystemPayload_Connect::default_instance_;
+  SystemPayload_Connect_default_instance_.Shutdown();
   delete SystemPayload_Connect_reflection_;
-  delete SystemPayload_Ping::default_instance_;
+  SystemPayload_Ping_default_instance_.Shutdown();
   delete SystemPayload_Ping_reflection_;
-  delete Request::default_instance_;
+  Request_default_instance_.Shutdown();
   delete Request_reflection_;
-  delete Reply::default_instance_;
+  Reply_default_instance_.Shutdown();
   delete Reply_reflection_;
 }
 
-void protobuf_AddDesc_mtk_2eproto() GOOGLE_ATTRIBUTE_COLD;
-void protobuf_AddDesc_mtk_2eproto() {
-  static bool already_here = false;
-  if (already_here) return;
-  already_here = true;
+void protobuf_InitDefaults_mtk_2eproto_impl() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
+  ::google::protobuf::internal::GetEmptyString();
+  Error_default_instance_.DefaultConstruct();
+  SystemPayload_default_instance_.DefaultConstruct();
+  ::google::protobuf::internal::GetEmptyString();
+  SystemPayload_Connect_default_instance_.DefaultConstruct();
+  ::google::protobuf::internal::GetEmptyString();
+  SystemPayload_Ping_default_instance_.DefaultConstruct();
+  ::google::protobuf::internal::GetEmptyString();
+  Request_default_instance_.DefaultConstruct();
+  ::google::protobuf::internal::GetEmptyString();
+  Reply_default_instance_.DefaultConstruct();
+  Error_default_instance_.get_mutable()->InitAsDefaultInstance();
+  SystemPayload_default_instance_.get_mutable()->InitAsDefaultInstance();
+  SystemPayload_Connect_default_instance_.get_mutable()->InitAsDefaultInstance();
+  SystemPayload_Ping_default_instance_.get_mutable()->InitAsDefaultInstance();
+  Request_default_instance_.get_mutable()->InitAsDefaultInstance();
+  Reply_default_instance_.get_mutable()->InitAsDefaultInstance();
+}
+
+GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_InitDefaults_mtk_2eproto_once_);
+void protobuf_InitDefaults_mtk_2eproto() {
+  ::google::protobuf::GoogleOnceInit(&protobuf_InitDefaults_mtk_2eproto_once_,
+                 &protobuf_InitDefaults_mtk_2eproto_impl);
+}
+void protobuf_AddDesc_mtk_2eproto_impl() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  protobuf_InitDefaults_mtk_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\tmtk.proto\022\003mtk\",\n\005Error\022\022\n\nerror_code\030"
     "\001 \001(\005\022\017\n\007payload\030\002 \001(\014\"]\n\rSystemPayload\032"
@@ -216,27 +234,30 @@ void protobuf_AddDesc_mtk_2eproto() {
     "equest\032\n.mtk.Reply\"\000(\0010\001b\006proto3", 472);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "mtk.proto", &protobuf_RegisterTypes);
-  Error::default_instance_ = new Error();
-  SystemPayload::default_instance_ = new SystemPayload();
-  SystemPayload_Connect::default_instance_ = new SystemPayload_Connect();
-  SystemPayload_Ping::default_instance_ = new SystemPayload_Ping();
-  Request::default_instance_ = new Request();
-  Reply::default_instance_ = new Reply();
-  Error::default_instance_->InitAsDefaultInstance();
-  SystemPayload::default_instance_->InitAsDefaultInstance();
-  SystemPayload_Connect::default_instance_->InitAsDefaultInstance();
-  SystemPayload_Ping::default_instance_->InitAsDefaultInstance();
-  Request::default_instance_->InitAsDefaultInstance();
-  Reply::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_mtk_2eproto);
 }
 
+GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AddDesc_mtk_2eproto_once_);
+void protobuf_AddDesc_mtk_2eproto() {
+  ::google::protobuf::GoogleOnceInit(&protobuf_AddDesc_mtk_2eproto_once_,
+                 &protobuf_AddDesc_mtk_2eproto_impl);
+}
 // Force AddDescriptors() to be called at static initialization time.
 struct StaticDescriptorInitializer_mtk_2eproto {
   StaticDescriptorInitializer_mtk_2eproto() {
     protobuf_AddDesc_mtk_2eproto();
   }
 } static_descriptor_initializer_mtk_2eproto_;
+
+namespace {
+
+static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD GOOGLE_ATTRIBUTE_NORETURN;
+static void MergeFromFail(int line) {
+  ::google::protobuf::internal::MergeFromFail(__FILE__, line);
+}
+
+}  // namespace
+
 
 // ===================================================================
 
@@ -247,28 +268,26 @@ const int Error::kPayloadFieldNumber;
 
 Error::Error()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
   SharedCtor();
   // @@protoc_insertion_point(constructor:mtk.Error)
 }
 
 void Error::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
 }
 
 Error::Error(const Error& from)
   : ::google::protobuf::Message(),
     _internal_metadata_(NULL) {
   SharedCtor();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:mtk.Error)
 }
 
 void Error::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  error_code_ = 0;
   payload_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  error_code_ = 0;
+  _cached_size_ = 0;
 }
 
 Error::~Error() {
@@ -278,8 +297,6 @@ Error::~Error() {
 
 void Error::SharedDtor() {
   payload_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
 }
 
 void Error::SetCachedSize(int size) const {
@@ -293,11 +310,11 @@ const ::google::protobuf::Descriptor* Error::descriptor() {
 }
 
 const Error& Error::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_mtk_2eproto();
-  return *default_instance_;
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
 }
 
-Error* Error::default_instance_ = NULL;
+::google::protobuf::internal::ExplicitlyConstructed<Error> Error_default_instance_;
 
 Error* Error::New(::google::protobuf::Arena* arena) const {
   Error* n = new Error;
@@ -326,10 +343,10 @@ bool Error::MergePartialFromCodedStream(
       // optional int32 error_code = 1;
       case 1: {
         if (tag == 8) {
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
                  input, &error_code_)));
-
         } else {
           goto handle_unusual;
         }
@@ -390,6 +407,7 @@ void Error::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Error::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.Error)
   // optional int32 error_code = 1;
   if (this->error_code() != 0) {
@@ -407,9 +425,9 @@ void Error::SerializeWithCachedSizes(
   return target;
 }
 
-int Error::ByteSize() const {
+size_t Error::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.Error)
-  int total_size = 0;
+  size_t total_size = 0;
 
   // optional int32 error_code = 1;
   if (this->error_code() != 0) {
@@ -425,18 +443,17 @@ int Error::ByteSize() const {
         this->payload());
   }
 
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void Error::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:mtk.Error)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const Error* source = 
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const Error* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const Error>(
           &from);
   if (source == NULL) {
@@ -444,15 +461,21 @@ void Error::MergeFrom(const ::google::protobuf::Message& from) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
   // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.Error)
-    MergeFrom(*source);
+    UnsafeMergeFrom(*source);
   }
 }
 
 void Error::MergeFrom(const Error& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:mtk.Error)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
   }
+}
+
+void Error::UnsafeMergeFrom(const Error& from) {
+  GOOGLE_DCHECK(&from != this);
   if (from.error_code() != 0) {
     set_error_code(from.error_code());
   }
@@ -473,7 +496,7 @@ void Error::CopyFrom(const Error& from) {
 // @@protoc_insertion_point(class_specific_copy_from_start:mtk.Error)
   if (&from == this) return;
   Clear();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
 }
 
 bool Error::IsInitialized() const {
@@ -507,11 +530,11 @@ void Error::InternalSwap(Error* other) {
 void Error::clear_error_code() {
   error_code_ = 0;
 }
- ::google::protobuf::int32 Error::error_code() const {
+::google::protobuf::int32 Error::error_code() const {
   // @@protoc_insertion_point(field_get:mtk.Error.error_code)
   return error_code_;
 }
- void Error::set_error_code(::google::protobuf::int32 value) {
+void Error::set_error_code(::google::protobuf::int32 value) {
   
   error_code_ = value;
   // @@protoc_insertion_point(field_set:mtk.Error.error_code)
@@ -521,37 +544,37 @@ void Error::clear_error_code() {
 void Error::clear_payload() {
   payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- const ::std::string& Error::payload() const {
+const ::std::string& Error::payload() const {
   // @@protoc_insertion_point(field_get:mtk.Error.payload)
   return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Error::set_payload(const ::std::string& value) {
+void Error::set_payload(const ::std::string& value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:mtk.Error.payload)
 }
- void Error::set_payload(const char* value) {
+void Error::set_payload(const char* value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:mtk.Error.payload)
 }
- void Error::set_payload(const void* value, size_t size) {
+void Error::set_payload(const void* value, size_t size) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:mtk.Error.payload)
 }
- ::std::string* Error::mutable_payload() {
+::std::string* Error::mutable_payload() {
   
   // @@protoc_insertion_point(field_mutable:mtk.Error.payload)
   return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* Error::release_payload() {
+::std::string* Error::release_payload() {
   // @@protoc_insertion_point(field_release:mtk.Error.payload)
   
   return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Error::set_allocated_payload(::std::string* payload) {
+void Error::set_allocated_payload(::std::string* payload) {
   if (payload != NULL) {
     
   } else {
@@ -561,6 +584,9 @@ void Error::clear_payload() {
   // @@protoc_insertion_point(field_set_allocated:mtk.Error.payload)
 }
 
+inline const Error* Error::internal_default_instance() {
+  return &Error_default_instance_.get();
+}
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
@@ -572,28 +598,26 @@ const int SystemPayload_Connect::kPayloadFieldNumber;
 
 SystemPayload_Connect::SystemPayload_Connect()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
   SharedCtor();
   // @@protoc_insertion_point(constructor:mtk.SystemPayload.Connect)
 }
 
 void SystemPayload_Connect::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
 }
 
 SystemPayload_Connect::SystemPayload_Connect(const SystemPayload_Connect& from)
   : ::google::protobuf::Message(),
     _internal_metadata_(NULL) {
   SharedCtor();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:mtk.SystemPayload.Connect)
 }
 
 void SystemPayload_Connect::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  id_ = GOOGLE_ULONGLONG(0);
   payload_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  id_ = GOOGLE_ULONGLONG(0);
+  _cached_size_ = 0;
 }
 
 SystemPayload_Connect::~SystemPayload_Connect() {
@@ -603,8 +627,6 @@ SystemPayload_Connect::~SystemPayload_Connect() {
 
 void SystemPayload_Connect::SharedDtor() {
   payload_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
 }
 
 void SystemPayload_Connect::SetCachedSize(int size) const {
@@ -618,11 +640,11 @@ const ::google::protobuf::Descriptor* SystemPayload_Connect::descriptor() {
 }
 
 const SystemPayload_Connect& SystemPayload_Connect::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_mtk_2eproto();
-  return *default_instance_;
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
 }
 
-SystemPayload_Connect* SystemPayload_Connect::default_instance_ = NULL;
+::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Connect> SystemPayload_Connect_default_instance_;
 
 SystemPayload_Connect* SystemPayload_Connect::New(::google::protobuf::Arena* arena) const {
   SystemPayload_Connect* n = new SystemPayload_Connect;
@@ -651,10 +673,10 @@ bool SystemPayload_Connect::MergePartialFromCodedStream(
       // optional uint64 id = 1;
       case 1: {
         if (tag == 8) {
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
                  input, &id_)));
-
         } else {
           goto handle_unusual;
         }
@@ -715,6 +737,7 @@ void SystemPayload_Connect::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SystemPayload_Connect::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.SystemPayload.Connect)
   // optional uint64 id = 1;
   if (this->id() != 0) {
@@ -732,9 +755,9 @@ void SystemPayload_Connect::SerializeWithCachedSizes(
   return target;
 }
 
-int SystemPayload_Connect::ByteSize() const {
+size_t SystemPayload_Connect::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.SystemPayload.Connect)
-  int total_size = 0;
+  size_t total_size = 0;
 
   // optional uint64 id = 1;
   if (this->id() != 0) {
@@ -750,18 +773,17 @@ int SystemPayload_Connect::ByteSize() const {
         this->payload());
   }
 
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void SystemPayload_Connect::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:mtk.SystemPayload.Connect)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const SystemPayload_Connect* source = 
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const SystemPayload_Connect* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const SystemPayload_Connect>(
           &from);
   if (source == NULL) {
@@ -769,15 +791,21 @@ void SystemPayload_Connect::MergeFrom(const ::google::protobuf::Message& from) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
   // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.SystemPayload.Connect)
-    MergeFrom(*source);
+    UnsafeMergeFrom(*source);
   }
 }
 
 void SystemPayload_Connect::MergeFrom(const SystemPayload_Connect& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:mtk.SystemPayload.Connect)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
   }
+}
+
+void SystemPayload_Connect::UnsafeMergeFrom(const SystemPayload_Connect& from) {
+  GOOGLE_DCHECK(&from != this);
   if (from.id() != 0) {
     set_id(from.id());
   }
@@ -798,7 +826,7 @@ void SystemPayload_Connect::CopyFrom(const SystemPayload_Connect& from) {
 // @@protoc_insertion_point(class_specific_copy_from_start:mtk.SystemPayload.Connect)
   if (&from == this) return;
   Clear();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
 }
 
 bool SystemPayload_Connect::IsInitialized() const {
@@ -835,28 +863,26 @@ const int SystemPayload_Ping::kPayloadFieldNumber;
 
 SystemPayload_Ping::SystemPayload_Ping()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
   SharedCtor();
   // @@protoc_insertion_point(constructor:mtk.SystemPayload.Ping)
 }
 
 void SystemPayload_Ping::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
 }
 
 SystemPayload_Ping::SystemPayload_Ping(const SystemPayload_Ping& from)
   : ::google::protobuf::Message(),
     _internal_metadata_(NULL) {
   SharedCtor();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:mtk.SystemPayload.Ping)
 }
 
 void SystemPayload_Ping::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  now_ = GOOGLE_ULONGLONG(0);
   payload_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  now_ = GOOGLE_ULONGLONG(0);
+  _cached_size_ = 0;
 }
 
 SystemPayload_Ping::~SystemPayload_Ping() {
@@ -866,8 +892,6 @@ SystemPayload_Ping::~SystemPayload_Ping() {
 
 void SystemPayload_Ping::SharedDtor() {
   payload_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
 }
 
 void SystemPayload_Ping::SetCachedSize(int size) const {
@@ -881,11 +905,11 @@ const ::google::protobuf::Descriptor* SystemPayload_Ping::descriptor() {
 }
 
 const SystemPayload_Ping& SystemPayload_Ping::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_mtk_2eproto();
-  return *default_instance_;
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
 }
 
-SystemPayload_Ping* SystemPayload_Ping::default_instance_ = NULL;
+::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Ping> SystemPayload_Ping_default_instance_;
 
 SystemPayload_Ping* SystemPayload_Ping::New(::google::protobuf::Arena* arena) const {
   SystemPayload_Ping* n = new SystemPayload_Ping;
@@ -914,10 +938,10 @@ bool SystemPayload_Ping::MergePartialFromCodedStream(
       // optional uint64 now = 1;
       case 1: {
         if (tag == 8) {
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
                  input, &now_)));
-
         } else {
           goto handle_unusual;
         }
@@ -978,6 +1002,7 @@ void SystemPayload_Ping::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SystemPayload_Ping::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.SystemPayload.Ping)
   // optional uint64 now = 1;
   if (this->now() != 0) {
@@ -995,9 +1020,9 @@ void SystemPayload_Ping::SerializeWithCachedSizes(
   return target;
 }
 
-int SystemPayload_Ping::ByteSize() const {
+size_t SystemPayload_Ping::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.SystemPayload.Ping)
-  int total_size = 0;
+  size_t total_size = 0;
 
   // optional uint64 now = 1;
   if (this->now() != 0) {
@@ -1013,18 +1038,17 @@ int SystemPayload_Ping::ByteSize() const {
         this->payload());
   }
 
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void SystemPayload_Ping::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:mtk.SystemPayload.Ping)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const SystemPayload_Ping* source = 
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const SystemPayload_Ping* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const SystemPayload_Ping>(
           &from);
   if (source == NULL) {
@@ -1032,15 +1056,21 @@ void SystemPayload_Ping::MergeFrom(const ::google::protobuf::Message& from) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
   // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.SystemPayload.Ping)
-    MergeFrom(*source);
+    UnsafeMergeFrom(*source);
   }
 }
 
 void SystemPayload_Ping::MergeFrom(const SystemPayload_Ping& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:mtk.SystemPayload.Ping)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
   }
+}
+
+void SystemPayload_Ping::UnsafeMergeFrom(const SystemPayload_Ping& from) {
+  GOOGLE_DCHECK(&from != this);
   if (from.now() != 0) {
     set_now(from.now());
   }
@@ -1061,7 +1091,7 @@ void SystemPayload_Ping::CopyFrom(const SystemPayload_Ping& from) {
 // @@protoc_insertion_point(class_specific_copy_from_start:mtk.SystemPayload.Ping)
   if (&from == this) return;
   Clear();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
 }
 
 bool SystemPayload_Ping::IsInitialized() const {
@@ -1096,24 +1126,23 @@ void SystemPayload_Ping::InternalSwap(SystemPayload_Ping* other) {
 
 SystemPayload::SystemPayload()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
   SharedCtor();
   // @@protoc_insertion_point(constructor:mtk.SystemPayload)
 }
 
 void SystemPayload::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
 }
 
 SystemPayload::SystemPayload(const SystemPayload& from)
   : ::google::protobuf::Message(),
     _internal_metadata_(NULL) {
   SharedCtor();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:mtk.SystemPayload)
 }
 
 void SystemPayload::SharedCtor() {
-    _is_default_instance_ = false;
   _cached_size_ = 0;
 }
 
@@ -1123,8 +1152,6 @@ SystemPayload::~SystemPayload() {
 }
 
 void SystemPayload::SharedDtor() {
-  if (this != default_instance_) {
-  }
 }
 
 void SystemPayload::SetCachedSize(int size) const {
@@ -1138,11 +1165,11 @@ const ::google::protobuf::Descriptor* SystemPayload::descriptor() {
 }
 
 const SystemPayload& SystemPayload::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_mtk_2eproto();
-  return *default_instance_;
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
 }
 
-SystemPayload* SystemPayload::default_instance_ = NULL;
+::google::protobuf::internal::ExplicitlyConstructed<SystemPayload> SystemPayload_default_instance_;
 
 SystemPayload* SystemPayload::New(::google::protobuf::Arena* arena) const {
   SystemPayload* n = new SystemPayload;
@@ -1190,27 +1217,27 @@ void SystemPayload::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SystemPayload::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.SystemPayload)
   // @@protoc_insertion_point(serialize_to_array_end:mtk.SystemPayload)
   return target;
 }
 
-int SystemPayload::ByteSize() const {
+size_t SystemPayload::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.SystemPayload)
-  int total_size = 0;
+  size_t total_size = 0;
 
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void SystemPayload::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:mtk.SystemPayload)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const SystemPayload* source = 
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const SystemPayload* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const SystemPayload>(
           &from);
   if (source == NULL) {
@@ -1218,15 +1245,21 @@ void SystemPayload::MergeFrom(const ::google::protobuf::Message& from) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
   // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.SystemPayload)
-    MergeFrom(*source);
+    UnsafeMergeFrom(*source);
   }
 }
 
 void SystemPayload::MergeFrom(const SystemPayload& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:mtk.SystemPayload)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
   }
+}
+
+void SystemPayload::UnsafeMergeFrom(const SystemPayload& from) {
+  GOOGLE_DCHECK(&from != this);
 }
 
 void SystemPayload::CopyFrom(const ::google::protobuf::Message& from) {
@@ -1240,7 +1273,7 @@ void SystemPayload::CopyFrom(const SystemPayload& from) {
 // @@protoc_insertion_point(class_specific_copy_from_start:mtk.SystemPayload)
   if (&from == this) return;
   Clear();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
 }
 
 bool SystemPayload::IsInitialized() const {
@@ -1272,11 +1305,11 @@ void SystemPayload::InternalSwap(SystemPayload* other) {
 void SystemPayload_Connect::clear_id() {
   id_ = GOOGLE_ULONGLONG(0);
 }
- ::google::protobuf::uint64 SystemPayload_Connect::id() const {
+::google::protobuf::uint64 SystemPayload_Connect::id() const {
   // @@protoc_insertion_point(field_get:mtk.SystemPayload.Connect.id)
   return id_;
 }
- void SystemPayload_Connect::set_id(::google::protobuf::uint64 value) {
+void SystemPayload_Connect::set_id(::google::protobuf::uint64 value) {
   
   id_ = value;
   // @@protoc_insertion_point(field_set:mtk.SystemPayload.Connect.id)
@@ -1286,37 +1319,37 @@ void SystemPayload_Connect::clear_id() {
 void SystemPayload_Connect::clear_payload() {
   payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- const ::std::string& SystemPayload_Connect::payload() const {
+const ::std::string& SystemPayload_Connect::payload() const {
   // @@protoc_insertion_point(field_get:mtk.SystemPayload.Connect.payload)
   return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void SystemPayload_Connect::set_payload(const ::std::string& value) {
+void SystemPayload_Connect::set_payload(const ::std::string& value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:mtk.SystemPayload.Connect.payload)
 }
- void SystemPayload_Connect::set_payload(const char* value) {
+void SystemPayload_Connect::set_payload(const char* value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:mtk.SystemPayload.Connect.payload)
 }
- void SystemPayload_Connect::set_payload(const void* value, size_t size) {
+void SystemPayload_Connect::set_payload(const void* value, size_t size) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:mtk.SystemPayload.Connect.payload)
 }
- ::std::string* SystemPayload_Connect::mutable_payload() {
+::std::string* SystemPayload_Connect::mutable_payload() {
   
   // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.Connect.payload)
   return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* SystemPayload_Connect::release_payload() {
+::std::string* SystemPayload_Connect::release_payload() {
   // @@protoc_insertion_point(field_release:mtk.SystemPayload.Connect.payload)
   
   return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void SystemPayload_Connect::set_allocated_payload(::std::string* payload) {
+void SystemPayload_Connect::set_allocated_payload(::std::string* payload) {
   if (payload != NULL) {
     
   } else {
@@ -1326,6 +1359,9 @@ void SystemPayload_Connect::clear_payload() {
   // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.Connect.payload)
 }
 
+inline const SystemPayload_Connect* SystemPayload_Connect::internal_default_instance() {
+  return &SystemPayload_Connect_default_instance_.get();
+}
 // -------------------------------------------------------------------
 
 // SystemPayload_Ping
@@ -1334,11 +1370,11 @@ void SystemPayload_Connect::clear_payload() {
 void SystemPayload_Ping::clear_now() {
   now_ = GOOGLE_ULONGLONG(0);
 }
- ::google::protobuf::uint64 SystemPayload_Ping::now() const {
+::google::protobuf::uint64 SystemPayload_Ping::now() const {
   // @@protoc_insertion_point(field_get:mtk.SystemPayload.Ping.now)
   return now_;
 }
- void SystemPayload_Ping::set_now(::google::protobuf::uint64 value) {
+void SystemPayload_Ping::set_now(::google::protobuf::uint64 value) {
   
   now_ = value;
   // @@protoc_insertion_point(field_set:mtk.SystemPayload.Ping.now)
@@ -1348,37 +1384,37 @@ void SystemPayload_Ping::clear_now() {
 void SystemPayload_Ping::clear_payload() {
   payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- const ::std::string& SystemPayload_Ping::payload() const {
+const ::std::string& SystemPayload_Ping::payload() const {
   // @@protoc_insertion_point(field_get:mtk.SystemPayload.Ping.payload)
   return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void SystemPayload_Ping::set_payload(const ::std::string& value) {
+void SystemPayload_Ping::set_payload(const ::std::string& value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:mtk.SystemPayload.Ping.payload)
 }
- void SystemPayload_Ping::set_payload(const char* value) {
+void SystemPayload_Ping::set_payload(const char* value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:mtk.SystemPayload.Ping.payload)
 }
- void SystemPayload_Ping::set_payload(const void* value, size_t size) {
+void SystemPayload_Ping::set_payload(const void* value, size_t size) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:mtk.SystemPayload.Ping.payload)
 }
- ::std::string* SystemPayload_Ping::mutable_payload() {
+::std::string* SystemPayload_Ping::mutable_payload() {
   
   // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.Ping.payload)
   return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* SystemPayload_Ping::release_payload() {
+::std::string* SystemPayload_Ping::release_payload() {
   // @@protoc_insertion_point(field_release:mtk.SystemPayload.Ping.payload)
   
   return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void SystemPayload_Ping::set_allocated_payload(::std::string* payload) {
+void SystemPayload_Ping::set_allocated_payload(::std::string* payload) {
   if (payload != NULL) {
     
   } else {
@@ -1388,10 +1424,16 @@ void SystemPayload_Ping::clear_payload() {
   // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.Ping.payload)
 }
 
+inline const SystemPayload_Ping* SystemPayload_Ping::internal_default_instance() {
+  return &SystemPayload_Ping_default_instance_.get();
+}
 // -------------------------------------------------------------------
 
 // SystemPayload
 
+inline const SystemPayload* SystemPayload::internal_default_instance() {
+  return &SystemPayload_default_instance_.get();
+}
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
@@ -1401,7 +1443,7 @@ const ::google::protobuf::EnumDescriptor* Request_Kind_descriptor() {
   return Request_Kind_descriptor_;
 }
 bool Request_Kind_IsValid(int value) {
-  switch(value) {
+  switch (value) {
     case 0:
     case 1:
     case 2:
@@ -1428,30 +1470,27 @@ const int Request::kPayloadFieldNumber;
 
 Request::Request()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
   SharedCtor();
   // @@protoc_insertion_point(constructor:mtk.Request)
 }
 
 void Request::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
 }
 
 Request::Request(const Request& from)
   : ::google::protobuf::Message(),
     _internal_metadata_(NULL) {
   SharedCtor();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:mtk.Request)
 }
 
 void Request::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  type_ = 0u;
-  msgid_ = 0u;
-  kind_ = 0;
   payload_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ::memset(&type_, 0, reinterpret_cast<char*>(&kind_) -
+    reinterpret_cast<char*>(&type_) + sizeof(kind_));
+  _cached_size_ = 0;
 }
 
 Request::~Request() {
@@ -1461,8 +1500,6 @@ Request::~Request() {
 
 void Request::SharedDtor() {
   payload_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
 }
 
 void Request::SetCachedSize(int size) const {
@@ -1476,11 +1513,11 @@ const ::google::protobuf::Descriptor* Request::descriptor() {
 }
 
 const Request& Request::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_mtk_2eproto();
-  return *default_instance_;
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
 }
 
-Request* Request::default_instance_ = NULL;
+::google::protobuf::internal::ExplicitlyConstructed<Request> Request_default_instance_;
 
 Request* Request::New(::google::protobuf::Arena* arena) const {
   Request* n = new Request;
@@ -1504,12 +1541,11 @@ void Request::Clear() {
 #endif
 
 #define ZR_(first, last) do {\
-  ::memset(&first, 0,\
+  ::memset(&(first), 0,\
            ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
 } while (0)
 
-  ZR_(type_, msgid_);
-  kind_ = 0;
+  ZR_(type_, kind_);
   payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 
 #undef ZR_HELPER_
@@ -1530,10 +1566,10 @@ bool Request::MergePartialFromCodedStream(
       // optional uint32 type = 1;
       case 1: {
         if (tag == 8) {
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &type_)));
-
         } else {
           goto handle_unusual;
         }
@@ -1545,10 +1581,10 @@ bool Request::MergePartialFromCodedStream(
       case 2: {
         if (tag == 16) {
          parse_msgid:
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &msgid_)));
-
         } else {
           goto handle_unusual;
         }
@@ -1636,6 +1672,7 @@ void Request::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Request::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.Request)
   // optional uint32 type = 1;
   if (this->type() != 0) {
@@ -1664,9 +1701,9 @@ void Request::SerializeWithCachedSizes(
   return target;
 }
 
-int Request::ByteSize() const {
+size_t Request::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.Request)
-  int total_size = 0;
+  size_t total_size = 0;
 
   // optional uint32 type = 1;
   if (this->type() != 0) {
@@ -1695,18 +1732,17 @@ int Request::ByteSize() const {
         this->payload());
   }
 
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void Request::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:mtk.Request)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const Request* source = 
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const Request* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const Request>(
           &from);
   if (source == NULL) {
@@ -1714,15 +1750,21 @@ void Request::MergeFrom(const ::google::protobuf::Message& from) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
   // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.Request)
-    MergeFrom(*source);
+    UnsafeMergeFrom(*source);
   }
 }
 
 void Request::MergeFrom(const Request& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:mtk.Request)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
   }
+}
+
+void Request::UnsafeMergeFrom(const Request& from) {
+  GOOGLE_DCHECK(&from != this);
   if (from.type() != 0) {
     set_type(from.type());
   }
@@ -1749,7 +1791,7 @@ void Request::CopyFrom(const Request& from) {
 // @@protoc_insertion_point(class_specific_copy_from_start:mtk.Request)
   if (&from == this) return;
   Clear();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
 }
 
 bool Request::IsInitialized() const {
@@ -1785,11 +1827,11 @@ void Request::InternalSwap(Request* other) {
 void Request::clear_type() {
   type_ = 0u;
 }
- ::google::protobuf::uint32 Request::type() const {
+::google::protobuf::uint32 Request::type() const {
   // @@protoc_insertion_point(field_get:mtk.Request.type)
   return type_;
 }
- void Request::set_type(::google::protobuf::uint32 value) {
+void Request::set_type(::google::protobuf::uint32 value) {
   
   type_ = value;
   // @@protoc_insertion_point(field_set:mtk.Request.type)
@@ -1799,11 +1841,11 @@ void Request::clear_type() {
 void Request::clear_msgid() {
   msgid_ = 0u;
 }
- ::google::protobuf::uint32 Request::msgid() const {
+::google::protobuf::uint32 Request::msgid() const {
   // @@protoc_insertion_point(field_get:mtk.Request.msgid)
   return msgid_;
 }
- void Request::set_msgid(::google::protobuf::uint32 value) {
+void Request::set_msgid(::google::protobuf::uint32 value) {
   
   msgid_ = value;
   // @@protoc_insertion_point(field_set:mtk.Request.msgid)
@@ -1813,11 +1855,11 @@ void Request::clear_msgid() {
 void Request::clear_kind() {
   kind_ = 0;
 }
- ::mtk::Request_Kind Request::kind() const {
+::mtk::Request_Kind Request::kind() const {
   // @@protoc_insertion_point(field_get:mtk.Request.kind)
   return static_cast< ::mtk::Request_Kind >(kind_);
 }
- void Request::set_kind(::mtk::Request_Kind value) {
+void Request::set_kind(::mtk::Request_Kind value) {
   
   kind_ = value;
   // @@protoc_insertion_point(field_set:mtk.Request.kind)
@@ -1827,37 +1869,37 @@ void Request::clear_kind() {
 void Request::clear_payload() {
   payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- const ::std::string& Request::payload() const {
+const ::std::string& Request::payload() const {
   // @@protoc_insertion_point(field_get:mtk.Request.payload)
   return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Request::set_payload(const ::std::string& value) {
+void Request::set_payload(const ::std::string& value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:mtk.Request.payload)
 }
- void Request::set_payload(const char* value) {
+void Request::set_payload(const char* value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:mtk.Request.payload)
 }
- void Request::set_payload(const void* value, size_t size) {
+void Request::set_payload(const void* value, size_t size) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:mtk.Request.payload)
 }
- ::std::string* Request::mutable_payload() {
+::std::string* Request::mutable_payload() {
   
   // @@protoc_insertion_point(field_mutable:mtk.Request.payload)
   return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* Request::release_payload() {
+::std::string* Request::release_payload() {
   // @@protoc_insertion_point(field_release:mtk.Request.payload)
   
   return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Request::set_allocated_payload(::std::string* payload) {
+void Request::set_allocated_payload(::std::string* payload) {
   if (payload != NULL) {
     
   } else {
@@ -1867,6 +1909,9 @@ void Request::clear_payload() {
   // @@protoc_insertion_point(field_set_allocated:mtk.Request.payload)
 }
 
+inline const Request* Request::internal_default_instance() {
+  return &Request_default_instance_.get();
+}
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
@@ -1880,31 +1925,30 @@ const int Reply::kPayloadFieldNumber;
 
 Reply::Reply()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
   SharedCtor();
   // @@protoc_insertion_point(constructor:mtk.Reply)
 }
 
 void Reply::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
-  error_ = const_cast< ::mtk::Error*>(&::mtk::Error::default_instance());
+  error_ = const_cast< ::mtk::Error*>(
+      ::mtk::Error::internal_default_instance());
 }
 
 Reply::Reply(const Reply& from)
   : ::google::protobuf::Message(),
     _internal_metadata_(NULL) {
   SharedCtor();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:mtk.Reply)
 }
 
 void Reply::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  type_ = 0u;
-  msgid_ = 0u;
-  error_ = NULL;
   payload_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  error_ = NULL;
+  ::memset(&type_, 0, reinterpret_cast<char*>(&msgid_) -
+    reinterpret_cast<char*>(&type_) + sizeof(msgid_));
+  _cached_size_ = 0;
 }
 
 Reply::~Reply() {
@@ -1914,7 +1958,7 @@ Reply::~Reply() {
 
 void Reply::SharedDtor() {
   payload_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
+  if (this != &Reply_default_instance_.get()) {
     delete error_;
   }
 }
@@ -1930,11 +1974,11 @@ const ::google::protobuf::Descriptor* Reply::descriptor() {
 }
 
 const Reply& Reply::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_mtk_2eproto();
-  return *default_instance_;
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
 }
 
-Reply* Reply::default_instance_ = NULL;
+::google::protobuf::internal::ExplicitlyConstructed<Reply> Reply_default_instance_;
 
 Reply* Reply::New(::google::protobuf::Arena* arena) const {
   Reply* n = new Reply;
@@ -1958,7 +2002,7 @@ void Reply::Clear() {
 #endif
 
 #define ZR_(first, last) do {\
-  ::memset(&first, 0,\
+  ::memset(&(first), 0,\
            ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
 } while (0)
 
@@ -1985,10 +2029,10 @@ bool Reply::MergePartialFromCodedStream(
       // optional uint32 type = 1;
       case 1: {
         if (tag == 8) {
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &type_)));
-
         } else {
           goto handle_unusual;
         }
@@ -2000,10 +2044,10 @@ bool Reply::MergePartialFromCodedStream(
       case 2: {
         if (tag == 16) {
          parse_msgid:
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &msgid_)));
-
         } else {
           goto handle_unusual;
         }
@@ -2088,6 +2132,7 @@ void Reply::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Reply::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.Reply)
   // optional uint32 type = 1;
   if (this->type() != 0) {
@@ -2117,9 +2162,9 @@ void Reply::SerializeWithCachedSizes(
   return target;
 }
 
-int Reply::ByteSize() const {
+size_t Reply::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.Reply)
-  int total_size = 0;
+  size_t total_size = 0;
 
   // optional uint32 type = 1;
   if (this->type() != 0) {
@@ -2149,18 +2194,17 @@ int Reply::ByteSize() const {
         this->payload());
   }
 
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void Reply::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:mtk.Reply)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const Reply* source = 
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const Reply* source =
       ::google::protobuf::internal::DynamicCastToGenerated<const Reply>(
           &from);
   if (source == NULL) {
@@ -2168,15 +2212,21 @@ void Reply::MergeFrom(const ::google::protobuf::Message& from) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
   // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.Reply)
-    MergeFrom(*source);
+    UnsafeMergeFrom(*source);
   }
 }
 
 void Reply::MergeFrom(const Reply& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:mtk.Reply)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
   }
+}
+
+void Reply::UnsafeMergeFrom(const Reply& from) {
+  GOOGLE_DCHECK(&from != this);
   if (from.type() != 0) {
     set_type(from.type());
   }
@@ -2203,7 +2253,7 @@ void Reply::CopyFrom(const Reply& from) {
 // @@protoc_insertion_point(class_specific_copy_from_start:mtk.Reply)
   if (&from == this) return;
   Clear();
-  MergeFrom(from);
+  UnsafeMergeFrom(from);
 }
 
 bool Reply::IsInitialized() const {
@@ -2239,11 +2289,11 @@ void Reply::InternalSwap(Reply* other) {
 void Reply::clear_type() {
   type_ = 0u;
 }
- ::google::protobuf::uint32 Reply::type() const {
+::google::protobuf::uint32 Reply::type() const {
   // @@protoc_insertion_point(field_get:mtk.Reply.type)
   return type_;
 }
- void Reply::set_type(::google::protobuf::uint32 value) {
+void Reply::set_type(::google::protobuf::uint32 value) {
   
   type_ = value;
   // @@protoc_insertion_point(field_set:mtk.Reply.type)
@@ -2253,11 +2303,11 @@ void Reply::clear_type() {
 void Reply::clear_msgid() {
   msgid_ = 0u;
 }
- ::google::protobuf::uint32 Reply::msgid() const {
+::google::protobuf::uint32 Reply::msgid() const {
   // @@protoc_insertion_point(field_get:mtk.Reply.msgid)
   return msgid_;
 }
- void Reply::set_msgid(::google::protobuf::uint32 value) {
+void Reply::set_msgid(::google::protobuf::uint32 value) {
   
   msgid_ = value;
   // @@protoc_insertion_point(field_set:mtk.Reply.msgid)
@@ -2265,7 +2315,7 @@ void Reply::clear_msgid() {
 
 // optional .mtk.Error error = 3;
 bool Reply::has_error() const {
-  return !_is_default_instance_ && error_ != NULL;
+  return this != internal_default_instance() && error_ != NULL;
 }
 void Reply::clear_error() {
   if (GetArenaNoVirtual() == NULL && error_ != NULL) delete error_;
@@ -2273,7 +2323,8 @@ void Reply::clear_error() {
 }
 const ::mtk::Error& Reply::error() const {
   // @@protoc_insertion_point(field_get:mtk.Reply.error)
-  return error_ != NULL ? *error_ : *default_instance_->error_;
+  return error_ != NULL ? *error_
+                         : *::mtk::Error::internal_default_instance();
 }
 ::mtk::Error* Reply::mutable_error() {
   
@@ -2305,37 +2356,37 @@ void Reply::set_allocated_error(::mtk::Error* error) {
 void Reply::clear_payload() {
   payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- const ::std::string& Reply::payload() const {
+const ::std::string& Reply::payload() const {
   // @@protoc_insertion_point(field_get:mtk.Reply.payload)
   return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Reply::set_payload(const ::std::string& value) {
+void Reply::set_payload(const ::std::string& value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:mtk.Reply.payload)
 }
- void Reply::set_payload(const char* value) {
+void Reply::set_payload(const char* value) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:mtk.Reply.payload)
 }
- void Reply::set_payload(const void* value, size_t size) {
+void Reply::set_payload(const void* value, size_t size) {
   
   payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:mtk.Reply.payload)
 }
- ::std::string* Reply::mutable_payload() {
+::std::string* Reply::mutable_payload() {
   
   // @@protoc_insertion_point(field_mutable:mtk.Reply.payload)
   return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* Reply::release_payload() {
+::std::string* Reply::release_payload() {
   // @@protoc_insertion_point(field_release:mtk.Reply.payload)
   
   return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Reply::set_allocated_payload(::std::string* payload) {
+void Reply::set_allocated_payload(::std::string* payload) {
   if (payload != NULL) {
     
   } else {
@@ -2345,6 +2396,9 @@ void Reply::clear_payload() {
   // @@protoc_insertion_point(field_set_allocated:mtk.Reply.payload)
 }
 
+inline const Reply* Reply::internal_default_instance() {
+  return &Reply_default_instance_.get();
+}
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // @@protoc_insertion_point(namespace_scope)

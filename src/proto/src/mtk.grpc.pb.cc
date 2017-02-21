@@ -47,7 +47,6 @@ Stream::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
 }
 
 Stream::Service::Service() {
-  (void)Stream_method_names;
   AddMethod(new ::grpc::RpcServiceMethod(
       Stream_method_names[0],
       ::grpc::RpcMethod::BIDI_STREAMING,

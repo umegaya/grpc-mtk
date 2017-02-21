@@ -21,7 +21,7 @@ namespace mtk {
                 service_->RequestWrite(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
-                handler_->NewReader(worker_, service_, handler_, cq_)->Step(); //create next waiter
+                handler_->NewConn(worker_, service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::LOGIN;
                 io_.Read(&req_, tag_);
                 break;
@@ -73,7 +73,7 @@ namespace mtk {
                 service_->RequestRead(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
-                handler_->NewWriter(worker_, service_, handler_, cq_)->Step(); //create next waiter
+                handler_->NewConn(worker_, service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::READ;
                 io_.Read(&req_, tag_);
                 break;

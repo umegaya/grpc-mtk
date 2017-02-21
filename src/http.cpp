@@ -3,18 +3,19 @@
 #include <grpc/grpc.h>
 #include <grpc/grpc_security.h>
 #include <grpc/support/sync.h>
-#include <grpc/impl/codegen/alloc.h>
 extern "C" {
 #include "src/core/lib/http/httpcli.h"
 #include "src/core/lib/iomgr/pollset.h"
+#include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/polling_entity.h"
 #include "src/core/lib/iomgr/resolve_address.h"
 }
-#include <string>
 #include <memory.h>
 #include <stdlib.h>
 
 #include <thread>
+
+#include "debug.h"
 
 static gpr_mu *g_polling_mu;
 static grpc_pollset *g_pollset = nullptr;
@@ -32,7 +33,7 @@ namespace mtk {
     typedef struct _RequestContext {
         grpc_httpcli_context context_;
         grpc_polling_entity pollent_;
-        grpc_http_response response_;
+        grpc_httpcli_response response_;
         grpc_closure closure_;
         HttpClient::Callback cb_;
         void Init(const char *host, const char *path,
@@ -42,7 +43,7 @@ namespace mtk {
             gpr_timespec timeout = gpr_time_add(gpr_now(GPR_CLOCK_MONOTONIC),
                                                 gpr_time_from_millis(timeout_msec, GPR_TIMESPAN));
             pollent_ = grpc_polling_entity_create_from_pollset(g_pollset);
-            grpc_closure_init(&closure_, _RequestContext::tranpoline, this);
+            grpc_closure_init(&closure_, _RequestContext::tranpoline, this, grpc_schedule_on_exec_ctx);
             memset(&response_, 0, sizeof(response_));
             cb_ = cb;
             
@@ -55,23 +56,29 @@ namespace mtk {
             req.http.hdr_count = n_headers;
             
             grpc_httpcli_context_init(&context_);
+            grpc_resource_quota *resource_quota = grpc_resource_quota_create(NULL);
             if (body != nullptr) {
-                grpc_httpcli_post(&g_exec_ctx, &context_, &pollent_, &req,
-                                  body, blen,
+                grpc_httpcli_post(&g_exec_ctx, &context_, &pollent_, resource_quota, 
+                                  &req, body, blen,
                                   timeout, &closure_, &response_);
             } else {
-                grpc_httpcli_get(&g_exec_ctx, &context_, &pollent_, &req,
+                grpc_httpcli_get(&g_exec_ctx, &context_, &pollent_, resource_quota, 
+                                 &req,
                                  timeout, &closure_, &response_);
             }
+            grpc_resource_quota_unref_internal(&g_exec_ctx, resource_quota);
         }
         void Fin() {
             grpc_httpcli_context_destroy(&context_);
             grpc_http_response_destroy(&response_);
+            GRPC_LOG_IF_ERROR(
+                "pollset_kick",
+                grpc_pollset_kick(grpc_polling_entity_pollset(&pollent_), NULL));
         }
         static void tranpoline(grpc_exec_ctx *exec_ctx, void *arg,
                                grpc_error *error) {
             _RequestContext *ctx = (_RequestContext *)arg;
-            if (ctx->closure_.error != nullptr) {
+            if (ctx->closure_.error_data.error != nullptr) {
                 //g_logger->error("tag:http,ev:request fail,emsg:{}", grpc_error_string(ctx->closure_.error));
             }
             grpc_http_response &resp = ctx->response_;
@@ -99,7 +106,7 @@ namespace mtk {
     void HttpClient::Fin() {
         if (g_pollset != nullptr) {
             grpc_closure destroy_closure;
-            grpc_closure_init(&destroy_closure, destroy_pollset, g_pollset);
+            grpc_closure_init(&destroy_closure, destroy_pollset, g_pollset, grpc_schedule_on_exec_ctx);
             grpc_pollset_shutdown(&g_exec_ctx,
                                   g_pollset,
                                   &destroy_closure);
@@ -648,8 +655,8 @@ namespace mtk {
         typedef HttpFSM::result_code result_code;
     public:
         HttpServContext(grpc_endpoint *sock, HttpServer::Callback cb) : sock_(sock), cb_(cb), fsm_() {
-            grpc_closure_init(&on_read_, _OnRead, this);
-            grpc_closure_init(&on_write_, _OnWrite, this);
+            grpc_closure_init(&on_read_, _OnRead, this, grpc_schedule_on_exec_ctx);
+            grpc_closure_init(&on_write_, _OnWrite, this, grpc_schedule_on_exec_ctx);
             gpr_slice_buffer_init(&buffer_);
             gpr_slice_buffer_init(&body_);
             FSM().reset(512);
@@ -758,38 +765,28 @@ namespace mtk {
     }
 
     HttpServer::HttpServer() {
-        n_handlers_capacity_ = 4;
-        n_handlers_ = 0;
-        handlers_ = new Callback[n_handlers_capacity_];
+        n_listeners_capacity_ = 4;
+        n_listeners_ = 0;
+        listeners_ = new ListenerEntry[n_listeners_capacity_];
     }
 
     bool HttpServer::Init() {
         pollset_ = (grpc_pollset *)malloc(grpc_pollset_size());
         grpc_pollset_init(pollset_, &polling_mu_);
-        grpc_closure_init(&on_destroy_, &HttpServer::_OnDestroy, this);
-        auto err = grpc_tcp_server_create(&on_destroy_, nullptr, &server_);
-        if (err != GRPC_ERROR_NONE) {
-            GRPC_ERROR_UNREF(err);
-            return false;
-        }
-        grpc_tcp_server_ref(server_);
+        grpc_closure_init(&on_destroy_, &HttpServer::_OnDestroy, this, grpc_schedule_on_exec_ctx);
         return true;
     }
-    bool HttpServer::Listen(int port, Callback cb) {
+    bool HttpServer::DoListen(grpc_exec_ctx *exec_ctx, int port) {
         grpc_resolved_addresses *resolved = nullptr;
         grpc_blocking_resolve_address(("0.0.0.0:" + std::to_string(port)).c_str(), "https", &resolved);
         if (resolved == nullptr) {
-    #if !defined(MGO_CLIENT)
-            g_logger->info("ev:cannot listen,addr:{}", (":" + std::to_string(port)).c_str());
-    #endif
+            //g_logger->info("ev:cannot listen,addr:{}", (":" + std::to_string(port)).c_str());
             return false;
         }
         const size_t naddrs = resolved->naddrs;
         for (int i = 0; i < naddrs; i++) {
             int tmp;
-            auto err = grpc_tcp_server_add_port(server_,
-                                                (struct sockaddr *)&resolved->addrs[i].addr,
-                                                resolved->addrs[i].len, &tmp);
+            auto err = grpc_tcp_server_add_port(server_, &resolved->addrs[i], &tmp);
             if (GRPC_ERROR_NONE != err) {
                 GRPC_ERROR_UNREF(err);
                 return false;
@@ -798,12 +795,28 @@ namespace mtk {
                 return false;
             }
         }
-        AddHandler(cb);
         return true;
     }
-    void HttpServer::Run(int sleep_ms) {
+    bool HttpServer::Listen(int port, Callback cb) {
+        AddHandler(port, cb);
+        return true;
+    }
+    bool HttpServer::Run(int sleep_ms) {
         bool alive = true;
         grpc_exec_ctx exec_ctx = GRPC_EXEC_CTX_INIT;
+        auto err = grpc_tcp_server_create(&exec_ctx, &on_destroy_, nullptr, &server_);
+        if (err != GRPC_ERROR_NONE) {
+            GRPC_ERROR_UNREF(err);
+            ASSERT(false);
+            return false;
+        }
+        for (int i = 0; i < n_listeners_; i++) {
+            if (!DoListen(&exec_ctx, listeners_[i].port)) {
+                ASSERT(false);
+                return false;
+            }
+        }
+        grpc_tcp_server_ref(server_);
         grpc_tcp_server_start(&exec_ctx, server_, &pollset_, 1, &HttpServer::_OnAccept, this);
         while (alive) {
             grpc_pollset_worker *worker = NULL;
@@ -816,6 +829,7 @@ namespace mtk {
         }
         //finish.
         grpc_tcp_server_unref(&exec_ctx, server_);
+        return true;
     }
 
     void HttpServer::OnDestroy(grpc_exec_ctx *exec_ctx, grpc_error *error) {
@@ -823,22 +837,23 @@ namespace mtk {
     }
     void HttpServer::OnAccept(grpc_exec_ctx *exec_ctx, grpc_endpoint *tcp, grpc_pollset *accepting_pollset,
                               grpc_tcp_server_acceptor *acceptor) {
-        auto ctx = new HttpServContext(tcp, handlers_[acceptor->port_index]);
+        auto ctx = new HttpServContext(tcp, listeners_[acceptor->port_index].callback);
         ctx->Read(exec_ctx);
     }
 
-    void HttpServer::AddHandler(Callback cb) {
-        if (n_handlers_ == n_handlers_capacity_) {
-            n_handlers_capacity_ *= 2;
-            Callback *new_handers = new Callback[n_handlers_capacity_];
-            for (int i = 0; i < n_handlers_; i++) {
-                new_handers[i] = handlers_[i];
+    void HttpServer::AddHandler(int port, Callback cb) {
+        if (n_listeners_ == n_listeners_capacity_) {
+            n_listeners_capacity_ *= 2;
+            ListenerEntry *new_handers = new ListenerEntry[n_listeners_capacity_];
+            for (int i = 0; i < n_listeners_; i++) {
+                new_handers[i] = listeners_[i];
             }
-            delete []handlers_;
-            handlers_ = new_handers;
+            delete []listeners_;
+            listeners_ = new_handers;
         }
-        ASSERT(n_handlers_ < n_handlers_capacity_);
-        handlers_[n_handlers_++] = cb;
+        ASSERT(n_listeners_ < n_listeners_capacity_);
+        listeners_[n_listeners_].port = port;
+        listeners_[n_listeners_++].callback = cb;
     }
 
     void HttpServer::IResponseWriter::WriteResponse(const uint8_t *p, size_t l) {
