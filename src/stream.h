@@ -58,18 +58,17 @@ namespace mtk {
         static Reply *DISCONNECT_EVENT;
         static Reply *ESTABLISHED_EVENT;
         static Request *ESTABLISH_REQUEST;
-        static constexpr timespec_t TIMEOUT_DURATION = time::sec(30); //30sec
+        static constexpr timespec_t TIMEOUT_DURATION = clock::sec(30); //30sec
         static Error *TIMEOUT_ERROR;
         typedef Stream::Stub Stub;
         typedef grpc::SslCredentialsOptions CredOptions;
         typedef grpc::SslServerCredentialsOptions ServerCredOptions;
-        typedef mtk_addr_t CredSettings;
         struct SEntry {
             typedef std::function<void (mtk_result_t, const char *, size_t)> Callback;
             timespec_t start_at_;
             Callback cb_;
-            SEntry(Callback cb) : cb_(cb) { start_at_ = time::clock(); }
-            void operator () (const Reply *rep, const Error *err) {
+            SEntry(Callback cb) : cb_(cb) { start_at_ = clock::now(); }
+            inline void operator () (const Reply *rep, const Error *err) {
                 if (rep != nullptr) {
                     cb_(rep->type(), rep->payload().c_str(), rep->payload().length());
                 } else {
@@ -89,6 +88,7 @@ namespace mtk {
         std::unique_ptr<ClientAsyncReaderWriter<Request, Reply>> conn_[NUM_STREAM];
         ClientAsyncReaderWriter<Request, Reply> *prev_conn_[NUM_STREAM];
         std::map<uint32_t, SEntry*> reqmap_;
+        std::map<uint32_t, SEntry::Callback> notifymap_;
         ClientContext *context_[NUM_STREAM];
         Reply *reply_work_[NUM_STREAM];
         CompletionQueue cq_;
@@ -101,7 +101,7 @@ namespace mtk {
         bool dump_;
     public:
         DuplexStream(IDuplexStreamDelegate *d) : delegate_(d),
-            stub_(), replys_(), reqmtx_(), alive_(true), restarting_(false), reqmap_(), cq_(), thr_(),
+            stub_(), replys_(), reqmtx_(), alive_(true), restarting_(false), reqmap_(), notifymap_(), cq_(), thr_(),
             last_checked_(0), reconnect_when_(0), msgid_seed_(0), reconnect_attempt_(0), connect_sequence_num_(0),
             status_(NetworkStatus::DISCONNECT), dump_(false) {
             memset(is_sending_, 0, sizeof(is_sending_));
@@ -119,15 +119,13 @@ namespace mtk {
         void Update();
         void Receive();
         void HandleEvent(bool ok, void *tag);
-        //credential
-        static bool CreateCred(CredSettings &settings, CredOptions &options);
-        static bool CreateCred(CredSettings &settings, ServerCredOptions &options);
+        void RegisterNotifyCB(uint32_t type, SEntry::Callback cb) { notifymap_[type] = cb; }
         //handshakers
         void StartRead();
         inline bool IsConnected() const { return status_ == CONNECT; }
         inline int32_t NewMsgId() {
             while (true) {
-                int32_t expect = msgid_seed_;
+                int32_t expect = msgid_seed_.load();
                 int32_t desired = expect + 1;
                 if (desired >= 2000000000) {
                     desired = 1;
@@ -149,7 +147,6 @@ namespace mtk {
         static timespec_t CalcReconnectWaitDuration(int n_attempt);
         static timespec_t CalcJitter(timespec_t base);
         static timespec_t Tick();
-        void InitInternalCallback();
         void DrainQueue();
         //stream open/close
         void Close() {

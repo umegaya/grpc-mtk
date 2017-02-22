@@ -50,7 +50,7 @@ void DuplexStream::Finalize() {
 }
 
 timespec_t DuplexStream::Tick() {
-    return time::clock();
+    return clock::now();
 }
 
 timespec_t DuplexStream::ReconnectWaitUsec() {
@@ -62,34 +62,13 @@ timespec_t DuplexStream::ReconnectWaitUsec() {
     }
 }
 
-//credential
-bool DuplexStream::CreateCred(CredSettings &settings, CredOptions &options) {
-    if (settings.cert == nullptr) {
-        return false;
-    }
-    options.pem_cert_chain = settings.cert;
-    options.pem_private_key = settings.key;
-    options.pem_root_certs = settings.ca;
-    return true;
-}
-bool DuplexStream::CreateCred(CredSettings &settings, ServerCredOptions &options) {
-    if (settings.cert == nullptr) {
-        return false;
-    }
-    options.pem_root_certs = settings.ca;
-    options.pem_key_cert_pairs = {
-        { .private_key = settings.key, .cert_chain = settings.cert },
-    };
-    return true;
-}
-
-
 timespec_t DuplexStream::CalcReconnectWaitDuration(int n_attempt) {
     timespec_t base;
     if (n_attempt <= 1) {
-        base = 5 * 1000 * 1000;
+        base = clock::sec(5);
     } else {
-        base = std::min(300, (5 << (n_attempt - 2))) * 1000 * 1000;
+        //TODO: use 1.3 ^ n_attempt instead?
+        base = clock::sec(std::min(300, (5 << (n_attempt - 2))));
     }
     return CalcJitter(base);
 }
@@ -163,13 +142,13 @@ void DuplexStream::Update() {
             if (restarting_) {
                 TRACE("maybe packet received during restarting (%u/%u). ignored\n", rep->msgid(), rep->type());
             } else if (rep->msgid() == 0) {
-                /*auto it = callbacks_.find(rep->type());
-                if (it != callbacks_.end()) {
-                    (*it).second(*rep);
+                auto it = notifymap_.find(rep->type());
+                if (it != notifymap_.end()) {
+                    (*it).second(rep->type(), rep->payload().c_str(), rep->payload().length());
                 } else {
                     TRACE("notify not processed: %u\n", rep->type());
                     ASSERT(false);
-                }*/
+                }
             } else {
                 reqmtx_.lock();
                 auto it = reqmap_.find(rep->msgid());
@@ -343,6 +322,7 @@ void DuplexStream::HandleEvent(bool ok, void *tag) {
             if (!restarting_) {
                 //means server close this connection. give reconnect wait for first try
                 reconnect_when_ = Tick() + CalcReconnectWaitDuration(1);
+                TRACE("next reconnect wait: %llu\n", ReconnectWaitUsec());
             }
             //push event pointer to indicate connection closed
             replys_.enqueue(DISCONNECT_EVENT);

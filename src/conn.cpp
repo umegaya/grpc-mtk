@@ -32,11 +32,13 @@ namespace mtk {
                 io_.Read(&req_, tag_);
                 break;
             case StepId::LOGIN: {
-                Status st = handler_->Handle(tag_, req_);
-                if (step_ == StepId::CLOSE) {
+                uint64_t cid = handler_->Accept(tag_, req_);
+                if (cid == 0 || step_ == StepId::CLOSE) {
                     this->LogError("ev:app closed by Login failure");
+                    step_ = StepId::CLOSE;
                     Finish();
-                } else if (owner_uid_ != 0) {
+                } else {
+                    tag_->Register(cid);
                     this->LogInfo("ev:accept");
                     step_ = StepId::BEFORE_READ;
                 }
@@ -62,7 +64,7 @@ namespace mtk {
                 }
             } break;
             case StepId::CLOSE: {
-                ((IConn *)tag_)->Destroy();
+                tag_->Destroy();
             } break;
             default:
                 this->LogDebug("ev:unknown step,step:{}", step_);
@@ -84,8 +86,9 @@ namespace mtk {
                 io_.Read(&req_, tag_);
                 break;
             case StepId::READ: {
-                Status st = handler_->Handle(tag_, req_);
-                if (st.ok()) {
+                uint64_t cid = handler_->Accept(tag_, req_);
+                if (cid != 0) {
+                    tag_->Register(cid);
                     step_ = StepId::WRITE;
                 }
             } break;
@@ -112,7 +115,7 @@ namespace mtk {
                 break;
             }
             case StepId::CLOSE: {
-                ((IConn *)tag_)->Destroy();
+                tag_->Destroy();
             } break;
             default:
                 this->LogDebug("ev:unknown step,step:{}", step_);

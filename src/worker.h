@@ -27,7 +27,7 @@ namespace mtk {
         IConn *New();
         inline void Process(bool ok, void *tag);
         virtual void Run();
-        virtual void OnRegister(IConn *c) {}
+        virtual void OnRegister(IConn *) {}
         virtual void OnUnregister(IConn *) {}
     };
     //worker which does IO and periodically call ConsumeTask for each connection

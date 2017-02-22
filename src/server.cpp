@@ -48,11 +48,7 @@ void ServerRunner::Run(Config &conf, IHandler *rhandler, IHandler *whandler, Dup
         w->Launch();
     }
     
-    // start thread for http
-    HttpClient::Start(conf.root_cert);
-    
     // Wait for the server to shutdown. 
     server->Wait();
-    HttpClient::Stop();
 }
 }

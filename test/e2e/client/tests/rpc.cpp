@@ -4,8 +4,7 @@ void test_ping(mtk_conn_t conn, finish_cb done) {
 	PingRequest req;
 	req.set_sent(mtk_time());
 	RPC(conn, Ping, req, [done](PingRequest &req, PingReply &rep) {
-		REQUIRE( req.sent() == rep.sent() );
-		done();
+		done(req.sent() == rep.sent());
 	});
 }
 

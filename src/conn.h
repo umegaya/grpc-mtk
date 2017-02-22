@@ -21,11 +21,13 @@ namespace mtk {
     public:
         virtual void Step() = 0;
         virtual void Destroy() = 0;
+        virtual void Register(uint64_t cid) = 0;
         virtual void ConsumeTask(int) = 0;
     };
     class IHandler {
     public:
         virtual grpc::Status Handle(IConn *c, Request &req) = 0;
+        virtual uint64_t Accept(IConn *c, Request &req) = 0;
         virtual IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
     };
     typedef uint64_t ConnectionId;
@@ -57,6 +59,7 @@ namespace mtk {
             worker_(worker), service_(service), handler_(handler), cq_(cq), ctx_(), io_(&ctx_), req_(),
         step_(StepId::INIT), tag_(tag), owner_uid_(0) {}
         virtual ~SVStream() {}
+        virtual void OnClose() {}
         inline grpc::string RemoteAddress() const { return ctx_.peer(); }
         inline void SetId(ConnectionId uid) { owner_uid_ = uid; }
         inline ConnectionId Id() const { return owner_uid_; }
@@ -169,7 +172,6 @@ namespace mtk {
             mtx_.unlock();
         }
     protected:
-        friend class ServiceImpl;
         friend class RSVStream;
         void Terminate();
         void Cleanup() {
@@ -200,6 +202,7 @@ namespace mtk {
             Request *t;
             while (n_process != 0 && tasks_.try_dequeue(t)) {
                 handler_->Handle(tag_, *t);
+                n_process--;
             }
         }
         template <class W> void Rep(uint32_t msgid, const W &w) {
@@ -235,6 +238,9 @@ namespace mtk {
         }
         void Close() { closed_.store(1); }
         bool IsClosed() const { return closed_.load() != 0; }
+        void OnClose() override {
+            ConsumeTask(-1); //consume all task
+        }
     protected:
         virtual void Cleanup() {
             if (sender_ != nullptr) {
@@ -251,24 +257,28 @@ namespace mtk {
         virtual ~TRSVStream() {}
         T &Context() { return context_; }
         const T &Context() const { return context_; }
-        void Destroy() { context_.Destroy(); }
+        void OnClose() override {
+            RSVStream::OnClose();
+            context_.Destroy();
+        }
     };
     template <class S>
     class Conn : public IConn {
     public:
-        typedef std::map<ConnectionId, Conn*> Map;
         typedef std::shared_ptr<S> Stream;
     protected:
         Stream stream_;
-        static Map cmap_;
-        static Stream default_;
-        static std::mutex cmap_mtx_;
     public:
         Conn(IWorker *worker, Service* service, IHandler *handler, ServerCompletionQueue* cq) :
             stream_(std::make_shared<S>(worker, service, handler, cq, this)) {}
         virtual ~Conn() {}
-        virtual void ConsumeTask(int n_process) { stream_->ConsumeTask(n_process); }
-        virtual void Destroy() { delete this; }
+        void ConsumeTask(int n_process) override { stream_->ConsumeTask(n_process); }
+        void Step() override { stream_->Step(); }
+        void Destroy() override { 
+            Unregister(); 
+            stream_->OnClose();
+            delete this; 
+        }
         inline ConnectionId Id() { return stream_->Id(); }
         inline uint32_t CurrentMsgId() const { return stream_->CurrentMsgId(); }
         inline std::shared_ptr<S> &GetStream() { return stream_; }
@@ -276,11 +286,42 @@ namespace mtk {
         inline void InternalClose() { stream_->InternalClose(); }
         inline void Close() { stream_->Close(); }
         inline bool IsClosed() { return stream_->IsClosed(); }
-        inline void Step() { stream_->Step(); }
         inline grpc::string RemoteAddress() { return stream_->RemoteAddress(); }
         template <class W> void Rep(uint32_t msgid, const W &w) { stream_->Rep(msgid, w); }
         template <class W> void Notify(MessageType type, const W &w) { stream_->Notify(type, w); }
         template <class W> void AddTask(MessageType type, const W &w) { stream_->AddTask(type, w); }
+    public:
+        void Register(ConnectionId cid) override {
+            stream_->AssignedWorker()->OnRegister(this);
+        }
+        virtual void Unregister() {
+            stream_->AssignedWorker()->OnUnregister(this);
+        }        
+    protected:
+        inline void Finish() {
+            stream_->Finish();
+        }
+    public:
+        template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
+            stream_->LogDebug(fmt, args...);
+        }
+        template <typename... Args> void LogInfo(const char* fmt, const Args&... args) {
+            stream_->LogInfo(fmt, args...);
+        }
+        template <typename... Args> void LogError(const char* fmt, const Args&... args) {
+            stream_->LogError(fmt, args...);
+        }
+    };
+    template <class S> 
+    class MappedConn : public Conn<S> {
+    public:
+        typedef Conn<S> Super;
+        typedef typename Super::Stream Stream;
+        typedef std::map<ConnectionId, MappedConn<S>*> Map;
+    protected:
+        static Map cmap_;
+        static Stream default_;
+        static std::mutex cmap_mtx_;
     public:
         static Stream &Get(ConnectionId uid) {
             cmap_mtx_.lock();
@@ -297,44 +338,38 @@ namespace mtk {
             op(cmap_);
             cmap_mtx_.unlock();
         }
-    protected:
-        inline void Finish() {
-            stream_->Finish();
-        }
-        void Register(ConnectionId uid) {
+        void Register(ConnectionId cid) override {
             cmap_mtx_.lock();
-            cmap_[uid] = this;
-            stream_->SetId(uid);
-            //LogInfo("ev:register to map");
-            stream_->AssignedWorker()->OnRegister(this);
+            cmap_[cid] = this;
+            Super::stream_->SetId(cid);
             cmap_mtx_.unlock();
+            Super::Register(cid);
         }
-        void Unregister() {
+        void Unregister() override {
             cmap_mtx_.lock();
-            auto it = cmap_.find(stream_->Id());
+            auto it = cmap_.find(Super::stream_->Id());
             if (it != cmap_.end()) {
                 if (it->second == this) {
-                    cmap_.erase(stream_->Id());
+                    cmap_.erase(Super::stream_->Id());
                 }
             }
-            stream_->AssignedWorker()->OnUnregister(this);
-            //LogInfo("ev:unregister to map");
             cmap_mtx_.unlock();
+            Super::Unregister();
         }
-    public:
-        template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
-            stream_->LogDebug(fmt, args...);
-        }
-        template <typename... Args> void LogInfo(const char* fmt, const Args&... args) {
-            stream_->LogInfo(fmt, args...);
-        }
-        template <typename... Args> void LogError(const char* fmt, const Args&... args) {
-            stream_->LogError(fmt, args...);
+        template <class WC>
+        static bool MakePair(uint64_t cid, WC &wc) {
+            typename Super::Stream s = Get(cid);
+            if (s == nullptr) {
+                return false;
+            }
+            s->SetStream(wc.GetStream());
+            return true;
         }
     };
-    template<typename T> typename Conn<T>::Map Conn<T>::cmap_;
-    template<typename T> typename Conn<T>::Stream Conn<T>::default_;
-    template<typename T> std::mutex Conn<T>::cmap_mtx_;
-    //default writable connection
+    template<typename T> typename MappedConn<T>::Map MappedConn<T>::cmap_;
+    template<typename T> typename Conn<T>::Stream MappedConn<T>::default_;
+    template<typename T> std::mutex MappedConn<T>::cmap_mtx_;
+    //default io connection
     typedef Conn<WSVStream> WConn;
+    typedef MappedConn<RSVStream> RConn;
 }

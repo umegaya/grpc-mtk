@@ -29,7 +29,7 @@ bundle: proto filelist
 	- mkdir -p build/osx
 	cd build/osx && cmake -DCMAKE_TOOLCHAIN_FILE=$(BUILD_SETTING_PATH)/bundle.cmake $(PROJECT_ROOT) && make
 
-test: proto filelist
+testlib: proto filelist
 	- mkdir -p build/test
 	cd build/test && cmake -DCMAKE_TOOLCHAIN_FILE=$(BUILD_SETTING_PATH)/testlib.cmake $(PROJECT_ROOT) && make
 
@@ -54,6 +54,10 @@ android: proto filelist
 
 .PHONY: build
 build: bundle ios android
+
+.PHONY: test
+test: testlib
+	make -C test/e2e client server
 
 clean: 
 	rm -r build

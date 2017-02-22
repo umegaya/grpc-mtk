@@ -15,6 +15,10 @@ mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	return 0;
 }
 
+mtk_result_t acceptor(mtk_svconn_t c, const char *p, size_t pl) {
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
 	mtk_addr_t addr = {
 		.host = "0.0.0.0:50051",
@@ -27,6 +31,7 @@ int main(int argc, char *argv[]) {
 			.n_writer = 2,
 		},
 		.handler = handler,
+		.acceptor = acceptor,
 	};
 	mtk_listen(&addr, &conf);
 }

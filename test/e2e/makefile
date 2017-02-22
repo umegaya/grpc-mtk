@@ -16,12 +16,12 @@ proto: $(PROTO_SRC)
 .PHONY: client
 client: proto
 	-mkdir -p ./client/build
-	cd client/build && cmake .. && make
+	cd client/build && rm client && cmake .. && make
 
 .PHONY: server
 server: proto
 	-mkdir -p ./server/build
-	cd server/build && cmake .. && make
+	cd server/build && rm server && cmake .. && make
 
 test: client server
 	cd ./server/build && ./server &
