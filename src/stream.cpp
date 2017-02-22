@@ -76,9 +76,21 @@ timespec_t DuplexStream::CalcJitter(timespec_t base) {
     return std::ceil(((double)(800 + rand() % 500) * base) / 1000); //0.800 to 1.200 times
 }
 
+void DuplexStream::StartWrite() {
+    SystemPayload::Connect payload;
+    delegate_->AddPayload(payload, WRITE);
+    Call(Request::Connect, payload, [this](mtk_result_t r, const char *p, size_t len) {
+        delegate_->OnConnect(r, p, len);
+        if (r >= 0) {
+            status_ = NetworkStatus::REGISTER;
+        } else {
+            replys_.enqueue(DISCONNECT_EVENT);
+        }
+    }, WRITE);
+}
 void DuplexStream::StartRead() {
     SystemPayload::Connect payload;
-    payload.set_id(delegate_->Id());
+    delegate_->AddPayload(payload, READ);
     Call(Request::Connect, payload, [this](mtk_result_t r, const char *, size_t) {
         if (r >= 0) {
             status_ = NetworkStatus::CONNECT;
@@ -166,7 +178,6 @@ void DuplexStream::Update() {
             delete rep;
         }
     }
-    DuplexStream *self = this;
     timespec_t now = Tick();
     switch(status_) {
         case NetworkStatus::DISCONNECT: {
@@ -187,14 +198,7 @@ void DuplexStream::Update() {
         } return;
         case NetworkStatus::ESTABLISHED: {
             status_ = NetworkStatus::INITIALIZING;
-            delegate_->Connect([self](Error *e) {
-                if (e != nullptr) {
-                    TRACE("login error: [%s](%d)\n", e->payload().c_str(), e->error_code());
-                    self->replys_.enqueue(DuplexStream::DISCONNECT_EVENT);
-                } else {
-                    self->status_ = NetworkStatus::REGISTER;
-                }
-            });
+            StartWrite();
         } break;
         case NetworkStatus::REGISTER: {
             status_ = NetworkStatus::INITIALIZING;

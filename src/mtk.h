@@ -15,7 +15,7 @@ typedef uint64_t mtk_cid_t;
 typedef uint32_t mtk_msgid_t;
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, size_t);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(mtk_svconn_t, mtk_result_t, const char *, size_t);
-typedef mtk_result_t (*mtk_server_accept_cb_t)(mtk_svconn_t, const char *, size_t);
+typedef mtk_result_t (*mtk_server_accept_cb_t)(mtk_svconn_t, mtk_cid_t, const char *, size_t);
 typedef struct {
 	const char *host, *cert, *key, *ca;
 } mtk_addr_t;

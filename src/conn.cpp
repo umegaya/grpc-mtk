@@ -32,7 +32,7 @@ namespace mtk {
                 io_.Read(&req_, tag_);
                 break;
             case StepId::LOGIN: {
-                uint64_t cid = handler_->Accept(tag_, req_);
+                mtk_cid_t cid = handler_->Accept(tag_, req_);
                 if (cid == 0 || step_ == StepId::CLOSE) {
                     this->LogError("ev:app closed by Login failure");
                     step_ = StepId::CLOSE;
@@ -86,7 +86,7 @@ namespace mtk {
                 io_.Read(&req_, tag_);
                 break;
             case StepId::READ: {
-                uint64_t cid = handler_->Accept(tag_, req_);
+                mtk_cid_t cid = handler_->Accept(tag_, req_);
                 if (cid != 0) {
                     tag_->Register(cid);
                     step_ = StepId::WRITE;

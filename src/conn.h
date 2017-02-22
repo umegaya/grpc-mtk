@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mtk.h"
 #include <queue>
 #include <mutex>
 #include "codec.h"
@@ -21,16 +22,15 @@ namespace mtk {
     public:
         virtual void Step() = 0;
         virtual void Destroy() = 0;
-        virtual void Register(uint64_t cid) = 0;
+        virtual void Register(mtk_cid_t cid) = 0;
         virtual void ConsumeTask(int) = 0;
     };
     class IHandler {
     public:
         virtual grpc::Status Handle(IConn *c, Request &req) = 0;
-        virtual uint64_t Accept(IConn *c, Request &req) = 0;
+        virtual mtk_cid_t Accept(IConn *c, Request &req) = 0;
         virtual IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
     };
-    typedef uint64_t ConnectionId;
     typedef uint32_t MessageType;
     class SVStream {
     public:
@@ -53,7 +53,7 @@ namespace mtk {
         Request req_;
         StepId step_;
         IConn *tag_;
-        ConnectionId owner_uid_;
+        mtk_cid_t owner_uid_;
     public:
         SVStream(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq, IConn *tag) :
             worker_(worker), service_(service), handler_(handler), cq_(cq), ctx_(), io_(&ctx_), req_(),
@@ -61,8 +61,8 @@ namespace mtk {
         virtual ~SVStream() {}
         virtual void OnClose() {}
         inline grpc::string RemoteAddress() const { return ctx_.peer(); }
-        inline void SetId(ConnectionId uid) { owner_uid_ = uid; }
-        inline ConnectionId Id() const { return owner_uid_; }
+        inline void SetId(mtk_cid_t uid) { owner_uid_ = uid; }
+        inline mtk_cid_t Id() const { return owner_uid_; }
         inline uint32_t CurrentMsgId() const { return req_.msgid(); }
         inline void InternalClose() {
             step_ = StepId::CLOSE;
@@ -101,12 +101,12 @@ namespace mtk {
             return true;
         }
         template <class W>
-        bool SetupReply(Reply &rep, uint32_t msgid, const W &w) {
+        bool SetupReply(Reply &rep, mtk_msgid_t msgid, const W &w) {
             SetupPayload(rep, w);
             rep.set_msgid(msgid);
             return true;
         }
-        void SetupThrow(Reply &rep, uint32_t msgid, Error *e) {
+        void SetupThrow(Reply &rep, mtk_msgid_t msgid, Error *e) {
             rep.set_msgid(msgid);
             rep.set_allocated_error(e);
         }
@@ -146,14 +146,14 @@ namespace mtk {
                 Send(r);
             }
         }
-        template <class W> void Rep(uint32_t msgid, const W &w) {
+        template <class W> void Rep(mtk_msgid_t msgid, const W &w) {
             if (step_ != StepId::CLOSE) {
                 Reply *r = new Reply(); //todo: get r from cache
                 if (!SetupReply(*r, msgid, w)) { return; }
                 Send(r);
             }
         }
-        void Throw(uint32_t msgid, Error *e) {
+        void Throw(mtk_msgid_t msgid, Error *e) {
             if (step_ != StepId::CLOSE) {
                 Reply *r = new Reply(); //todo: get r from cache
                 SetupThrow(*r, msgid, e);
@@ -205,7 +205,7 @@ namespace mtk {
                 n_process--;
             }
         }
-        template <class W> void Rep(uint32_t msgid, const W &w) {
+        template <class W> void Rep(mtk_msgid_t msgid, const W &w) {
             if (sender_ != nullptr) {
                 sender_->Rep(msgid, w);
             } else { //only 1 thread do this. so no need to lock.
@@ -224,7 +224,7 @@ namespace mtk {
             SetupRequest(*r, type, w);
             tasks_.enqueue(r);
         }
-        void Throw(uint32_t msgid, Error *e) {
+        void Throw(mtk_msgid_t msgid, Error *e) {
             if (sender_ != nullptr) {
                 sender_->Throw(msgid, e);
             } else { //only 1 thread do this. so no need to lock.
@@ -279,19 +279,19 @@ namespace mtk {
             stream_->OnClose();
             delete this; 
         }
-        inline ConnectionId Id() { return stream_->Id(); }
+        inline mtk_cid_t Id() { return stream_->Id(); }
         inline uint32_t CurrentMsgId() const { return stream_->CurrentMsgId(); }
         inline std::shared_ptr<S> &GetStream() { return stream_; }
-        inline void Throw(uint32_t msgid, Error *e) { stream_->Throw(msgid, e); }
+        inline void Throw(mtk_msgid_t msgid, Error *e) { stream_->Throw(msgid, e); }
         inline void InternalClose() { stream_->InternalClose(); }
         inline void Close() { stream_->Close(); }
         inline bool IsClosed() { return stream_->IsClosed(); }
         inline grpc::string RemoteAddress() { return stream_->RemoteAddress(); }
-        template <class W> void Rep(uint32_t msgid, const W &w) { stream_->Rep(msgid, w); }
+        template <class W> void Rep(mtk_msgid_t msgid, const W &w) { stream_->Rep(msgid, w); }
         template <class W> void Notify(MessageType type, const W &w) { stream_->Notify(type, w); }
         template <class W> void AddTask(MessageType type, const W &w) { stream_->AddTask(type, w); }
     public:
-        void Register(ConnectionId cid) override {
+        void Register(mtk_cid_t cid) override {
             stream_->AssignedWorker()->OnRegister(this);
         }
         virtual void Unregister() {
@@ -317,13 +317,13 @@ namespace mtk {
     public:
         typedef Conn<S> Super;
         typedef typename Super::Stream Stream;
-        typedef std::map<ConnectionId, MappedConn<S>*> Map;
+        typedef std::map<mtk_cid_t, MappedConn<S>*> Map;
     protected:
         static Map cmap_;
         static Stream default_;
         static std::mutex cmap_mtx_;
     public:
-        static Stream &Get(ConnectionId uid) {
+        static Stream &Get(mtk_cid_t uid) {
             cmap_mtx_.lock();
             auto it = cmap_.find(uid);
             if (it != cmap_.end()) {
@@ -338,7 +338,7 @@ namespace mtk {
             op(cmap_);
             cmap_mtx_.unlock();
         }
-        void Register(ConnectionId cid) override {
+        void Register(mtk_cid_t cid) override {
             cmap_mtx_.lock();
             cmap_[cid] = this;
             Super::stream_->SetId(cid);
@@ -357,7 +357,7 @@ namespace mtk {
             Super::Unregister();
         }
         template <class WC>
-        static bool MakePair(uint64_t cid, WC &wc) {
+        static bool MakePair(mtk_msgid_t cid, WC &wc) {
             typename Super::Stream s = Get(cid);
             if (s == nullptr) {
                 return false;

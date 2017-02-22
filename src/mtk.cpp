@@ -3,7 +3,7 @@
 #include "worker.h"
 #include "conn.h"
 #include "server.h"
-#include "delegate.h"
+#include "codec.h"
 #include "http.h"
 #include "timespec.h"
 #include <grpc++/grpc++.h>
@@ -12,6 +12,7 @@
 using namespace mtk;
 
 /******* internal bridge *******/
+/* worker handler */
 template <class S>
 class FunctionHandler : public IHandler {
 protected:
@@ -26,7 +27,11 @@ public:
 			grpc::Status::OK : grpc::Status::CANCELLED;
 	}
 	mtk_cid_t Accept(IConn *c, Request &req) {
-		return acceptor_(c, req.payload().c_str(), req.payload().length());
+		SystemPayload::Connect creq;
+		if (!Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq)) {
+			return 0;
+		}
+		return acceptor_(c, creq.id(), creq.payload().c_str(), creq.payload().length());
 	}
 	IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
 		return new Conn<S>(worker, service, handler, cq);
@@ -38,7 +43,11 @@ public:
 	WriteHandler(mtk_server_recv_cb_t handler, mtk_server_accept_cb_t acceptor) : 
 		FunctionHandler<WSVStream>(handler, acceptor) {}
 	mtk_cid_t Accept(IConn *c, Request &req) {
-		mtk_cid_t cid = acceptor_(c, req.payload().c_str(), req.payload().length());
+		SystemPayload::Connect creq;
+		if (!Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq)) {
+			return 0;
+		}
+		mtk_cid_t cid = acceptor_(c, creq.id(), creq.payload().c_str(), creq.payload().length());
 		if (cid != 0) {
 			RConn::MakePair(cid, *(WConn *)c);
 		}
@@ -46,6 +55,7 @@ public:
 	}	
 };
 
+/* credentical generation */
 bool CreateCred(mtk_addr_t &settings, DuplexStream::CredOptions &options) {
     if (settings.cert == nullptr) {
         return false;
@@ -66,11 +76,31 @@ bool CreateCred(mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) 
     return true;
 }
 
+/* closure wrapper */
 class Closure : public mtk_closure_t {
 public:
 	void operator () (mtk_result_t r, const char *p, size_t l) {
 		cb(arg, r, p, l);
 	}
+};
+
+/* client stream delegate */
+class StreamDelegate : public DuplexStream, IDuplexStreamDelegate {
+protected:
+	mtk_clconf_t clconf_;
+public:
+	StreamDelegate(mtk_clconf_t *clconf) : DuplexStream(this), clconf_(*clconf) {}
+	uint64_t Id() const { return clconf_.id; }
+   	bool Valid() const { return clconf_.validate == nullptr ? true : clconf_.validate(); }
+    bool AddPayload(SystemPayload::Connect &c, int stream_idx) {
+    	c.set_id(clconf_.id);
+    	c.set_payload(clconf_.payload, clconf_.payload_len);
+    	return true;
+    }
+    void OnConnect(mtk_result_t r, const char *p, size_t len) {
+    	mtk_closure_call(&clconf_.on_connect, r, p, len);
+    }
+    void Poll() {}
 };
 
 

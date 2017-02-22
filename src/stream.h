@@ -35,9 +35,10 @@ namespace grpc {
 namespace mtk {
     class IDuplexStreamDelegate {
     public:
-        virtual uint64_t Id() const = 0;
+        virtual mtk_cid_t Id() const = 0;
         virtual bool Valid() const = 0;
-        virtual void Connect(std::function<void(Error *)> finished) = 0;
+        virtual bool AddPayload(SystemPayload::Connect &c, int stream_idx) = 0;
+        virtual void OnConnect(mtk_result_t r, const char *p, size_t len) = 0;
         virtual void Poll() = 0;
     };
     class DuplexStream {
@@ -87,7 +88,7 @@ namespace mtk {
         bool alive_, restarting_;
         std::unique_ptr<ClientAsyncReaderWriter<Request, Reply>> conn_[NUM_STREAM];
         ClientAsyncReaderWriter<Request, Reply> *prev_conn_[NUM_STREAM];
-        std::map<uint32_t, SEntry*> reqmap_;
+        std::map<mtk_msgid_t, SEntry*> reqmap_;
         std::map<uint32_t, SEntry::Callback> notifymap_;
         ClientContext *context_[NUM_STREAM];
         Reply *reply_work_[NUM_STREAM];
@@ -121,9 +122,10 @@ namespace mtk {
         void HandleEvent(bool ok, void *tag);
         void RegisterNotifyCB(uint32_t type, SEntry::Callback cb) { notifymap_[type] = cb; }
         //handshakers
+        void StartWrite();
         void StartRead();
         inline bool IsConnected() const { return status_ == CONNECT; }
-        inline int32_t NewMsgId() {
+        inline mtk_msgid_t NewMsgId() {
             while (true) {
                 int32_t expect = msgid_seed_.load();
                 int32_t desired = expect + 1;
@@ -132,10 +134,10 @@ namespace mtk {
                 }
 #if defined(ANDROID)
                 ASSERT(false);
-                return desired;
+                return (mtk_msgid_t)desired;
 #else
                 if (atomic_compare_exchange_weak(&msgid_seed_, &expect, desired)) {
-                    return desired;
+                    return (mtk_msgid_t)desired;
                 }
 #endif
             }
@@ -181,7 +183,7 @@ namespace mtk {
                 ASSERT(false);
                 return;
             }
-            uint32_t msgid = NewMsgId();
+            mtk_msgid_t msgid = NewMsgId();
             SEntry *ent = new SEntry(cb);
             Request *msg = new Request();
             msg->set_type(type);
@@ -204,7 +206,7 @@ namespace mtk {
             Call(0, buffer, spl.ByteSize(), cb, UINT32_MAX, sidx, kind);
         }
     protected:
-        static inline void *GenerateWriteTag(uint32_t msgid, StreamIndex idx) {
+        static inline void *GenerateWriteTag(mtk_msgid_t msgid, StreamIndex idx) {
             return reinterpret_cast<void *>((msgid << 8) + (uint8_t)(idx << 1) + 1);
         }
         static inline void *GenerateReadTag(uint32_t connect_sequence_num, StreamIndex idx) {

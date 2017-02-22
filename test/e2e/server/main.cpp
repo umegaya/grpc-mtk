@@ -15,7 +15,7 @@ mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	return 0;
 }
 
-mtk_result_t acceptor(mtk_svconn_t c, const char *p, size_t pl) {
+mtk_result_t acceptor(mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl) {
 	return 0;
 }
 
