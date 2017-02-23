@@ -6,7 +6,7 @@ using namespace mtktest;
 mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	switch (r) {
 	HANDLE(c, Ping, [](mtk_svconn_t c, PingRequest &req, PingReply &rep) {
-		TRACE("handle Ping {}", mtk_svconn_cid(c));
+		//TRACE("handle Ping {}", mtk_svconn_cid(c));
 		rep.set_sent(req.sent());
 	});
 	default:
@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
 	mtk_svconf_t conf = {
 		.exclusive = true,
 		.thread = {
-			.n_reader = 2,
-			.n_writer = 2,
+			.n_reader = 64,
+			.n_writer = 16,
 		},
 		.handler = handler,
 		.acceptor = acceptor,
