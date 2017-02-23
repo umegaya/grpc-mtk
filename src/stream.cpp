@@ -2,13 +2,6 @@
 #include "codec.h"
 #include <grpc++/grpc++.h>
 #include <cmath>
-#if !defined(TRACE)
-#if defined(DEBUG)
-#define TRACE(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define TRACE(...)
-#endif
-#endif
 
 namespace mtk {
 extern std::string cl_ca;
@@ -37,7 +30,7 @@ int DuplexStream::Initialize(const char *addr, CredOptions *options) {
 }
 
 void DuplexStream::Release() {
-    TRACE("DuplexStream::Release\n");
+    TRACE("DuplexStream::Release");
     restarting_ = true;
     replys_.enqueue(DISCONNECT_EVENT);
 }
@@ -79,9 +72,8 @@ timespec_t DuplexStream::CalcJitter(timespec_t base) {
 void DuplexStream::StartWrite() {
     SystemPayload::Connect payload;
     delegate_->AddPayload(payload, WRITE);
-    Call(Request::Connect, payload, [this](mtk_result_t r, const char *p, size_t len) {
-        delegate_->OnConnect(r, p, len);
-        if (r >= 0) {
+    Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
+        if (r >= 0 && delegate_->OnOpenStream(r, p, len, WRITE)) {
             status_ = NetworkStatus::REGISTER;
         } else {
             replys_.enqueue(DISCONNECT_EVENT);
@@ -91,8 +83,8 @@ void DuplexStream::StartWrite() {
 void DuplexStream::StartRead() {
     SystemPayload::Connect payload;
     delegate_->AddPayload(payload, READ);
-    Call(Request::Connect, payload, [this](mtk_result_t r, const char *, size_t) {
-        if (r >= 0) {
+    Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
+        if (r >= 0 && delegate_->OnOpenStream(r, p, len, READ)) {
             status_ = NetworkStatus::CONNECT;
         } else {
             replys_.enqueue(DISCONNECT_EVENT);
@@ -140,10 +132,10 @@ void DuplexStream::Update() {
                     if (reconnect_attempt_ > 1) {
                         //set reconnect wait 5, 10, 20, .... upto 300 sec
                         reconnect_when_ = Tick() + CalcReconnectWaitDuration(reconnect_attempt_);
-                        TRACE("next reconnect wait: %llu\n", ReconnectWaitUsec());
+                        TRACE("next reconnect wait: {}", ReconnectWaitUsec());
                     }
                 } else if (rep == ESTABLISHED_EVENT) {
-                    TRACE("reset reconnect attempts\n");
+                    TRACE("reset reconnect attempts");
                     reconnect_attempt_ = 0;
                     reconnect_when_ = 0;
                     restarting_ = false;
@@ -152,13 +144,13 @@ void DuplexStream::Update() {
                 break;
             }
             if (restarting_) {
-                TRACE("maybe packet received during restarting (%u/%u). ignored\n", rep->msgid(), rep->type());
+                TRACE("maybe packet received during restarting ({}/{}}). ignored", rep->msgid(), rep->type());
             } else if (rep->msgid() == 0) {
                 auto it = notifymap_.find(rep->type());
                 if (it != notifymap_.end()) {
                     (*it).second(rep->type(), rep->payload().c_str(), rep->payload().length());
                 } else {
-                    TRACE("notify not processed: %u\n", rep->type());
+                    TRACE("notify not processed: {}", rep->type());
                     ASSERT(false);
                 }
             } else {
@@ -172,7 +164,7 @@ void DuplexStream::Update() {
                     delete ent;
                 } else {
                     reqmtx_.unlock();
-                    TRACE("msgid = %u not found\n", rep->msgid());
+                    TRACE("msgid = {} not found", rep->msgid());
                 }
             }
             delete rep;
@@ -183,7 +175,7 @@ void DuplexStream::Update() {
         case NetworkStatus::DISCONNECT: {
             //due to reconnect_attempt_, sleep for a while
             if (!delegate_->Valid() || reconnect_when_ > now) {
-                //TRACE("reconnect wait: %llu\n", ReconnectWaitUsec());
+                //TRACE("reconnect wait: {}", ReconnectWaitUsec());
                 return; //skip reconnection until time comes
             } else {
                 status_ = NetworkStatus::CONNECTING;
@@ -217,7 +209,7 @@ void DuplexStream::Update() {
     SEntry *entries[reqmap_.size()];
     for (auto &p : reqmap_) {
         if ((p.second->start_at_ + TIMEOUT_DURATION) < now) {
-            TRACE("request %u start at %llu got timeout (%llu)\n", p.first, p.second->start_at_, now);
+            TRACE("request {} start at {} got timeout ({})", p.first, p.second->start_at_, now);
             entries[n_erased] = p.second;
             erased[n_erased++] = p.first;
         }
@@ -236,7 +228,7 @@ void DuplexStream::Update() {
  * this function should be called from worker thread
  */
 void DuplexStream::Receive() {
-    TRACE("start recv thread\n");
+    TRACE("start recv thread");
     void *tag;
     bool ok;
     Request *req;
@@ -293,19 +285,19 @@ void DuplexStream::HandleEvent(bool ok, void *tag) {
         reqmtx_.lock();
         if (requests_[sidx].try_dequeue(req)) {
             conn_[sidx]->Write(*req, GenerateWriteTag(req->msgid(), sidx));
-            //TRACE("Write:%u\n", req->msgid());
+            //TRACE("Write:{}", req->msgid());
             delete req;
         } else {
             is_sending_[sidx] = false;
         }
         reqmtx_.unlock();
-        //TRACE("write for tag %p(%d) finished\n", tag, sidx);
+        //TRACE("write for tag {}({}) finished", (void *)tag, sidx);
         return;
     }
     Reply *r = replys[stream_idx];
     if (!ok) {
         uint32_t seq = ConnectSequenceFromReadTag(tag);
-        TRACE("connection closed. seq %u %u\n", seq, connect_sequence_num_);
+        TRACE("connection closed. seq {} {}", seq, connect_sequence_num_);
         if (r != nullptr) {
             delete r;
             replys[stream_idx] = nullptr;
@@ -326,7 +318,7 @@ void DuplexStream::HandleEvent(bool ok, void *tag) {
             if (!restarting_) {
                 //means server close this connection. give reconnect wait for first try
                 reconnect_when_ = Tick() + CalcReconnectWaitDuration(1);
-                TRACE("next reconnect wait: %llu\n", ReconnectWaitUsec());
+                TRACE("next reconnect wait: {}", ReconnectWaitUsec());
             }
             //push event pointer to indicate connection closed
             replys_.enqueue(DISCONNECT_EVENT);
@@ -352,6 +344,11 @@ void DuplexStream::HandleEvent(bool ok, void *tag) {
         conn_[stream_idx]->Read(r, GenerateReadTag(connect_sequence_num_, (StreamIndex)stream_idx));
     }
 }
+
+template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req) { req.set_kind(Request::Connect); }
+template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req) { req.set_kind(Request::Ping); }
+
+
 //2016/08/23 iyatomi: personally I don't like std::chrono and gpr_timespec, these are too complex. but author of grpc++ loves c++11 so much. so I want to limited to use of this only here.
 #include <chrono>
 

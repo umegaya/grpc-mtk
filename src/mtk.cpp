@@ -28,13 +28,28 @@ public:
 	}
 	mtk_cid_t Accept(IConn *c, Request &req) {
 		SystemPayload::Connect creq;
-		if (!Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq)) {
+		if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq) < 0) {
 			return 0;
 		}
-		return acceptor_(c, creq.id(), creq.payload().c_str(), creq.payload().length());
+		char *rep; size_t rlen = 0;
+		mtk_cid_t cid = acceptor_(c, creq.id(), creq.payload().c_str(), creq.payload().length(), &rep, &rlen);
+		if (cid != 0) {
+			SystemPayload::Connect sysrep;
+			sysrep.set_id(cid);
+			if (rlen > 0) {
+				sysrep.set_payload(rep, rlen);
+				free(rep);
+			}
+			((Conn<S> *)c)->SysRep(req.msgid(), sysrep);
+		} else {
+			Error *e = new Error();
+			e->set_error_code(MTK_ACCEPT_DENY);
+			((Conn<S> *)c)->Throw(req.msgid(), e);
+		}
+		return cid;
 	}
 	IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
-		return new Conn<S>(worker, service, handler, cq);
+		return new RConn(worker, service, handler, cq);
 	}
 };
 typedef FunctionHandler<RSVStream> ReadHandler;
@@ -43,16 +58,17 @@ public:
 	WriteHandler(mtk_server_recv_cb_t handler, mtk_server_accept_cb_t acceptor) : 
 		FunctionHandler<WSVStream>(handler, acceptor) {}
 	mtk_cid_t Accept(IConn *c, Request &req) {
-		SystemPayload::Connect creq;
-		if (!Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq)) {
-			return 0;
-		}
-		mtk_cid_t cid = acceptor_(c, creq.id(), creq.payload().c_str(), creq.payload().length());
+		mtk_cid_t cid = FunctionHandler<WSVStream>::Accept(c, req);
 		if (cid != 0) {
-			RConn::MakePair(cid, *(WConn *)c);
+			if (!RConn::MakePair(cid, *(WConn *)c)) {
+				TRACE("RConn::MakePair: fails");
+			}
 		}
 		return cid;	
 	}	
+	IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
+		return new WConn(worker, service, handler, cq);
+	}
 };
 
 /* credentical generation */
@@ -80,7 +96,10 @@ bool CreateCred(mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) 
 class Closure : public mtk_closure_t {
 public:
 	void operator () (mtk_result_t r, const char *p, size_t l) {
-		cb(arg, r, p, l);
+		on_msg(arg, r, p, l);
+	}
+	void operator () (mtk_cid_t cid, const char *p, size_t l) {
+		on_connect(arg, cid, p, l);
 	}
 };
 
@@ -88,6 +107,7 @@ public:
 class StreamDelegate : public DuplexStream, IDuplexStreamDelegate {
 protected:
 	mtk_clconf_t clconf_;
+	SystemPayload::Connect crep_;
 public:
 	StreamDelegate(mtk_clconf_t *clconf) : DuplexStream(this), clconf_(*clconf) {}
 	uint64_t Id() const { return clconf_.id; }
@@ -97,8 +117,22 @@ public:
     	c.set_payload(clconf_.payload, clconf_.payload_len);
     	return true;
     }
-    void OnConnect(mtk_result_t r, const char *p, size_t len) {
-    	mtk_closure_call(&clconf_.on_connect, r, p, len);
+    bool OnOpenStream(mtk_result_t r, const char *p, size_t len, int stream_idx) {
+    	if (r < 0) {
+	    	return mtk_closure_call(&(clconf_.on_connect), on_connect, 0, "", 0);
+    	}
+    	if (stream_idx == WRITE) {
+    		if (Codec::Unpack((const uint8_t *)p, len, crep_) < 0) {
+    			return false;
+    		}
+			clconf_.id = crep_.id();
+			return true;
+		} else if (stream_idx == READ) {
+	    	return mtk_closure_call(&(clconf_.on_connect), on_connect, crep_.id(), crep_.payload().c_str(), crep_.payload().length());
+		} else {
+			ASSERT(false);
+			return false;
+		}
     }
     void Poll() {}
 };
@@ -146,6 +180,12 @@ void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_
 	std::string buf(data, datalen);
 	((RConn *)conn)->Notify(type, buf);
 }
+void mtk_svconn_raise(mtk_svconn_t conn, mtk_msgid_t msgid, mtk_result_t errcode, const char *data, size_t datalen) {
+	Error *e = new Error();
+	e->set_error_code(errcode);
+	e->set_payload(data, datalen);
+	((RConn *)conn)->Throw(msgid, e);
+}
 void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen) {
 	std::string buf(data, datalen);
 	((RConn *)conn)->AddTask(type, buf);
@@ -162,7 +202,11 @@ void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, size_t datal
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
 	return mtk_svconn_notify(s.get(), type, data, datalen);
-
+}
+void mtk_cid_raise(mtk_cid_t cid, mtk_msgid_t msgid, mtk_result_t errcode, const char *data, size_t datalen) {
+	RConn::Stream s = RConn::Get(cid);
+	if (s == nullptr) { return; }
+	return mtk_svconn_raise(s.get(), msgid, errcode, data, datalen);
 }
 void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
@@ -203,13 +247,6 @@ void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, size_t plen, mtk_
 void mtk_conn_watch(mtk_conn_t c, uint32_t type, mtk_closure_t clsr) {
 	DuplexStream *ds = (DuplexStream *)c;
 	ds->RegisterNotifyCB(type, *(Closure*)&clsr);
-}
-void mtk_closure_new(mtk_callback_t cb, void *arg, mtk_closure_t *clsr) {
-	clsr->cb = cb;
-	clsr->arg = arg;
-}
-void mtk_closure_call(mtk_closure_t *pclsr, mtk_result_t r, const char *data, size_t datalen) {
-	pclsr->cb(pclsr->arg, r, data, datalen);
 }
 
 
@@ -292,4 +329,6 @@ mtk_time_t mtk_time() {
 mtk_time_t mtk_sleep(mtk_time_t d) {
 	return clock::sleep(d);
 }
-
+void mtk_log_init() {
+	logger::Initialize();
+}

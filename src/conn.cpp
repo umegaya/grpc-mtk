@@ -1,11 +1,4 @@
 #include "conn.h"
-#if !defined(ASSERT)
-#if defined(DEBUG)
-#define ASSERT(...) assert(__VA_ARGS__)
-#else
-#define ASSERT(...)
-#endif
-#endif
 
 namespace mtk {
     template <>
@@ -20,6 +13,7 @@ namespace mtk {
         return true;
     }
     void RSVStream::Step() {
+        //TRACE("RSVStream[{}]:step = {}", (void *)this, step_);
         switch(step_) {
             case StepId::INIT:
                 step_ = StepId::ACCEPT;
@@ -50,7 +44,7 @@ namespace mtk {
             } break;
             case StepId::READ: {
                 if (sender_ == nullptr) {
-                    this->LogDebug("ev:handshake not finished,ptr:{}", tag_);
+                    this->LogDebug("ev:handshake not finished,ptr:{}", (void *)tag_);
                     step_ = StepId::CLOSE;
                     Finish();
                     break;
@@ -74,6 +68,7 @@ namespace mtk {
         }
     }
     void WSVStream::Step() {
+        //TRACE("WSVStream[{}]:step = {}", (void *)this, step_);
         switch(step_) {
             case StepId::INIT:
                 step_ = StepId::ACCEPT;
@@ -98,7 +93,7 @@ namespace mtk {
                     //pop one from queue and send it.
                     Reply *r = &(*queue_.front());
                     if (r == nullptr) {
-                        this->LogDebug("ev:mark connection close,tag:{}", tag_);
+                        this->LogDebug("ev:mark connection close,tag:{}", (void *)tag_);
                         step_ = StepId::CLOSE;
                         io_.Finish(Status::OK, tag_);
                         break;

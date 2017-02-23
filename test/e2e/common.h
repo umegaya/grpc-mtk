@@ -2,6 +2,7 @@
 #include <mtk.h>
 #include <functional>
 #include <codec.h>
+#include <debug.h>
 #include <atomic_compat.h>
 #if defined(CHECK)
 #undef CHECK
@@ -14,9 +15,10 @@ typedef std::function<void (bool)> finish_cb;
 class test_finish_waiter {
 	ATOMIC_INT running_;
 	ATOMIC_INT result_;
+	ATOMIC_INT start_;
 public:
-	test_finish_waiter() : running_(0), result_(0) {}	
-	void start() { running_++; }
+	test_finish_waiter() : running_(0), result_(0), start_(0) {}	
+	void start() { start_.store(1); running_++; }
 	void end(bool success) { 
 		running_--; 
 		while (true) {
@@ -30,8 +32,9 @@ public:
             }
         }
 	}
-	bool finished() { return running_.load() == 0; }
+	bool finished() { return start_.load() != 0 && running_.load() == 0; }
 	finish_cb bind() {
+		start();
 		return std::bind(&test_finish_waiter::end, this, std::placeholders::_1);
 	}
 	void join() {
@@ -64,7 +67,7 @@ public:
 	char buff[rep__.ByteSize()]; \
 	mtk::Codec::Pack(rep__, (uint8_t *)buff, rep__.ByteSize()); \
 	mtk_svconn_send(conn, mtk_svconn_msgid(conn), buff, rep__.ByteSize()); \
-}
+} break;
 
 #define RPC(conn, type, req, callback) { \
 	char buff[req.ByteSize()]; \
@@ -73,6 +76,6 @@ public:
 	pcc->cb = callback; \
 	pcc->req = req; \
 	mtk_closure_t clsr; \
-	mtk_closure_new(pcc->call, pcc, &clsr); \
+	mtk_closure_init(&clsr, on_msg, pcc->call, pcc); \
 	mtk_conn_send(conn, type, buff, req.ByteSize(), clsr); \
 }

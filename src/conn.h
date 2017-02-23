@@ -7,6 +7,7 @@
 #include "atomic_compat.h"
 #include "mtk.grpc.pb.h"
 #include <MoodyCamel/concurrentqueue.h>
+#include "debug.h"
 
 namespace {
     using grpc::ServerAsyncReaderWriter;
@@ -106,19 +107,31 @@ namespace mtk {
             rep.set_msgid(msgid);
             return true;
         }
+        template <class W>
+        bool SetupSystemReply(Reply &rep, mtk_msgid_t msgid, const W &w) {
+            uint8_t buffer[w.ByteSize()];
+            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+                return false;
+            }
+            rep.set_msgid(msgid);
+            rep.set_payload(buffer, w.ByteSize());
+            return true;
+        }
         void SetupThrow(Reply &rep, mtk_msgid_t msgid, Error *e) {
             rep.set_msgid(msgid);
             rep.set_allocated_error(e);
         }
     public:
         template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
-            //g_logger->debug("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), spdlog_ex::Formatter(fmt, args...));
+#if defined(DEBUG)
+            g_logger->info("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
+#endif
         }
         template <typename... Args> void LogInfo(const char* fmt, const Args&... args) {
-            //g_logger->info("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), spdlog_ex::Formatter(fmt, args...));
+            g_logger->info("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
         }
         template <typename... Args> void LogError(const char* fmt, const Args&... args) {
-            //g_logger->error("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), spdlog_ex::Formatter(fmt, args...));
+            g_logger->error("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
         }
     };
     template <> bool SVStream::SetupPayload<std::string>(Reply &rep, const std::string &w);
@@ -134,7 +147,7 @@ namespace mtk {
             SVStream(worker, service, handler, cq, tag), mtx_(), is_sending_(false), queue_() {}
         virtual ~WSVStream() {
             Cleanup();
-            LogInfo("WSVStream destroy {}({}})", this, Id());
+            LogInfo("WSVStream destroy {}({})", (void *)this, Id());
         }
         void ConsumeTask(int) {}
         void Step();
@@ -150,6 +163,13 @@ namespace mtk {
             if (step_ != StepId::CLOSE) {
                 Reply *r = new Reply(); //todo: get r from cache
                 if (!SetupReply(*r, msgid, w)) { return; }
+                Send(r);
+            }
+        }
+        template <class W> void SysRep(mtk_msgid_t msgid, const W &w) {
+            if (step_ != StepId::CLOSE) {
+                Reply *r = new Reply(); //todo: get r from cache
+                if (!SetupSystemReply(*r, msgid, w)) { return; }
                 Send(r);
             }
         }
@@ -194,7 +214,7 @@ namespace mtk {
             SVStream(worker, service, handler, cq, tag), sender_(), closed_(0), worker_(worker), tasks_() {}
         virtual ~RSVStream() {
             Cleanup();
-            LogInfo("RSVStream destroy {}({}})\n", this, Id());
+            LogInfo("RSVStream destroy {}({})", (void *)this, Id());
         }
         inline void SetStream(std::shared_ptr<WSVStream> &c) { sender_ = c; }
         void Step();
@@ -211,6 +231,15 @@ namespace mtk {
             } else { //only 1 thread do this. so no need to lock.
                 Reply r;
                 SetupReply(r, msgid, w);
+                Write(r);
+            }
+        }
+        template <class W> void SysRep(mtk_msgid_t msgid, const W &w) {
+            if (sender_ != nullptr) {
+                sender_->SysRep(msgid, w);
+            } else { //only 1 thread do this. so no need to lock.
+                Reply r;
+                SetupSystemReply(r, msgid, w);
                 Write(r);
             }
         }
@@ -290,6 +319,7 @@ namespace mtk {
         template <class W> void Rep(mtk_msgid_t msgid, const W &w) { stream_->Rep(msgid, w); }
         template <class W> void Notify(MessageType type, const W &w) { stream_->Notify(type, w); }
         template <class W> void AddTask(MessageType type, const W &w) { stream_->AddTask(type, w); }
+        template <class SPL> void SysRep(mtk_msgid_t msgid, const SPL &spl) { stream_->SysRep(msgid, spl); }
     public:
         void Register(mtk_cid_t cid) override {
             stream_->AssignedWorker()->OnRegister(this);
@@ -323,6 +353,8 @@ namespace mtk {
         static Stream default_;
         static std::mutex cmap_mtx_;
     public:
+        MappedConn(IWorker *worker, Service* service, IHandler *handler, ServerCompletionQueue* cq) :
+            Super(worker, service, handler, cq) {}
         static Stream &Get(mtk_cid_t uid) {
             cmap_mtx_.lock();
             auto it = cmap_.find(uid);

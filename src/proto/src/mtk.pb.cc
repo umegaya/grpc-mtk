@@ -67,7 +67,9 @@ void protobuf_AssignDesc_mtk_2eproto() {
       sizeof(Error),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Error, _internal_metadata_));
   SystemPayload_descriptor_ = file->message_type(1);
-  static const int SystemPayload_offsets_[1] = {
+  static const int SystemPayload_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, connect_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, ping_),
   };
   SystemPayload_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -221,17 +223,19 @@ void protobuf_AddDesc_mtk_2eproto_impl() {
   protobuf_InitDefaults_mtk_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\tmtk.proto\022\003mtk\",\n\005Error\022\022\n\nerror_code\030"
-    "\001 \001(\005\022\017\n\007payload\030\002 \001(\014\"]\n\rSystemPayload\032"
-    "&\n\007Connect\022\n\n\002id\030\001 \001(\004\022\017\n\007payload\030\002 \001(\014\032"
-    "$\n\004Ping\022\013\n\003now\030\001 \001(\004\022\017\n\007payload\030\002 \001(\014\"\203\001"
-    "\n\007Request\022\014\n\004type\030\001 \001(\r\022\r\n\005msgid\030\002 \001(\r\022\037"
-    "\n\004kind\030\003 \001(\0162\021.mtk.Request.Kind\022\017\n\007paylo"
-    "ad\030\n \001(\014\")\n\004Kind\022\n\n\006Normal\020\000\022\010\n\004Ping\020\001\022\013"
-    "\n\007Connect\020\002\"P\n\005Reply\022\014\n\004type\030\001 \001(\r\022\r\n\005ms"
-    "gid\030\002 \001(\r\022\031\n\005error\030\003 \001(\0132\n.mtk.Error\022\017\n\007"
-    "payload\030\n \001(\0142Y\n\006Stream\022&\n\004Read\022\014.mtk.Re"
-    "quest\032\n.mtk.Reply\"\000(\0010\001\022\'\n\005Write\022\014.mtk.R"
-    "equest\032\n.mtk.Reply\"\000(\0010\001b\006proto3", 472);
+    "\001 \001(\005\022\017\n\007payload\030\002 \001(\014\"\261\001\n\rSystemPayload"
+    "\022+\n\007connect\030\001 \001(\0132\032.mtk.SystemPayload.Co"
+    "nnect\022%\n\004ping\030\002 \001(\0132\027.mtk.SystemPayload."
+    "Ping\032&\n\007Connect\022\n\n\002id\030\001 \001(\004\022\017\n\007payload\030\002"
+    " \001(\014\032$\n\004Ping\022\013\n\003now\030\001 \001(\004\022\017\n\007payload\030\002 \001"
+    "(\014\"\203\001\n\007Request\022\014\n\004type\030\001 \001(\r\022\r\n\005msgid\030\002 "
+    "\001(\r\022\037\n\004kind\030\003 \001(\0162\021.mtk.Request.Kind\022\017\n\007"
+    "payload\030\n \001(\014\")\n\004Kind\022\n\n\006Normal\020\000\022\010\n\004Pin"
+    "g\020\001\022\013\n\007Connect\020\002\"P\n\005Reply\022\014\n\004type\030\001 \001(\r\022"
+    "\r\n\005msgid\030\002 \001(\r\022\031\n\005error\030\003 \001(\0132\n.mtk.Erro"
+    "r\022\017\n\007payload\030\n \001(\0142Y\n\006Stream\022&\n\004Read\022\014.m"
+    "tk.Request\032\n.mtk.Reply\"\000(\0010\001\022\'\n\005Write\022\014."
+    "mtk.Request\032\n.mtk.Reply\"\000(\0010\001b\006proto3", 557);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "mtk.proto", &protobuf_RegisterTypes);
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_mtk_2eproto);
@@ -1122,6 +1126,8 @@ void SystemPayload_Ping::InternalSwap(SystemPayload_Ping* other) {
 // -------------------------------------------------------------------
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int SystemPayload::kConnectFieldNumber;
+const int SystemPayload::kPingFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 SystemPayload::SystemPayload()
@@ -1132,6 +1138,10 @@ SystemPayload::SystemPayload()
 }
 
 void SystemPayload::InitAsDefaultInstance() {
+  connect_ = const_cast< ::mtk::SystemPayload_Connect*>(
+      ::mtk::SystemPayload_Connect::internal_default_instance());
+  ping_ = const_cast< ::mtk::SystemPayload_Ping*>(
+      ::mtk::SystemPayload_Ping::internal_default_instance());
 }
 
 SystemPayload::SystemPayload(const SystemPayload& from)
@@ -1143,6 +1153,8 @@ SystemPayload::SystemPayload(const SystemPayload& from)
 }
 
 void SystemPayload::SharedCtor() {
+  connect_ = NULL;
+  ping_ = NULL;
   _cached_size_ = 0;
 }
 
@@ -1152,6 +1164,10 @@ SystemPayload::~SystemPayload() {
 }
 
 void SystemPayload::SharedDtor() {
+  if (this != &SystemPayload_default_instance_.get()) {
+    delete connect_;
+    delete ping_;
+  }
 }
 
 void SystemPayload::SetCachedSize(int size) const {
@@ -1181,6 +1197,10 @@ SystemPayload* SystemPayload::New(::google::protobuf::Arena* arena) const {
 
 void SystemPayload::Clear() {
 // @@protoc_insertion_point(message_clear_start:mtk.SystemPayload)
+  if (GetArenaNoVirtual() == NULL && connect_ != NULL) delete connect_;
+  connect_ = NULL;
+  if (GetArenaNoVirtual() == NULL && ping_ != NULL) delete ping_;
+  ping_ = NULL;
 }
 
 bool SystemPayload::MergePartialFromCodedStream(
@@ -1192,13 +1212,43 @@ bool SystemPayload::MergePartialFromCodedStream(
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
     tag = p.first;
     if (!p.second) goto handle_unusual;
-  handle_unusual:
-    if (tag == 0 ||
-        ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-        ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-      goto success;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .mtk.SystemPayload.Connect connect = 1;
+      case 1: {
+        if (tag == 10) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_connect()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(18)) goto parse_ping;
+        break;
+      }
+
+      // optional .mtk.SystemPayload.Ping ping = 2;
+      case 2: {
+        if (tag == 18) {
+         parse_ping:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_ping()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
     }
-    DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
   }
 success:
   // @@protoc_insertion_point(parse_success:mtk.SystemPayload)
@@ -1212,6 +1262,18 @@ failure:
 void SystemPayload::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:mtk.SystemPayload)
+  // optional .mtk.SystemPayload.Connect connect = 1;
+  if (this->has_connect()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, *this->connect_, output);
+  }
+
+  // optional .mtk.SystemPayload.Ping ping = 2;
+  if (this->has_ping()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      2, *this->ping_, output);
+  }
+
   // @@protoc_insertion_point(serialize_end:mtk.SystemPayload)
 }
 
@@ -1219,6 +1281,20 @@ void SystemPayload::SerializeWithCachedSizes(
     bool deterministic, ::google::protobuf::uint8* target) const {
   (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.SystemPayload)
+  // optional .mtk.SystemPayload.Connect connect = 1;
+  if (this->has_connect()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        1, *this->connect_, false, target);
+  }
+
+  // optional .mtk.SystemPayload.Ping ping = 2;
+  if (this->has_ping()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        2, *this->ping_, false, target);
+  }
+
   // @@protoc_insertion_point(serialize_to_array_end:mtk.SystemPayload)
   return target;
 }
@@ -1226,6 +1302,20 @@ void SystemPayload::SerializeWithCachedSizes(
 size_t SystemPayload::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.SystemPayload)
   size_t total_size = 0;
+
+  // optional .mtk.SystemPayload.Connect connect = 1;
+  if (this->has_connect()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        *this->connect_);
+  }
+
+  // optional .mtk.SystemPayload.Ping ping = 2;
+  if (this->has_ping()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        *this->ping_);
+  }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
@@ -1260,6 +1350,12 @@ void SystemPayload::MergeFrom(const SystemPayload& from) {
 
 void SystemPayload::UnsafeMergeFrom(const SystemPayload& from) {
   GOOGLE_DCHECK(&from != this);
+  if (from.has_connect()) {
+    mutable_connect()->::mtk::SystemPayload_Connect::MergeFrom(from.connect());
+  }
+  if (from.has_ping()) {
+    mutable_ping()->::mtk::SystemPayload_Ping::MergeFrom(from.ping());
+  }
 }
 
 void SystemPayload::CopyFrom(const ::google::protobuf::Message& from) {
@@ -1286,6 +1382,8 @@ void SystemPayload::Swap(SystemPayload* other) {
   InternalSwap(other);
 }
 void SystemPayload::InternalSwap(SystemPayload* other) {
+  std::swap(connect_, other->connect_);
+  std::swap(ping_, other->ping_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
 }
@@ -1430,6 +1528,84 @@ inline const SystemPayload_Ping* SystemPayload_Ping::internal_default_instance()
 // -------------------------------------------------------------------
 
 // SystemPayload
+
+// optional .mtk.SystemPayload.Connect connect = 1;
+bool SystemPayload::has_connect() const {
+  return this != internal_default_instance() && connect_ != NULL;
+}
+void SystemPayload::clear_connect() {
+  if (GetArenaNoVirtual() == NULL && connect_ != NULL) delete connect_;
+  connect_ = NULL;
+}
+const ::mtk::SystemPayload_Connect& SystemPayload::connect() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.connect)
+  return connect_ != NULL ? *connect_
+                         : *::mtk::SystemPayload_Connect::internal_default_instance();
+}
+::mtk::SystemPayload_Connect* SystemPayload::mutable_connect() {
+  
+  if (connect_ == NULL) {
+    connect_ = new ::mtk::SystemPayload_Connect;
+  }
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.connect)
+  return connect_;
+}
+::mtk::SystemPayload_Connect* SystemPayload::release_connect() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.connect)
+  
+  ::mtk::SystemPayload_Connect* temp = connect_;
+  connect_ = NULL;
+  return temp;
+}
+void SystemPayload::set_allocated_connect(::mtk::SystemPayload_Connect* connect) {
+  delete connect_;
+  connect_ = connect;
+  if (connect) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.connect)
+}
+
+// optional .mtk.SystemPayload.Ping ping = 2;
+bool SystemPayload::has_ping() const {
+  return this != internal_default_instance() && ping_ != NULL;
+}
+void SystemPayload::clear_ping() {
+  if (GetArenaNoVirtual() == NULL && ping_ != NULL) delete ping_;
+  ping_ = NULL;
+}
+const ::mtk::SystemPayload_Ping& SystemPayload::ping() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.ping)
+  return ping_ != NULL ? *ping_
+                         : *::mtk::SystemPayload_Ping::internal_default_instance();
+}
+::mtk::SystemPayload_Ping* SystemPayload::mutable_ping() {
+  
+  if (ping_ == NULL) {
+    ping_ = new ::mtk::SystemPayload_Ping;
+  }
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.ping)
+  return ping_;
+}
+::mtk::SystemPayload_Ping* SystemPayload::release_ping() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.ping)
+  
+  ::mtk::SystemPayload_Ping* temp = ping_;
+  ping_ = NULL;
+  return temp;
+}
+void SystemPayload::set_allocated_ping(::mtk::SystemPayload_Ping* ping) {
+  delete ping_;
+  ping_ = ping;
+  if (ping) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.ping)
+}
 
 inline const SystemPayload* SystemPayload::internal_default_instance() {
   return &SystemPayload_default_instance_.get();

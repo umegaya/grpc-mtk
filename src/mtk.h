@@ -14,15 +14,19 @@ typedef int mtk_result_t;
 typedef uint64_t mtk_cid_t;
 typedef uint32_t mtk_msgid_t;
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, size_t);
+typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, size_t);
+typedef struct {
+	void *arg;
+	union {
+		mtk_callback_t on_msg;
+		mtk_connect_cb_t on_connect;
+	};
+} mtk_closure_t;
 typedef mtk_result_t (*mtk_server_recv_cb_t)(mtk_svconn_t, mtk_result_t, const char *, size_t);
-typedef mtk_result_t (*mtk_server_accept_cb_t)(mtk_svconn_t, mtk_cid_t, const char *, size_t);
+typedef mtk_cid_t (*mtk_server_accept_cb_t)(mtk_svconn_t, mtk_cid_t, const char *, size_t, char **, size_t*);
 typedef struct {
 	const char *host, *cert, *key, *ca;
 } mtk_addr_t;
-typedef struct {
-	void *arg;
-	mtk_callback_t cb;
-} mtk_closure_t;
 typedef struct {
 	struct {
 		uint32_t n_reader, n_writer;
@@ -43,9 +47,10 @@ typedef struct {
 typedef enum {
 	MTK_APPLICATION_ERROR = -1,
 	MTK_TIMEOUT = -2,
+	MTK_ACCEPT_DENY = -3,
 } mtk_error_t;
 
-/*  server */
+/* server */
 extern void mtk_listen(mtk_addr_t *listen_at, mtk_svconf_t *conf);
 extern void mtk_join_server();
 extern void mtk_svconn_accept(mtk_svconn_t conn, mtk_cid_t cid);
@@ -53,10 +58,12 @@ extern mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn);
 extern mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn);
 extern void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen);
 extern void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen);
+extern void mtk_svconn_raise(mtk_svconn_t conn, mtk_msgid_t msgid, mtk_result_t errcode, const char *data, size_t datalen);
 extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen);
 extern void mtk_svconn_close(mtk_svconn_t conn);
 extern void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen);
-extern void mtk_cid_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen);
+extern void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen);
+extern void mtk_cid_raise(mtk_cid_t cid, mtk_msgid_t msgid, mtk_result_t errcode, const char *errmsg);
 extern void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen);
 extern void mtk_cid_close(mtk_cid_t cid);
 /* client */
@@ -66,8 +73,12 @@ extern void mtk_conn_poll(mtk_conn_t conn);
 extern void mtk_conn_close(mtk_conn_t conn);
 extern void mtk_conn_send(mtk_conn_t conn, uint32_t type, const char *data, size_t datalen, mtk_closure_t clsr);
 extern void mtk_conn_watch(mtk_conn_t conn, uint32_t type, mtk_closure_t clsr);
-extern void mtk_closure_new(mtk_callback_t cb, void *arg, mtk_closure_t *pclsr);
-extern void mtk_closure_call(mtk_closure_t *pclsr, mtk_result_t r, const char *data, size_t datalen);
+#define mtk_closure_init(__pclsr, __type, __cb, __arg) { \
+	(__pclsr)->arg = (void *)(__arg); \
+	(__pclsr)->__type = (__cb); \
+}
+#define mtk_closure_call(__pclsr, __type, ...) ((__pclsr)->__type((__pclsr)->arg, __VA_ARGS__))
+
 
 /* http API */
 typedef struct {
@@ -102,6 +113,7 @@ static inline mtk_time_t mtk_usec(int n) { return ((n) * 1000); }
 static inline mtk_time_t mtk_nsec(int n) { return (n); }
 extern mtk_time_t mtk_time();
 extern mtk_time_t mtk_sleep(mtk_time_t d);
+extern void mtk_log_init();
 
 #if defined(__cplusplus)
 }

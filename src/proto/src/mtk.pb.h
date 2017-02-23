@@ -429,10 +429,30 @@ class SystemPayload : public ::google::protobuf::Message /* @@protoc_insertion_p
 
   // accessors -------------------------------------------------------
 
+  // optional .mtk.SystemPayload.Connect connect = 1;
+  bool has_connect() const;
+  void clear_connect();
+  static const int kConnectFieldNumber = 1;
+  const ::mtk::SystemPayload_Connect& connect() const;
+  ::mtk::SystemPayload_Connect* mutable_connect();
+  ::mtk::SystemPayload_Connect* release_connect();
+  void set_allocated_connect(::mtk::SystemPayload_Connect* connect);
+
+  // optional .mtk.SystemPayload.Ping ping = 2;
+  bool has_ping() const;
+  void clear_ping();
+  static const int kPingFieldNumber = 2;
+  const ::mtk::SystemPayload_Ping& ping() const;
+  ::mtk::SystemPayload_Ping* mutable_ping();
+  ::mtk::SystemPayload_Ping* release_ping();
+  void set_allocated_ping(::mtk::SystemPayload_Ping* ping);
+
   // @@protoc_insertion_point(class_scope:mtk.SystemPayload)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::mtk::SystemPayload_Connect* connect_;
+  ::mtk::SystemPayload_Ping* ping_;
   mutable int _cached_size_;
   friend void  protobuf_InitDefaults_mtk_2eproto_impl();
   friend void  protobuf_AddDesc_mtk_2eproto_impl();
@@ -900,6 +920,84 @@ inline const SystemPayload_Ping* SystemPayload_Ping::internal_default_instance()
 // -------------------------------------------------------------------
 
 // SystemPayload
+
+// optional .mtk.SystemPayload.Connect connect = 1;
+inline bool SystemPayload::has_connect() const {
+  return this != internal_default_instance() && connect_ != NULL;
+}
+inline void SystemPayload::clear_connect() {
+  if (GetArenaNoVirtual() == NULL && connect_ != NULL) delete connect_;
+  connect_ = NULL;
+}
+inline const ::mtk::SystemPayload_Connect& SystemPayload::connect() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.connect)
+  return connect_ != NULL ? *connect_
+                         : *::mtk::SystemPayload_Connect::internal_default_instance();
+}
+inline ::mtk::SystemPayload_Connect* SystemPayload::mutable_connect() {
+  
+  if (connect_ == NULL) {
+    connect_ = new ::mtk::SystemPayload_Connect;
+  }
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.connect)
+  return connect_;
+}
+inline ::mtk::SystemPayload_Connect* SystemPayload::release_connect() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.connect)
+  
+  ::mtk::SystemPayload_Connect* temp = connect_;
+  connect_ = NULL;
+  return temp;
+}
+inline void SystemPayload::set_allocated_connect(::mtk::SystemPayload_Connect* connect) {
+  delete connect_;
+  connect_ = connect;
+  if (connect) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.connect)
+}
+
+// optional .mtk.SystemPayload.Ping ping = 2;
+inline bool SystemPayload::has_ping() const {
+  return this != internal_default_instance() && ping_ != NULL;
+}
+inline void SystemPayload::clear_ping() {
+  if (GetArenaNoVirtual() == NULL && ping_ != NULL) delete ping_;
+  ping_ = NULL;
+}
+inline const ::mtk::SystemPayload_Ping& SystemPayload::ping() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.ping)
+  return ping_ != NULL ? *ping_
+                         : *::mtk::SystemPayload_Ping::internal_default_instance();
+}
+inline ::mtk::SystemPayload_Ping* SystemPayload::mutable_ping() {
+  
+  if (ping_ == NULL) {
+    ping_ = new ::mtk::SystemPayload_Ping;
+  }
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.ping)
+  return ping_;
+}
+inline ::mtk::SystemPayload_Ping* SystemPayload::release_ping() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.ping)
+  
+  ::mtk::SystemPayload_Ping* temp = ping_;
+  ping_ = NULL;
+  return temp;
+}
+inline void SystemPayload::set_allocated_ping(::mtk::SystemPayload_Ping* ping) {
+  delete ping_;
+  ping_ = ping;
+  if (ping) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.ping)
+}
 
 inline const SystemPayload* SystemPayload::internal_default_instance() {
   return &SystemPayload_default_instance_.get();

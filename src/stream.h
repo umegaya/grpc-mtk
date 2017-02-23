@@ -9,14 +9,7 @@
 #include <mutex>
 #include <functional>
 #include "atomic_compat.h"
-#if !defined(ASSERT)
-#if defined(DEBUG)
-#include <assert.h>
-#define ASSERT(cond) assert(cond)
-#else
-#define ASSERT(cond)
-#endif
-#endif
+#include "debug.h"
 
 namespace {
     using grpc::Channel;
@@ -38,7 +31,7 @@ namespace mtk {
         virtual mtk_cid_t Id() const = 0;
         virtual bool Valid() const = 0;
         virtual bool AddPayload(SystemPayload::Connect &c, int stream_idx) = 0;
-        virtual void OnConnect(mtk_result_t r, const char *p, size_t len) = 0;
+        virtual bool OnOpenStream(mtk_result_t r, const char *p, size_t len, int stream_idx) = 0;
         virtual void Poll() = 0;
     };
     class DuplexStream {
@@ -173,38 +166,46 @@ namespace mtk {
             conn_[READ] = stub_->AsyncRead(context_[READ], &cq_, GenerateReadTag(connect_sequence_num_, READ));
         }
         //call rpc via stream. not thread safe
-        void Call(uint32_t type,
+        inline void Call(uint32_t type,
                   const char *buff, size_t len,
                   SEntry::Callback cb,
-                  uint32_t timeout_msec = 30000,
-                  StreamIndex sidx = WRITE, 
-                  Request::Kind kind = Request::Normal) {
+                  timespec_t timeout_msec = TIMEOUT_DURATION,
+                  StreamIndex sidx = WRITE) {
+            Request *msg = new Request();
+            msg->set_type(type);
+            msg->set_payload(buff, len);
+            Call(msg, cb, timeout_msec, sidx);
+        }
+        inline void Call(Request *msg,
+                  SEntry::Callback cb,
+                  timespec_t timeout_msec,
+                  StreamIndex sidx) {
             if (status_ < NetworkStatus::ESTABLISHED) {
                 ASSERT(false);
                 return;
             }
             mtk_msgid_t msgid = NewMsgId();
             SEntry *ent = new SEntry(cb);
-            Request *msg = new Request();
-            msg->set_type(type);
             msg->set_msgid(msgid);
-            msg->set_payload(buff, len);
-            msg->set_kind(kind);
             requests_[sidx].enqueue(msg);
             reqmtx_.lock();
             reqmap_[msgid] = ent;
             reqmtx_.unlock();
         }
-        template <class PAYLOAD>
-        void Call(Request::Kind kind, const PAYLOAD &spl, SEntry::Callback cb, StreamIndex sidx) {
+        template <class SYSTEM_PAYLOAD>
+        void Call(const SYSTEM_PAYLOAD &spl, SEntry::Callback cb, StreamIndex sidx) {
             char buffer[spl.ByteSize()];
-            int len = Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize());
-            if (len < 0) {
+            if (Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize()) < 0) {
                 ASSERT(false);
                 return;
             }
-            Call(0, buffer, spl.ByteSize(), cb, UINT32_MAX, sidx, kind);
+            Request *msg = new Request();
+            msg->set_payload(buffer, spl.ByteSize());
+            SetSystemPayloadKind<SYSTEM_PAYLOAD>(*msg);
+            Call(msg, cb, TIMEOUT_DURATION, sidx);
         }
+        template <class SYSTEM_PAYLOAD>
+        void SetSystemPayloadKind(Request &req) { ASSERT(false); }
     protected:
         static inline void *GenerateWriteTag(mtk_msgid_t msgid, StreamIndex idx) {
             return reinterpret_cast<void *>((msgid << 8) + (uint8_t)(idx << 1) + 1);
@@ -230,4 +231,6 @@ namespace mtk {
         static void SetDeadline(ClientContext &ctx, uint32_t duration_msec);
         static gpr_timespec GRPCTime(uint32_t duration_msec);
     };
+    template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req);
+    template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req);
 }

@@ -16,6 +16,8 @@ message SystemPayload {
 		uint64 now = 1;
 		bytes payload = 2;
 	}
+	Connect connect = 1;
+	Ping ping = 2;
 }
 
 message Request {

@@ -6,6 +6,7 @@ using namespace mtktest;
 mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	switch (r) {
 	HANDLE(c, Ping, [](mtk_svconn_t c, PingRequest &req, PingReply &rep) {
+		TRACE("handle Ping {}", mtk_svconn_cid(c));
 		rep.set_sent(req.sent());
 	});
 	default:
@@ -15,8 +16,14 @@ mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	return 0;
 }
 
-mtk_result_t acceptor(mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl) {
-	return 0;
+ATOMIC_UINT64 g_id_seed;
+mtk_cid_t acceptor(mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl, char **rep, size_t *rep_len) {
+	*rep_len = 0;
+	if (cid != 0) {
+		return cid;
+	} else {
+		return ++g_id_seed;
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -33,5 +40,6 @@ int main(int argc, char *argv[]) {
 		.handler = handler,
 		.acceptor = acceptor,
 	};
+	mtk_log_init();
 	mtk_listen(&addr, &conf);
 }
