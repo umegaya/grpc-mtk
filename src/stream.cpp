@@ -135,7 +135,6 @@ void DuplexStream::Update() {
                         TRACE("next reconnect wait: {}", ReconnectWaitUsec());
                     }
                 } else if (rep == ESTABLISHED_EVENT) {
-                    TRACE("reset reconnect attempts");
                     reconnect_attempt_ = 0;
                     reconnect_when_ = 0;
                     restarting_ = false;
@@ -228,7 +227,6 @@ void DuplexStream::Update() {
  * this function should be called from worker thread
  */
 void DuplexStream::Receive() {
-    TRACE("start recv thread");
     void *tag;
     bool ok;
     Request *req;
