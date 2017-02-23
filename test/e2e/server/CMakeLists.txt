@@ -13,6 +13,7 @@ endif()
 
 file(GLOB_RECURSE src [
 	"./main.cpp" 
+	"../common.cpp"
 	"../proto/*.cc"
 ])
 

@@ -27,6 +27,8 @@ mtk_cid_t acceptor(mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl, char
 }
 
 int main(int argc, char *argv[]) {
+	mtk_log_init();
+
 	mtk_addr_t addr = {
 		.host = "0.0.0.0:50051",
 		.cert = nullptr,
@@ -40,6 +42,5 @@ int main(int argc, char *argv[]) {
 		.handler = handler,
 		.acceptor = acceptor,
 	};
-	mtk_log_init();
 	mtk_listen(&addr, &conf);
 }

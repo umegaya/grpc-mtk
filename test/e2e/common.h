@@ -1,6 +1,9 @@
 #pragma once
 #include <mtk.h>
 #include <functional>
+#include <vector>
+#include <thread>
+#include <string>
 #include <codec.h>
 #include <debug.h>
 #include <atomic_compat.h>
@@ -11,13 +14,25 @@
 #include "./proto/test.pb.h"
 
 namespace mtktest {
-typedef std::function<void (bool)> finish_cb;
-class test_finish_waiter {
+class test {
+public:
+	typedef std::function<void (bool)> notifier;
+	typedef std::function<void (mtk_conn_t, test &)> testfunc;
+protected:
+	struct testconn {
+		mtk_conn_t c;
+		test *t;
+	};
 	ATOMIC_INT running_;
 	ATOMIC_INT result_;
 	ATOMIC_INT start_;
+	std::vector<std::thread> threads_;
+	testfunc testfunc_;
+	std::string addr_;
+	int concurrency_;
 public:
-	test_finish_waiter() : running_(0), result_(0), start_(0) {}	
+	test(const char *addr, testfunc tf, int cc = 1) : 
+		running_(0), result_(0), start_(0), threads_(), testfunc_(tf), addr_(addr), concurrency_(cc) {}	
 	void start() { start_.store(1); running_++; }
 	void end(bool success) { 
 		running_--; 
@@ -32,17 +47,18 @@ public:
             }
         }
 	}
-	bool finished() { return start_.load() != 0 && running_.load() == 0; }
-	finish_cb bind() {
+	bool success() const { return result_.load() == 1; }
+	bool finished() const { return start_.load() != 0 && running_.load() == 0; }
+	notifier done_signal() {
 		start();
-		return std::bind(&test_finish_waiter::end, this, std::placeholders::_1);
+		return std::bind(&test::end, this, std::placeholders::_1);
 	}
-	void join() {
-		while (!finished()) {
-			mtk_sleep(mtk_msec(50));
-		}
-	}
+	bool run();
+	static bool launch(void *, mtk_cid_t, const char *, size_t);
 };
+
+
+
 template <class REQ, class REP>
 class closure_caller {
 public:
@@ -59,6 +75,8 @@ public:
 };
 }
 
+
+
 #define HANDLE(conn, type, handler) case mtktest::MessageTypes::type: { \
 	type##Request req__; type##Reply rep__; \
 	mtk::Codec::Unpack((const uint8_t *)p, pl, req__); \
@@ -68,6 +86,8 @@ public:
 	mtk::Codec::Pack(rep__, (uint8_t *)buff, rep__.ByteSize()); \
 	mtk_svconn_send(conn, mtk_svconn_msgid(conn), buff, rep__.ByteSize()); \
 } break;
+
+
 
 #define RPC(conn, type, req, callback) { \
 	char buff[req.ByteSize()]; \
