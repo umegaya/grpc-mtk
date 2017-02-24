@@ -58,12 +58,12 @@ extern mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn);
 extern mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn);
 extern void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen);
 extern void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen);
-extern void mtk_svconn_raise(mtk_svconn_t conn, mtk_msgid_t msgid, mtk_result_t errcode, const char *data, size_t datalen);
+extern void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen);
 extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen);
 extern void mtk_svconn_close(mtk_svconn_t conn);
 extern void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen);
 extern void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen);
-extern void mtk_cid_raise(mtk_cid_t cid, mtk_msgid_t msgid, mtk_result_t errcode, const char *errmsg);
+extern void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen);
 extern void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen);
 extern void mtk_cid_close(mtk_cid_t cid);
 /* client */
@@ -73,6 +73,7 @@ extern void mtk_conn_poll(mtk_conn_t conn);
 extern void mtk_conn_close(mtk_conn_t conn);
 extern void mtk_conn_send(mtk_conn_t conn, uint32_t type, const char *data, size_t datalen, mtk_closure_t clsr);
 extern void mtk_conn_watch(mtk_conn_t conn, uint32_t type, mtk_closure_t clsr);
+extern bool mtk_conn_connected(mtk_svconn_t conn);
 #define mtk_closure_init(__pclsr, __type, __cb, __arg) { \
 	(__pclsr)->arg = (void *)(__arg); \
 	(__pclsr)->__type = (__cb); \

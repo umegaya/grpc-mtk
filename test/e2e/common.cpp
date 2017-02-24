@@ -1,6 +1,9 @@
 #include "common.h"
 
 namespace mtktest {
+Error *HANDLE_PENDING_REPLY = (Error *)0x1;
+Error *HANDLE_OK = (Error *)0x0;
+
 bool test::launch(void *arg, mtk_cid_t cid, const char *p, size_t l) {
 	TRACE("launch connection_id={}", cid);
 	testconn *tc = (testconn *)arg;

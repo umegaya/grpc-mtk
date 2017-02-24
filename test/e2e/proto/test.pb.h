@@ -38,18 +38,35 @@ void protobuf_InitDefaults_test_2eproto();
 void protobuf_AssignDesc_test_2eproto();
 void protobuf_ShutdownFile_test_2eproto();
 
+class CloseReply;
+class CloseRequest;
+class Error;
+class NotifyReply;
+class NotifyRequest;
 class PingReply;
 class PingRequest;
+class RaiseReply;
+class RaiseRequest;
+class TaskReply;
+class TaskRequest;
+class TextNotify;
+class TextTransferTask;
 
 enum MessageTypes {
-  Invalid = 0,
+  Invalid_MessageType = 0,
   Ping = 1,
+  Close = 2,
+  Raise = 3,
+  Task = 4,
+  Notify = 5,
+  Task_TextTransfer = 50,
+  Notify_Text = 100,
   MessageTypes_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   MessageTypes_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool MessageTypes_IsValid(int value);
-const MessageTypes MessageTypes_MIN = Invalid;
-const MessageTypes MessageTypes_MAX = Ping;
+const MessageTypes MessageTypes_MIN = Invalid_MessageType;
+const MessageTypes MessageTypes_MAX = Notify_Text;
 const int MessageTypes_ARRAYSIZE = MessageTypes_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* MessageTypes_descriptor();
@@ -62,7 +79,126 @@ inline bool MessageTypes_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<MessageTypes>(
     MessageTypes_descriptor(), name, value);
 }
+enum ErrorCodes {
+  Invalid_ErrorCode = 0,
+  RaiseRequested = -1,
+  ErrorCodes_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  ErrorCodes_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool ErrorCodes_IsValid(int value);
+const ErrorCodes ErrorCodes_MIN = RaiseRequested;
+const ErrorCodes ErrorCodes_MAX = Invalid_ErrorCode;
+const int ErrorCodes_ARRAYSIZE = ErrorCodes_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* ErrorCodes_descriptor();
+inline const ::std::string& ErrorCodes_Name(ErrorCodes value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    ErrorCodes_descriptor(), value);
+}
+inline bool ErrorCodes_Parse(
+    const ::std::string& name, ErrorCodes* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<ErrorCodes>(
+    ErrorCodes_descriptor(), name, value);
+}
 // ===================================================================
+
+class Error : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.Error) */ {
+ public:
+  Error();
+  virtual ~Error();
+
+  Error(const Error& from);
+
+  inline Error& operator=(const Error& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Error& default_instance();
+
+  static const Error* internal_default_instance();
+
+  void Swap(Error* other);
+
+  // implements Message ----------------------------------------------
+
+  inline Error* New() const { return New(NULL); }
+
+  Error* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const Error& from);
+  void MergeFrom(const Error& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Error* other);
+  void UnsafeMergeFrom(const Error& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional int32 code = 1;
+  void clear_code();
+  static const int kCodeFieldNumber = 1;
+  ::google::protobuf::int32 code() const;
+  void set_code(::google::protobuf::int32 value);
+
+  // optional string message = 2;
+  void clear_message();
+  static const int kMessageFieldNumber = 2;
+  const ::std::string& message() const;
+  void set_message(const ::std::string& value);
+  void set_message(const char* value);
+  void set_message(const char* value, size_t size);
+  ::std::string* mutable_message();
+  ::std::string* release_message();
+  void set_allocated_message(::std::string* message);
+
+  // @@protoc_insertion_point(class_scope:mtktest.Error)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr message_;
+  ::google::protobuf::int32 code_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<Error> Error_default_instance_;
+
+// -------------------------------------------------------------------
 
 class PingRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.PingRequest) */ {
  public:
@@ -234,12 +370,953 @@ class PingReply : public ::google::protobuf::Message /* @@protoc_insertion_point
 };
 extern ::google::protobuf::internal::ExplicitlyConstructed<PingReply> PingReply_default_instance_;
 
+// -------------------------------------------------------------------
+
+class CloseRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.CloseRequest) */ {
+ public:
+  CloseRequest();
+  virtual ~CloseRequest();
+
+  CloseRequest(const CloseRequest& from);
+
+  inline CloseRequest& operator=(const CloseRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CloseRequest& default_instance();
+
+  static const CloseRequest* internal_default_instance();
+
+  void Swap(CloseRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  inline CloseRequest* New() const { return New(NULL); }
+
+  CloseRequest* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CloseRequest& from);
+  void MergeFrom(const CloseRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(CloseRequest* other);
+  void UnsafeMergeFrom(const CloseRequest& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:mtktest.CloseRequest)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<CloseRequest> CloseRequest_default_instance_;
+
+// -------------------------------------------------------------------
+
+class CloseReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.CloseReply) */ {
+ public:
+  CloseReply();
+  virtual ~CloseReply();
+
+  CloseReply(const CloseReply& from);
+
+  inline CloseReply& operator=(const CloseReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CloseReply& default_instance();
+
+  static const CloseReply* internal_default_instance();
+
+  void Swap(CloseReply* other);
+
+  // implements Message ----------------------------------------------
+
+  inline CloseReply* New() const { return New(NULL); }
+
+  CloseReply* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CloseReply& from);
+  void MergeFrom(const CloseReply& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(CloseReply* other);
+  void UnsafeMergeFrom(const CloseReply& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:mtktest.CloseReply)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<CloseReply> CloseReply_default_instance_;
+
+// -------------------------------------------------------------------
+
+class RaiseRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.RaiseRequest) */ {
+ public:
+  RaiseRequest();
+  virtual ~RaiseRequest();
+
+  RaiseRequest(const RaiseRequest& from);
+
+  inline RaiseRequest& operator=(const RaiseRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const RaiseRequest& default_instance();
+
+  static const RaiseRequest* internal_default_instance();
+
+  void Swap(RaiseRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  inline RaiseRequest* New() const { return New(NULL); }
+
+  RaiseRequest* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const RaiseRequest& from);
+  void MergeFrom(const RaiseRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(RaiseRequest* other);
+  void UnsafeMergeFrom(const RaiseRequest& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional int32 code = 1;
+  void clear_code();
+  static const int kCodeFieldNumber = 1;
+  ::google::protobuf::int32 code() const;
+  void set_code(::google::protobuf::int32 value);
+
+  // optional string message = 2;
+  void clear_message();
+  static const int kMessageFieldNumber = 2;
+  const ::std::string& message() const;
+  void set_message(const ::std::string& value);
+  void set_message(const char* value);
+  void set_message(const char* value, size_t size);
+  ::std::string* mutable_message();
+  ::std::string* release_message();
+  void set_allocated_message(::std::string* message);
+
+  // @@protoc_insertion_point(class_scope:mtktest.RaiseRequest)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr message_;
+  ::google::protobuf::int32 code_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<RaiseRequest> RaiseRequest_default_instance_;
+
+// -------------------------------------------------------------------
+
+class RaiseReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.RaiseReply) */ {
+ public:
+  RaiseReply();
+  virtual ~RaiseReply();
+
+  RaiseReply(const RaiseReply& from);
+
+  inline RaiseReply& operator=(const RaiseReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const RaiseReply& default_instance();
+
+  static const RaiseReply* internal_default_instance();
+
+  void Swap(RaiseReply* other);
+
+  // implements Message ----------------------------------------------
+
+  inline RaiseReply* New() const { return New(NULL); }
+
+  RaiseReply* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const RaiseReply& from);
+  void MergeFrom(const RaiseReply& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(RaiseReply* other);
+  void UnsafeMergeFrom(const RaiseReply& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:mtktest.RaiseReply)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<RaiseReply> RaiseReply_default_instance_;
+
+// -------------------------------------------------------------------
+
+class TaskRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.TaskRequest) */ {
+ public:
+  TaskRequest();
+  virtual ~TaskRequest();
+
+  TaskRequest(const TaskRequest& from);
+
+  inline TaskRequest& operator=(const TaskRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const TaskRequest& default_instance();
+
+  static const TaskRequest* internal_default_instance();
+
+  void Swap(TaskRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  inline TaskRequest* New() const { return New(NULL); }
+
+  TaskRequest* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const TaskRequest& from);
+  void MergeFrom(const TaskRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(TaskRequest* other);
+  void UnsafeMergeFrom(const TaskRequest& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string text = 1;
+  void clear_text();
+  static const int kTextFieldNumber = 1;
+  const ::std::string& text() const;
+  void set_text(const ::std::string& value);
+  void set_text(const char* value);
+  void set_text(const char* value, size_t size);
+  ::std::string* mutable_text();
+  ::std::string* release_text();
+  void set_allocated_text(::std::string* text);
+
+  // @@protoc_insertion_point(class_scope:mtktest.TaskRequest)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr text_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<TaskRequest> TaskRequest_default_instance_;
+
+// -------------------------------------------------------------------
+
+class TaskReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.TaskReply) */ {
+ public:
+  TaskReply();
+  virtual ~TaskReply();
+
+  TaskReply(const TaskReply& from);
+
+  inline TaskReply& operator=(const TaskReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const TaskReply& default_instance();
+
+  static const TaskReply* internal_default_instance();
+
+  void Swap(TaskReply* other);
+
+  // implements Message ----------------------------------------------
+
+  inline TaskReply* New() const { return New(NULL); }
+
+  TaskReply* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const TaskReply& from);
+  void MergeFrom(const TaskReply& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(TaskReply* other);
+  void UnsafeMergeFrom(const TaskReply& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string text = 1;
+  void clear_text();
+  static const int kTextFieldNumber = 1;
+  const ::std::string& text() const;
+  void set_text(const ::std::string& value);
+  void set_text(const char* value);
+  void set_text(const char* value, size_t size);
+  ::std::string* mutable_text();
+  ::std::string* release_text();
+  void set_allocated_text(::std::string* text);
+
+  // @@protoc_insertion_point(class_scope:mtktest.TaskReply)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr text_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<TaskReply> TaskReply_default_instance_;
+
+// -------------------------------------------------------------------
+
+class NotifyRequest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.NotifyRequest) */ {
+ public:
+  NotifyRequest();
+  virtual ~NotifyRequest();
+
+  NotifyRequest(const NotifyRequest& from);
+
+  inline NotifyRequest& operator=(const NotifyRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NotifyRequest& default_instance();
+
+  static const NotifyRequest* internal_default_instance();
+
+  void Swap(NotifyRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  inline NotifyRequest* New() const { return New(NULL); }
+
+  NotifyRequest* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const NotifyRequest& from);
+  void MergeFrom(const NotifyRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(NotifyRequest* other);
+  void UnsafeMergeFrom(const NotifyRequest& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string text = 1;
+  void clear_text();
+  static const int kTextFieldNumber = 1;
+  const ::std::string& text() const;
+  void set_text(const ::std::string& value);
+  void set_text(const char* value);
+  void set_text(const char* value, size_t size);
+  ::std::string* mutable_text();
+  ::std::string* release_text();
+  void set_allocated_text(::std::string* text);
+
+  // @@protoc_insertion_point(class_scope:mtktest.NotifyRequest)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr text_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<NotifyRequest> NotifyRequest_default_instance_;
+
+// -------------------------------------------------------------------
+
+class NotifyReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.NotifyReply) */ {
+ public:
+  NotifyReply();
+  virtual ~NotifyReply();
+
+  NotifyReply(const NotifyReply& from);
+
+  inline NotifyReply& operator=(const NotifyReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NotifyReply& default_instance();
+
+  static const NotifyReply* internal_default_instance();
+
+  void Swap(NotifyReply* other);
+
+  // implements Message ----------------------------------------------
+
+  inline NotifyReply* New() const { return New(NULL); }
+
+  NotifyReply* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const NotifyReply& from);
+  void MergeFrom(const NotifyReply& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(NotifyReply* other);
+  void UnsafeMergeFrom(const NotifyReply& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:mtktest.NotifyReply)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<NotifyReply> NotifyReply_default_instance_;
+
+// -------------------------------------------------------------------
+
+class TextNotify : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.TextNotify) */ {
+ public:
+  TextNotify();
+  virtual ~TextNotify();
+
+  TextNotify(const TextNotify& from);
+
+  inline TextNotify& operator=(const TextNotify& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const TextNotify& default_instance();
+
+  static const TextNotify* internal_default_instance();
+
+  void Swap(TextNotify* other);
+
+  // implements Message ----------------------------------------------
+
+  inline TextNotify* New() const { return New(NULL); }
+
+  TextNotify* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const TextNotify& from);
+  void MergeFrom(const TextNotify& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(TextNotify* other);
+  void UnsafeMergeFrom(const TextNotify& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string text = 1;
+  void clear_text();
+  static const int kTextFieldNumber = 1;
+  const ::std::string& text() const;
+  void set_text(const ::std::string& value);
+  void set_text(const char* value);
+  void set_text(const char* value, size_t size);
+  ::std::string* mutable_text();
+  ::std::string* release_text();
+  void set_allocated_text(::std::string* text);
+
+  // @@protoc_insertion_point(class_scope:mtktest.TextNotify)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr text_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<TextNotify> TextNotify_default_instance_;
+
+// -------------------------------------------------------------------
+
+class TextTransferTask : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.TextTransferTask) */ {
+ public:
+  TextTransferTask();
+  virtual ~TextTransferTask();
+
+  TextTransferTask(const TextTransferTask& from);
+
+  inline TextTransferTask& operator=(const TextTransferTask& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const TextTransferTask& default_instance();
+
+  static const TextTransferTask* internal_default_instance();
+
+  void Swap(TextTransferTask* other);
+
+  // implements Message ----------------------------------------------
+
+  inline TextTransferTask* New() const { return New(NULL); }
+
+  TextTransferTask* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const TextTransferTask& from);
+  void MergeFrom(const TextTransferTask& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(TextTransferTask* other);
+  void UnsafeMergeFrom(const TextTransferTask& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint32 msgid = 1;
+  void clear_msgid();
+  static const int kMsgidFieldNumber = 1;
+  ::google::protobuf::uint32 msgid() const;
+  void set_msgid(::google::protobuf::uint32 value);
+
+  // optional string text = 2;
+  void clear_text();
+  static const int kTextFieldNumber = 2;
+  const ::std::string& text() const;
+  void set_text(const ::std::string& value);
+  void set_text(const char* value);
+  void set_text(const char* value, size_t size);
+  ::std::string* mutable_text();
+  ::std::string* release_text();
+  void set_allocated_text(::std::string* text);
+
+  // @@protoc_insertion_point(class_scope:mtktest.TextTransferTask)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr text_;
+  ::google::protobuf::uint32 msgid_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<TextTransferTask> TextTransferTask_default_instance_;
+
 // ===================================================================
 
 
 // ===================================================================
 
 #if !PROTOBUF_INLINE_NOT_IN_HEADERS
+// Error
+
+// optional int32 code = 1;
+inline void Error::clear_code() {
+  code_ = 0;
+}
+inline ::google::protobuf::int32 Error::code() const {
+  // @@protoc_insertion_point(field_get:mtktest.Error.code)
+  return code_;
+}
+inline void Error::set_code(::google::protobuf::int32 value) {
+  
+  code_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.Error.code)
+}
+
+// optional string message = 2;
+inline void Error::clear_message() {
+  message_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& Error::message() const {
+  // @@protoc_insertion_point(field_get:mtktest.Error.message)
+  return message_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void Error::set_message(const ::std::string& value) {
+  
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.Error.message)
+}
+inline void Error::set_message(const char* value) {
+  
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.Error.message)
+}
+inline void Error::set_message(const char* value, size_t size) {
+  
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.Error.message)
+}
+inline ::std::string* Error::mutable_message() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.Error.message)
+  return message_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* Error::release_message() {
+  // @@protoc_insertion_point(field_release:mtktest.Error.message)
+  
+  return message_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void Error::set_allocated_message(::std::string* message) {
+  if (message != NULL) {
+    
+  } else {
+    
+  }
+  message_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), message);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.Error.message)
+}
+
+inline const Error* Error::internal_default_instance() {
+  return &Error_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
 // PingRequest
 
 // optional uint64 sent = 1;
@@ -280,7 +1357,391 @@ inline void PingReply::set_sent(::google::protobuf::uint64 value) {
 inline const PingReply* PingReply::internal_default_instance() {
   return &PingReply_default_instance_.get();
 }
+// -------------------------------------------------------------------
+
+// CloseRequest
+
+inline const CloseRequest* CloseRequest::internal_default_instance() {
+  return &CloseRequest_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// CloseReply
+
+inline const CloseReply* CloseReply::internal_default_instance() {
+  return &CloseReply_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// RaiseRequest
+
+// optional int32 code = 1;
+inline void RaiseRequest::clear_code() {
+  code_ = 0;
+}
+inline ::google::protobuf::int32 RaiseRequest::code() const {
+  // @@protoc_insertion_point(field_get:mtktest.RaiseRequest.code)
+  return code_;
+}
+inline void RaiseRequest::set_code(::google::protobuf::int32 value) {
+  
+  code_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.RaiseRequest.code)
+}
+
+// optional string message = 2;
+inline void RaiseRequest::clear_message() {
+  message_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& RaiseRequest::message() const {
+  // @@protoc_insertion_point(field_get:mtktest.RaiseRequest.message)
+  return message_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void RaiseRequest::set_message(const ::std::string& value) {
+  
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.RaiseRequest.message)
+}
+inline void RaiseRequest::set_message(const char* value) {
+  
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.RaiseRequest.message)
+}
+inline void RaiseRequest::set_message(const char* value, size_t size) {
+  
+  message_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.RaiseRequest.message)
+}
+inline ::std::string* RaiseRequest::mutable_message() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.RaiseRequest.message)
+  return message_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* RaiseRequest::release_message() {
+  // @@protoc_insertion_point(field_release:mtktest.RaiseRequest.message)
+  
+  return message_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void RaiseRequest::set_allocated_message(::std::string* message) {
+  if (message != NULL) {
+    
+  } else {
+    
+  }
+  message_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), message);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.RaiseRequest.message)
+}
+
+inline const RaiseRequest* RaiseRequest::internal_default_instance() {
+  return &RaiseRequest_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// RaiseReply
+
+inline const RaiseReply* RaiseReply::internal_default_instance() {
+  return &RaiseReply_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// TaskRequest
+
+// optional string text = 1;
+inline void TaskRequest::clear_text() {
+  text_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& TaskRequest::text() const {
+  // @@protoc_insertion_point(field_get:mtktest.TaskRequest.text)
+  return text_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TaskRequest::set_text(const ::std::string& value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.TaskRequest.text)
+}
+inline void TaskRequest::set_text(const char* value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.TaskRequest.text)
+}
+inline void TaskRequest::set_text(const char* value, size_t size) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.TaskRequest.text)
+}
+inline ::std::string* TaskRequest::mutable_text() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.TaskRequest.text)
+  return text_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* TaskRequest::release_text() {
+  // @@protoc_insertion_point(field_release:mtktest.TaskRequest.text)
+  
+  return text_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TaskRequest::set_allocated_text(::std::string* text) {
+  if (text != NULL) {
+    
+  } else {
+    
+  }
+  text_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), text);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.TaskRequest.text)
+}
+
+inline const TaskRequest* TaskRequest::internal_default_instance() {
+  return &TaskRequest_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// TaskReply
+
+// optional string text = 1;
+inline void TaskReply::clear_text() {
+  text_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& TaskReply::text() const {
+  // @@protoc_insertion_point(field_get:mtktest.TaskReply.text)
+  return text_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TaskReply::set_text(const ::std::string& value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.TaskReply.text)
+}
+inline void TaskReply::set_text(const char* value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.TaskReply.text)
+}
+inline void TaskReply::set_text(const char* value, size_t size) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.TaskReply.text)
+}
+inline ::std::string* TaskReply::mutable_text() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.TaskReply.text)
+  return text_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* TaskReply::release_text() {
+  // @@protoc_insertion_point(field_release:mtktest.TaskReply.text)
+  
+  return text_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TaskReply::set_allocated_text(::std::string* text) {
+  if (text != NULL) {
+    
+  } else {
+    
+  }
+  text_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), text);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.TaskReply.text)
+}
+
+inline const TaskReply* TaskReply::internal_default_instance() {
+  return &TaskReply_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// NotifyRequest
+
+// optional string text = 1;
+inline void NotifyRequest::clear_text() {
+  text_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& NotifyRequest::text() const {
+  // @@protoc_insertion_point(field_get:mtktest.NotifyRequest.text)
+  return text_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void NotifyRequest::set_text(const ::std::string& value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.NotifyRequest.text)
+}
+inline void NotifyRequest::set_text(const char* value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.NotifyRequest.text)
+}
+inline void NotifyRequest::set_text(const char* value, size_t size) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.NotifyRequest.text)
+}
+inline ::std::string* NotifyRequest::mutable_text() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.NotifyRequest.text)
+  return text_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* NotifyRequest::release_text() {
+  // @@protoc_insertion_point(field_release:mtktest.NotifyRequest.text)
+  
+  return text_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void NotifyRequest::set_allocated_text(::std::string* text) {
+  if (text != NULL) {
+    
+  } else {
+    
+  }
+  text_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), text);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.NotifyRequest.text)
+}
+
+inline const NotifyRequest* NotifyRequest::internal_default_instance() {
+  return &NotifyRequest_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// NotifyReply
+
+inline const NotifyReply* NotifyReply::internal_default_instance() {
+  return &NotifyReply_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// TextNotify
+
+// optional string text = 1;
+inline void TextNotify::clear_text() {
+  text_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& TextNotify::text() const {
+  // @@protoc_insertion_point(field_get:mtktest.TextNotify.text)
+  return text_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TextNotify::set_text(const ::std::string& value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.TextNotify.text)
+}
+inline void TextNotify::set_text(const char* value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.TextNotify.text)
+}
+inline void TextNotify::set_text(const char* value, size_t size) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.TextNotify.text)
+}
+inline ::std::string* TextNotify::mutable_text() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.TextNotify.text)
+  return text_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* TextNotify::release_text() {
+  // @@protoc_insertion_point(field_release:mtktest.TextNotify.text)
+  
+  return text_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TextNotify::set_allocated_text(::std::string* text) {
+  if (text != NULL) {
+    
+  } else {
+    
+  }
+  text_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), text);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.TextNotify.text)
+}
+
+inline const TextNotify* TextNotify::internal_default_instance() {
+  return &TextNotify_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// TextTransferTask
+
+// optional uint32 msgid = 1;
+inline void TextTransferTask::clear_msgid() {
+  msgid_ = 0u;
+}
+inline ::google::protobuf::uint32 TextTransferTask::msgid() const {
+  // @@protoc_insertion_point(field_get:mtktest.TextTransferTask.msgid)
+  return msgid_;
+}
+inline void TextTransferTask::set_msgid(::google::protobuf::uint32 value) {
+  
+  msgid_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.TextTransferTask.msgid)
+}
+
+// optional string text = 2;
+inline void TextTransferTask::clear_text() {
+  text_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& TextTransferTask::text() const {
+  // @@protoc_insertion_point(field_get:mtktest.TextTransferTask.text)
+  return text_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TextTransferTask::set_text(const ::std::string& value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtktest.TextTransferTask.text)
+}
+inline void TextTransferTask::set_text(const char* value) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtktest.TextTransferTask.text)
+}
+inline void TextTransferTask::set_text(const char* value, size_t size) {
+  
+  text_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtktest.TextTransferTask.text)
+}
+inline ::std::string* TextTransferTask::mutable_text() {
+  
+  // @@protoc_insertion_point(field_mutable:mtktest.TextTransferTask.text)
+  return text_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* TextTransferTask::release_text() {
+  // @@protoc_insertion_point(field_release:mtktest.TextTransferTask.text)
+  
+  return text_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void TextTransferTask::set_allocated_text(::std::string* text) {
+  if (text != NULL) {
+    
+  } else {
+    
+  }
+  text_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), text);
+  // @@protoc_insertion_point(field_set_allocated:mtktest.TextTransferTask.text)
+}
+
+inline const TextTransferTask* TextTransferTask::internal_default_instance() {
+  return &TextTransferTask_default_instance_.get();
+}
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 
@@ -296,6 +1757,11 @@ template <> struct is_proto_enum< ::mtktest::MessageTypes> : ::google::protobuf:
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::mtktest::MessageTypes>() {
   return ::mtktest::MessageTypes_descriptor();
+}
+template <> struct is_proto_enum< ::mtktest::ErrorCodes> : ::google::protobuf::internal::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::mtktest::ErrorCodes>() {
+  return ::mtktest::ErrorCodes_descriptor();
 }
 
 }  // namespace protobuf

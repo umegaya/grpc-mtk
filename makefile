@@ -57,7 +57,7 @@ build: bundle ios android
 
 .PHONY: test
 test: testlib
-	make -C test/e2e client server
+	make -C test/e2e server client
 
 clean: 
 	rm -r build

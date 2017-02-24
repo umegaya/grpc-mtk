@@ -2,15 +2,83 @@ syntax = "proto3";
 package mtktest;
 
 enum MessageTypes {
-	Invalid = 0;
+	Invalid_MessageType = 0;
 	Ping = 1;
+	Close = 2;
+	Raise = 3;
+	Task = 4;
+	Notify = 5;
+
+	Task_TextTransfer = 50;
+
+	Notify_Text = 100;
 }
 
+enum ErrorCodes {
+	Invalid_ErrorCode = 0;
+	RaiseRequested = -1;
+}
+
+message Error {
+	int32 code = 1;
+	string message = 2;
+}
+
+/* ping */
 message PingRequest {
 	uint64 sent = 1;
 }
 
 message PingReply {
 	uint64 sent = 1;
+}
+
+
+/* close */
+message CloseRequest {
+}
+
+message CloseReply {
+}
+
+
+/* raise */
+message RaiseRequest {
+	int32 code = 1;
+	string message = 2;
+}
+
+message RaiseReply {
+
+}
+
+
+/* task */
+message TaskRequest {
+	string text = 1;
+}
+
+message TaskReply {
+	string text = 1;
+}
+
+
+/* notify */
+message NotifyRequest {
+	string text = 1;
+}
+
+message NotifyReply {
+}
+
+/* notify messages */
+message TextNotify {
+	string text = 1;
+}
+
+/* task objects */
+message TextTransferTask {
+	uint32 msgid = 1;
+	string text = 2;
 }
 

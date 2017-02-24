@@ -23,7 +23,7 @@ server: proto
 	-mkdir -p ./server/build
 	cd server/build && (rm server || true) && cmake .. && make
 
-test: client server
+test: server client
 	cd ./server/build && ./server &
 	cd ./client/build && ./client
 

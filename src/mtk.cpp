@@ -180,9 +180,9 @@ void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_
 	std::string buf(data, datalen);
 	((RConn *)conn)->Notify(type, buf);
 }
-void mtk_svconn_raise(mtk_svconn_t conn, mtk_msgid_t msgid, mtk_result_t errcode, const char *data, size_t datalen) {
+void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen) {
 	Error *e = new Error();
-	e->set_error_code(errcode);
+	e->set_error_code(MTK_APPLICATION_ERROR);
 	e->set_payload(data, datalen);
 	((RConn *)conn)->Throw(msgid, e);
 }
@@ -203,10 +203,10 @@ void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, size_t datal
 	if (s == nullptr) { return; }
 	return mtk_svconn_notify(s.get(), type, data, datalen);
 }
-void mtk_cid_raise(mtk_cid_t cid, mtk_msgid_t msgid, mtk_result_t errcode, const char *data, size_t datalen) {
+void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
-	return mtk_svconn_raise(s.get(), msgid, errcode, data, datalen);
+	return mtk_svconn_error(s.get(), msgid, data, datalen);
 }
 void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
@@ -247,6 +247,10 @@ void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, size_t plen, mtk_
 void mtk_conn_watch(mtk_conn_t c, uint32_t type, mtk_closure_t clsr) {
 	DuplexStream *ds = (DuplexStream *)c;
 	ds->RegisterNotifyCB(type, *(Closure*)&clsr);
+}
+bool mtk_conn_connected(mtk_svconn_t c) {
+	DuplexStream *ds = (DuplexStream *)c;
+	return ds->IsConnected();
 }
 
 
