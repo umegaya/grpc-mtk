@@ -56,8 +56,13 @@ android: proto filelist
 build: bundle ios android
 
 .PHONY: test
-test: testlib
+test: e2etest httptest
+
+e2etest: testlib
 	make -C test/e2e server client
+
+httptest: testlib
+	make -C test/http server client
 
 clean: 
 	rm -r build

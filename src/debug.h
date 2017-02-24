@@ -9,7 +9,7 @@
 
 #if defined(DEBUG)
 #include "logger.h"
-#define TRACE(...) ::mtk::g_logger->info(__VA_ARGS__)
+#define TRACE(...) LOG(info, __VA_ARGS__)
 #else
 #define TRACE(...)
 #endif

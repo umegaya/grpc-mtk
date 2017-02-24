@@ -79,7 +79,7 @@ namespace mtk {
                                grpc_error *error) {
             _RequestContext *ctx = (_RequestContext *)arg;
             if (ctx->closure_.error_data.error != nullptr) {
-                //g_logger->error("tag:http,ev:request fail,emsg:{}", grpc_error_string(ctx->closure_.error));
+                LOG(error, "tag:http,ev:request fail,emsg:{}", grpc_error_string(ctx->closure_.error_data.error));
             }
             grpc_http_response &resp = ctx->response_;
             ctx->cb_(resp.status, resp.hdrs, resp.hdr_count, resp.body, resp.body_length);
@@ -768,6 +768,7 @@ namespace mtk {
     HttpServer::HttpServer() {
         n_listeners_capacity_ = 4;
         n_listeners_ = 0;
+        alive_ = true;
         listeners_ = new ListenerEntry[n_listeners_capacity_];
     }
 
@@ -777,11 +778,14 @@ namespace mtk {
         grpc_closure_init(&on_destroy_, &HttpServer::_OnDestroy, this, grpc_schedule_on_exec_ctx);
         return true;
     }
+    void HttpServer::Fin() {
+        alive_ = false;
+    }
     bool HttpServer::DoListen(grpc_exec_ctx *exec_ctx, int port) {
         grpc_resolved_addresses *resolved = nullptr;
         grpc_blocking_resolve_address(("0.0.0.0:" + std::to_string(port)).c_str(), "https", &resolved);
         if (resolved == nullptr) {
-            //g_logger->info("ev:cannot listen,addr:{}", (":" + std::to_string(port)).c_str());
+            LOG(info, "ev:cannot listen,addr:{}", (":" + std::to_string(port)).c_str());
             return false;
         }
         const size_t naddrs = resolved->naddrs;

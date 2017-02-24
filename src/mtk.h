@@ -7,33 +7,27 @@
 extern "C" {
 #endif
 
-/******** utils ********/
-typedef uint64_t mtk_time_t;
-
-/* time */
-static inline mtk_time_t mtk_sec(uint64_t n) { return ((n) * 1000 * 1000 * 1000); }
-static inline mtk_time_t mtk_msec(uint64_t n) { return ((n) * 1000 * 1000); }
-static inline mtk_time_t mtk_usec(uint64_t n) { return ((n) * 1000); }
-static inline mtk_time_t mtk_nsec(uint64_t n) { return (n); }
-extern mtk_time_t mtk_time();
-extern mtk_time_t mtk_sleep(mtk_time_t d);
-/* log */
-extern void mtk_log_init();
-
-
-
-/******** grpc server/client API ********/
+/******** basic types ********/
 typedef void *mtk_server_t;
 typedef void *mtk_conn_t;
 typedef void *mtk_svconn_t;
 typedef int mtk_result_t;
 typedef uint64_t mtk_cid_t;
 typedef uint32_t mtk_msgid_t;
+typedef uint64_t mtk_time_t;
+typedef void *mtk_httpsrv_request_t;
+typedef void *mtk_httpsrv_response_t;
+typedef struct {
+	char *key;
+	char *value;
+} mtk_http_header_t;
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, size_t);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, size_t);
 typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_cid_t, const char *, size_t, char **, size_t*);
+typedef void (*mtk_httpsrv_cb_t)(void *, mtk_httpsrv_request_t, mtk_httpsrv_response_t);
+typedef void (*mtk_httpcli_cb_t)(void *, int, mtk_http_header_t*, size_t, const char*, size_t);
 typedef struct {
 	void *arg;
 	union {
@@ -42,9 +36,29 @@ typedef struct {
 		mtk_close_cb_t on_close;
 		mtk_server_recv_cb_t on_svmsg;
 		mtk_server_accept_cb_t on_accept;
+		mtk_httpsrv_cb_t on_httpsrv;
+		mtk_httpcli_cb_t on_httpcli;
 		void *check;
 	};
 } mtk_closure_t;
+
+
+
+/******** utils ********/
+/* time */
+static inline mtk_time_t mtk_sec(uint64_t n) { return ((n) * 1000 * 1000 * 1000); }
+static inline mtk_time_t mtk_msec(uint64_t n) { return ((n) * 1000 * 1000); }
+static inline mtk_time_t mtk_usec(uint64_t n) { return ((n) * 1000); }
+static inline mtk_time_t mtk_nsec(uint64_t n) { return (n); }
+extern mtk_time_t mtk_time();
+extern mtk_time_t mtk_sleep(mtk_time_t d); //ignore EINTR
+extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
+/* log */
+extern void mtk_log_init();
+
+
+
+/******** grpc server/client API ********/
 typedef struct {
 	const char *host, *cert, *key, *ca;
 } mtk_addr_t;
@@ -106,29 +120,20 @@ extern mtk_closure_t mtk_closure_nop;
 
 
 /******** http API ********/
-typedef struct {
-	char *key;
-	char *value;
-} mtk_http_header_t;
-typedef void *mtk_httpsrv_request_t;
-typedef void *mtk_httpsrv_response_t;
-typedef void (*mtk_httpsrv_cb_t)(mtk_httpsrv_request_t, mtk_httpsrv_response_t);
-typedef void (*mtk_httpcli_cb_t)(int, mtk_http_header_t*, size_t, const char*, size_t);
-
 /* common */
 extern void mtk_http_start(const char *root_cert);
 extern void mtk_http_stop();
 /* client */
-extern void mtk_httpcli_get(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, mtk_httpcli_cb_t cb);
+extern void mtk_httpcli_get(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, mtk_closure_t cb);
 extern void mtk_httpcli_post(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, 
-						const char *body, int blen, mtk_httpcli_cb_t cb);
+						const char *body, int blen, mtk_closure_t cb);
 /* server */
-extern bool mtk_httpsrv_listen(int port, mtk_httpsrv_cb_t cb);
-extern int mtk_httpsrv_read_status(mtk_httpsrv_request_t *req);
-extern bool mtk_httpsrv_read_header(mtk_httpsrv_request_t *req, const char *key, char *value, size_t *size);
-extern const char *mtk_httpsrv_read_body(mtk_httpsrv_request_t *req, size_t *size);
-extern void mtk_httpsrv_write_header(mtk_httpsrv_response_t *res, mtk_http_header_t *hds, size_t n_hds);
-extern void mtk_httpsrv_write_body(mtk_httpsrv_response_t *res, const char *buffer, size_t len);
+extern bool mtk_httpsrv_listen(int port, mtk_closure_t cb);
+extern const char *mtk_httpsrv_read_path(mtk_httpsrv_request_t req, char *value, size_t *size);
+extern const char *mtk_httpsrv_read_header(mtk_httpsrv_request_t req, const char *key, char *value, size_t *size);
+extern const char *mtk_httpsrv_read_body(mtk_httpsrv_request_t req, size_t *size);
+extern void mtk_httpsrv_write_header(mtk_httpsrv_response_t res, int status, mtk_http_header_t *hds, size_t n_hds);
+extern void mtk_httpsrv_write_body(mtk_httpsrv_response_t res, const char *buffer, size_t len);
 
 #if defined(__cplusplus)
 }

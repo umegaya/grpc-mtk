@@ -11,3 +11,5 @@ namespace logger {
     inline const char *Formatter(const char *fmt) { return fmt; }
 }
 }
+
+#define LOG(level__, ...) { if (::mtk::g_logger != nullptr) { ::mtk::g_logger->level__(__VA_ARGS__); } }

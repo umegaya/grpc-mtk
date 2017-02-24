@@ -127,14 +127,14 @@ namespace mtk {
     public:
         template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
 #if defined(DEBUG)
-            g_logger->info("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
+            LOG(info, "tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
 #endif
         }
         template <typename... Args> void LogInfo(const char* fmt, const Args&... args) {
-            g_logger->info("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
+            LOG(info, "tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
         }
         template <typename... Args> void LogError(const char* fmt, const Args&... args) {
-            g_logger->error("tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
+            LOG(error, "tag:conn,id:{},a:{},{}", Id(), RemoteAddress(), logger::Formatter(fmt, args...));
         }
     };
     template <> bool SVStream::SetupPayload<std::string>(Reply &rep, const std::string &w);

@@ -202,6 +202,8 @@ namespace mtk {
         void AddHandler(int port, Callback cb);
         bool DoListen(grpc_exec_ctx *exec_ctx, int port);
         
+        //control
+        bool alive_;
         //handler map
         ListenerEntry *listeners_;
         int n_listeners_, n_listeners_capacity_;
