@@ -85,6 +85,9 @@ namespace mtk {
                 if (cid != 0) {
                     tag_->Register(cid);
                     step_ = StepId::WRITE;
+                } else {
+                    Finish();
+                    step_ = StepId::CLOSE;
                 }
             } break;
             case StepId::WRITE: {

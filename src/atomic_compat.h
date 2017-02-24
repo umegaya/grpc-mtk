@@ -6,4 +6,5 @@
 #include <atomic>
 #define ATOMIC_INT std::atomic<int>
 #define ATOMIC_UINT64 std::atomic<unsigned long long>
+
 #endif

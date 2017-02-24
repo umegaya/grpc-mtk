@@ -40,19 +40,17 @@ static void test_notify(mtk_conn_t conn, test::notifier done) {
 	const std::string text = "notify this plz";
 	notify_closure_caller<TextNotify> *ppcc = nullptr;
 	WATCH_NOTIFY(conn, Text, ([done, text, ppcc](TextNotify &n) {
+		TRACE("test_notify: notified");		
 		done(n.text() == text);
 		delete ppcc;
 	}), &ppcc);
 	NotifyRequest req;
 	req.set_text(text);
 	TRACE("test_notify: call RPC");
-	RPC(conn, Notify, req, ([done](NotifyReply *rep, Error *err) {
-		TRACE("test_notify: reply RPC");
-		if (err != nullptr) { done(false); }
-	}));
+	RPC(conn, Notify, req, ([](NotifyReply *rep, Error *err) {}));
 }
 
-void test_rpc(mtk_conn_t c, test &t) {
+void test_rpc(mtk_conn_t c, test &t, test::testconn &conn) {
 	test_ping(c, t.latch());
 	test_raise(c, t.latch());
 	test_task(c, t.latch());

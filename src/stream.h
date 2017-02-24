@@ -32,6 +32,7 @@ namespace mtk {
         virtual bool Valid() const = 0;
         virtual bool AddPayload(SystemPayload::Connect &c, int stream_idx) = 0;
         virtual bool OnOpenStream(mtk_result_t r, const char *p, size_t len, int stream_idx) = 0;
+        virtual mtk_time_t OnCloseStream(int reconnect_attempt) = 0;
         virtual void Poll() = 0;
     };
     class DuplexStream {
@@ -63,10 +64,10 @@ namespace mtk {
             Callback cb_;
             SEntry(Callback cb) : cb_(cb) { start_at_ = clock::now(); }
             inline void operator () (const Reply *rep, const Error *err) {
-                if (rep != nullptr) {
-                    cb_(rep->type(), rep->payload().c_str(), rep->payload().length());
-                } else {
+                if (err != nullptr) {
                     cb_(err->error_code(), err->payload().c_str(), err->payload().length());                
+                } else {
+                    cb_(rep->type(), rep->payload().c_str(), rep->payload().length());
                 }
             }
         };
@@ -103,7 +104,7 @@ namespace mtk {
             memset(reply_work_, 0, sizeof(reply_work_));
             memset(prev_conn_, 0, sizeof(prev_conn_));
         };
-        ~DuplexStream() {}
+        virtual ~DuplexStream() {}
         uint64_t Id() const { return delegate_->Id(); }
         void SetDump() { dump_ = true; }
     public:

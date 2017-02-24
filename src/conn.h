@@ -68,6 +68,9 @@ namespace mtk {
         inline void InternalClose() {
             step_ = StepId::CLOSE;
         }
+        inline void Finish() {
+            io_.Finish(Status::OK, tag_);
+        }
         inline IWorker *AssignedWorker() { return worker_; }
     protected:
         template <class W> void Write(const W &w) {
@@ -261,9 +264,6 @@ namespace mtk {
                 SetupThrow(r, msgid, e);
                 Write(r);
             }
-        }
-        void Finish() {
-            io_.Finish(Status::OK, tag_);
         }
         void Close() { closed_.store(1); }
         bool IsClosed() const { return closed_.load() != 0; }

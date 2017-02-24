@@ -4,6 +4,8 @@
 #include <vector>
 #include <thread>
 #include <string>
+#include <mutex>
+#include <condition_variable>
 #include <codec.h>
 #include <debug.h>
 #include <atomic_compat.h>
@@ -16,45 +18,55 @@
 namespace mtktest {
 class test {
 public:
-	typedef std::function<void (bool)> notifier;
-	typedef std::function<void (mtk_conn_t, test &)> testfunc;
-protected:
 	struct testconn {
 		mtk_conn_t c;
 		test *t;
+		std::thread th;
+		std::mutex mtx;
+		std::condition_variable cond;
+		void notify_cond() {
+			std::unique_lock<std::mutex> lock(mtx);
+			cond.notify_one();
+		}
 	};
+	typedef std::function<void (bool)> notifier;
+	typedef std::function<void (mtk_conn_t, test &, testconn &conn)> testfunc;
+protected:
 	ATOMIC_INT running_;
 	ATOMIC_INT result_;
-	ATOMIC_INT start_;
-	std::vector<std::thread> threads_;
+	ATOMIC_INT test_start_;
+	ATOMIC_INT thread_start_;
 	testfunc testfunc_;
 	std::string addr_;
 	int concurrency_;
 public:
 	test(const char *addr, testfunc tf, int cc = 1) : 
-		running_(0), result_(0), start_(0), threads_(), testfunc_(tf), addr_(addr), concurrency_(cc) {}	
-	void start() { start_.store(1); running_++; }
-	void end(bool success) { 
+		running_(0), result_(0), test_start_(0), thread_start_(0), testfunc_(tf), addr_(addr), concurrency_(cc) {}	
+	void thread_start() { thread_start_++; }
+	void start() { test_start_++; running_++; }
+	void end(bool ok) { 
+		ASSERT(ok);
 		running_--; 
 		while (true) {
             int32_t expect = result_.load();
             if (expect < 0) {
             	break;
             }
-            int32_t desired = success ? 1 : -1;
+            int32_t desired = ok ? 1 : -1;
             if (atomic_compare_exchange_weak(&result_, &expect, desired)) {
                 return;
             }
         }
 	}
 	bool success() const { return result_.load() == 1; }
-	bool finished() const { return start_.load() != 0 && running_.load() == 0; }
+	bool finished() const { return test_start_.load() > 0 && thread_start_ == concurrency_ && running_.load() == 0; }
 	notifier latch() {
 		start();
 		return std::bind(&test::end, this, std::placeholders::_1);
 	}
 	bool run();
 	static bool launch(void *, mtk_cid_t, const char *, size_t);
+	static mtk_time_t closed(void *arg, mtk_cid_t cid, long attempt);
 };
 
 
@@ -134,6 +146,7 @@ void notify_sender(mtk_svconn_t conn, uint32_t type, NOTIFY &n) {
 	mtk::Codec::Unpack((const uint8_t *)p, pl, req__); \
 	auto f = handler; \
 	Error *e = f(conn, req__, rep__); \
+	/*TRACE("{}: err = {}", #type, (void *)e);*/ \
 	if (e == nullptr) { \
 		char buff[rep__.ByteSize()]; \
 		mtk::Codec::Pack(rep__, (uint8_t *)buff, rep__.ByteSize()); \
@@ -175,5 +188,8 @@ void notify_sender(mtk_svconn_t conn, uint32_t type, NOTIFY &n) {
 	exit(-1); \
 }
 
-
+#define CONDWAIT(conn, lock, on_awake) { \
+	conn.cond.wait(lock); \
+	on_awake; \
+}
 

@@ -84,9 +84,8 @@ void DuplexStream::StartRead() {
     SystemPayload::Connect payload;
     delegate_->AddPayload(payload, READ);
     Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
-        if (r >= 0 && delegate_->OnOpenStream(r, p, len, READ)) {
-            status_ = NetworkStatus::CONNECT;
-        } else {
+        status_ = NetworkStatus::CONNECT;
+        if (r < 0 || !delegate_->OnOpenStream(r, p, len, READ)) {
             replys_.enqueue(DISCONNECT_EVENT);
         }
     }, READ);
@@ -129,11 +128,9 @@ void DuplexStream::Update() {
                 //set state disconnected
                 if (rep == DISCONNECT_EVENT) {
                     status_ = NetworkStatus::DISCONNECT;
-                    if (reconnect_attempt_ > 1) {
-                        //set reconnect wait 5, 10, 20, .... upto 300 sec
-                        reconnect_when_ = Tick() + CalcReconnectWaitDuration(reconnect_attempt_);
-                        TRACE("next reconnect wait: {}", ReconnectWaitUsec());
-                    }
+                    //set reconnect wait 5, 10, 20, .... upto 300 sec
+                    reconnect_when_ = Tick() + delegate_->OnCloseStream(reconnect_attempt_);
+                    TRACE("next reconnect wait: {}", ReconnectWaitUsec());
                 } else if (rep == ESTABLISHED_EVENT) {
                     reconnect_attempt_ = 0;
                     reconnect_when_ = 0;
@@ -159,7 +156,11 @@ void DuplexStream::Update() {
                     SEntry *ent = (*it).second;
                     reqmap_.erase(rep->msgid());
                     reqmtx_.unlock();
-                    (*ent)(rep, rep->mutable_error());
+                    if (rep->has_error()) {
+                        (*ent)(nullptr, rep->mutable_error());
+                    } else {
+                        (*ent)(rep, nullptr);
+                    }
                     delete ent;
                 } else {
                     reqmtx_.unlock();
@@ -313,11 +314,6 @@ void DuplexStream::HandleEvent(bool ok, void *tag) {
         }
         //connection is regarded as "closed" when WRITE stream closed.
         if (connect_sequence_num_ == seq && stream_idx == WRITE) {
-            if (!restarting_) {
-                //means server close this connection. give reconnect wait for first try
-                reconnect_when_ = Tick() + CalcReconnectWaitDuration(1);
-                TRACE("next reconnect wait: {}", ReconnectWaitUsec());
-            }
             //push event pointer to indicate connection closed
             replys_.enqueue(DISCONNECT_EVENT);
         }

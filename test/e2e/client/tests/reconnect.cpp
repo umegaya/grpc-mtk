@@ -1,23 +1,32 @@
 #include "reconnect.h"
 
-void test_reconnect(mtk_conn_t c, test &t) {
+void test_reconnect(mtk_conn_t c, test &t, test::testconn &conn) {
 	auto done = t.latch();
 	int count = 4;
+	std::mutex mtx;
+	std::condition_variable cond;
+	auto lock = std::unique_lock<std::mutex>(conn.mtx);
 	for (int i = 0; i < count; i++) {
-		bool end = false;
 		CloseRequest req;
-		RPC(c, Close, req, ([&done, &end, &count](CloseReply *req, Error *err) {
+		RPC(c, Close, req, ([&count](CloseReply *req, Error *err) {
 			if (err != nullptr) {
 				count = 0;
 			}
-			end = true;
 		}));
-		while (!end) {
-			mtk_sleep(mtk_msec(5));
-		}
-		while (!mtk_conn_connected(c)) {
-			mtk_sleep(mtk_msec(5));			
-		}
+		CONDWAIT(conn, lock, {
+			if (mtk_conn_connected(c)) {
+				TRACE("connection should be closed");
+				done(false);
+				return;
+			}
+		});
+		CONDWAIT(conn, lock, {
+			if (!mtk_conn_connected(c)) {
+				TRACE("connection should be opened");
+				done(false);
+				return;
+			}
+		});
 	}
 	done(count > 0);
 }

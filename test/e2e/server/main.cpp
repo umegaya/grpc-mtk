@@ -3,7 +3,7 @@
 
 using namespace mtktest;
 
-mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
+mtk_result_t handler(void *, mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	switch (r) {
 	HANDLE(c, Ping, [](mtk_svconn_t c, PingRequest &req, PingReply &rep) -> Error* {
 		rep.set_sent(req.sent());
@@ -45,19 +45,20 @@ mtk_result_t handler(mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
 	return 0;
 }
 
-ATOMIC_UINT64 g_id_seed;
-mtk_cid_t acceptor(mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl, char **rep, size_t *rep_len) {
+mtk_cid_t acceptor(void *arg, mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl, char **rep, size_t *rep_len) {
+	auto &seed = *(ATOMIC_UINT64 *)arg;
 	*rep_len = 0;
 	if (cid != 0) {
 		return cid;
 	} else {
-		return ++g_id_seed;
+		return ++seed;
 	}
 }
 
 int main(int argc, char *argv[]) {
 	mtk_log_init();
 
+	ATOMIC_UINT64 id_seed;
 	mtk_addr_t addr = {
 		.host = "0.0.0.0:50051",
 		.cert = nullptr,
@@ -65,11 +66,11 @@ int main(int argc, char *argv[]) {
 	mtk_svconf_t conf = {
 		.exclusive = true,
 		.thread = {
-			.n_reader = 64,
-			.n_writer = 16,
+			.n_reader = 4,
+			.n_writer = 1,
 		},
-		.handler = handler,
-		.acceptor = acceptor,
 	};
+	mtk_closure_init(&conf.handler, on_svmsg, handler, nullptr);
+	mtk_closure_init(&conf.acceptor, on_accept, acceptor, &id_seed);
 	mtk_listen(&addr, &conf);
 }

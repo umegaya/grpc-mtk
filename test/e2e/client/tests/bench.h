@@ -4,4 +4,4 @@
 
 using namespace mtktest;
 
-void test_bench(mtk_conn_t c, test &t);
+void test_bench(mtk_conn_t c, test &t, test::testconn &conn);
