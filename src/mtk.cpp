@@ -177,7 +177,7 @@ mtk_server_t mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf) {
 	    }));
 	}
 }
-void mtk_stop_listen(mtk_server_t sv) {
+void mtk_listen_stop(mtk_server_t sv) {
 	((ServerThread *)sv)->Join();
 }
 void mtk_svconn_accept(mtk_svconn_t conn, mtk_cid_t cid) {
@@ -280,16 +280,7 @@ bool mtk_conn_connected(mtk_svconn_t c) {
 std::thread s_websv_thread;
 int s_num_websv_port = 0;
 
-void mtk_http_start(const char *root_cert, bool start_server) {
-	//TODO: unify HttpClient and Server thread
-	HttpClient::Start(root_cert);
-	if (s_num_websv_port > 0) {
-		s_websv_thread = std::thread([] {
-			HttpServer::Instance().Run();
-		});
-	}
-}
-bool mtk_http_listen(int port, mtk_http_server_cb_t cb) {
+bool mtk_http_listen(int port, mtk_httpsrv_cb_t cb) {
 	if (s_num_websv_port <= 0) {
 		if (!HttpServer::Instance().Init()) { return false; }
 	}
@@ -299,30 +290,43 @@ bool mtk_http_listen(int port, mtk_http_server_cb_t cb) {
 	s_num_websv_port++;
 	return true;
 }
+void mtk_http_start(const char *root_cert) {
+	//TODO: unify HttpClient and Server thread
+	HttpClient::Start(root_cert);
+	if (s_num_websv_port > 0) {
+		s_websv_thread = std::thread([] {
+			HttpServer::Instance().Run();
+		});
+	}
+}
 void mtk_http_stop() {
 	HttpClient::Stop();
 	if (s_websv_thread.joinable()) {
 		s_websv_thread.join();
 	}
 }
-void mtk_http_get(const char *host, const char *path,
+void mtk_httpcli_get(const char *host, const char *path,
                         mtk_http_header_t *headers, int n_headers,
-                        mtk_http_client_cb_t cb) {
+                        mtk_httpcli_cb_t cb) {
 	HttpClient::Get(host, path, (grpc_http_header *)headers, n_headers, 
 	[cb](int st, grpc_http_header *h, size_t hl, const char *r, size_t rlen) {
 		cb(st, (mtk_http_header_t *)h, hl, r, rlen);
 	});
 }
-void mtk_http_post(const char *host, const char *path,
+void mtk_httpcli_post(const char *host, const char *path,
                         mtk_http_header_t *headers, int n_headers,
 						const char *body, int blen, 
-                        mtk_http_client_cb_t cb) {
+                        mtk_httpcli_cb_t cb) {
 	HttpClient::Post(host, path, (grpc_http_header *)headers, n_headers, body, blen, 
 	[cb](int st, grpc_http_header *h, size_t hl, const char *r, size_t rlen) {
 		cb(st, (mtk_http_header_t *)h, hl, r, rlen);
 	});
 }
-extern bool mtk_http_server_read_header(mtk_http_server_request_t *req, const char *key, char *value, size_t *size) {
+int mtk_httpsrv_read_status(mtk_httpsrv_request_t *req) {
+	HttpFSM *fsm = (HttpFSM *)req;
+	return fsm->get_state();	
+}
+bool mtk_httpsrv_read_header(mtk_httpsrv_request_t *req, const char *key, char *value, size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;
 	int inlen = *size, outlen;
 	if (fsm->hdrstr(key, value, inlen, &outlen)) {
@@ -331,16 +335,16 @@ extern bool mtk_http_server_read_header(mtk_http_server_request_t *req, const ch
 	}
 	return false;
 }
-const char *mtk_http_server_read_body(mtk_http_server_request_t *req, size_t *size) {
+const char *mtk_httpsrv_read_body(mtk_httpsrv_request_t *req, size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;
 	*size = fsm->bodylen();
 	return fsm->body();	
 }
-void mtk_http_server_write_header(mtk_http_server_response_t *res, int status, mtk_http_header_t *hds, size_t n_hds) {
+void mtk_httpsrv_write_header(mtk_httpsrv_response_t *res, int status, mtk_http_header_t *hds, size_t n_hds) {
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
 	writer->WriteHeader((http_result_code_t)status, (grpc_http_header *)hds, n_hds);
 }
-void mtk_http_server_write_body(mtk_http_server_response_t *res, const char *buffer, size_t len) {
+void mtk_httpsrv_write_body(mtk_httpsrv_response_t *res, const char *buffer, size_t len) {
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
 	writer->WriteBody((const uint8_t *)buffer, len);
 }

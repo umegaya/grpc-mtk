@@ -25,7 +25,7 @@ void ServerRunner::Run(Config &conf, IHandler *rhandler, IHandler *whandler, Dup
     }
     // Register service and start sv
     builder.RegisterService(&service);
-    // setup worker thread (need to do before BuildAndStart because completion queue should be created before it)
+    // setup worker thread (need to do before BuildAndStart because completion queue should be created before)
     std::vector<IWorker*> read_workers;
     for (int i = 0; i < conf.thread.n_reader; i++) {
         IWorker *w = new ReadWorker(&service, rhandler, builder);
@@ -38,7 +38,6 @@ void ServerRunner::Run(Config &conf, IHandler *rhandler, IHandler *whandler, Dup
     }
     
     std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    //g_logger->info("ev:Server listening start,a:{},r:{},s:{}", c.listen_at_.c_str(), c.role_.c_str(), secure ? "secure" : "insecure");
 
     // start worker thread
     for (IWorker *w : read_workers) {
