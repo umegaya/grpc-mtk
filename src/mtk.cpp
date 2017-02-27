@@ -291,8 +291,9 @@ bool mtk_httpsrv_listen(int port, mtk_closure_t cb) {
 	return true;
 }
 void mtk_http_start(const char *root_cert) {
+	extern std::string ssl_client_root_cert;
 	//TODO: unify HttpClient and Server thread
-	HttpClient::Start(root_cert);
+	HttpClient::Start(root_cert != nullptr ? root_cert : ssl_client_root_cert.c_str());
 	if (s_num_websv_port > 0) {
 		s_websv_thread = std::thread([] {
 			HttpServer::Instance().Run();
@@ -306,15 +307,18 @@ void mtk_http_stop() {
 		s_websv_thread.join();
 	}
 }
-void mtk_httpcli_get(const char *host, const char *path,
+bool mtk_http_avail() {
+	return HttpClient::Available();
+}
+static void mtk_httpcli_get_raw(bool secure, const char *host, const char *path,
                         mtk_http_header_t *headers, int n_headers,
                         mtk_closure_t cb) {
 	HttpClient::Get(host, path, (grpc_http_header *)headers, n_headers, 
 	[cb](int st, grpc_http_header *h, size_t hl, const char *r, size_t rlen) {
 		mtk_closure_call(&cb, on_httpcli, st, (mtk_http_header_t *)h, hl, r, rlen);
-	});
+	}, secure);
 }
-void mtk_httpcli_post(const char *host, const char *path,
+static void mtk_httpcli_post_raw(bool secure, const char *host, const char *path,
                         mtk_http_header_t *headers, int n_headers,
 						const char *body, int blen, 
                         mtk_closure_t cb) {
@@ -322,6 +326,28 @@ void mtk_httpcli_post(const char *host, const char *path,
 	[cb](int st, grpc_http_header *h, size_t hl, const char *r, size_t rlen) {
 		mtk_closure_call(&cb, on_httpcli, st, (mtk_http_header_t *)h, hl, r, rlen);
 	});
+}
+void mtk_httpcli_get(const char *host, const char *path,
+                        mtk_http_header_t *headers, int n_headers,
+                        mtk_closure_t cb) {
+	mtk_httpcli_get_raw(true, host, path, headers, n_headers, cb);
+}
+void mtk_httpcli_post(const char *host, const char *path,
+                        mtk_http_header_t *headers, int n_headers,
+						const char *body, int blen, 
+                        mtk_closure_t cb) {
+	mtk_httpcli_post_raw(true, host, path, headers, n_headers, body, blen, cb);
+}
+void mtk_httpcli_get_insecure(const char *host, const char *path,
+                        mtk_http_header_t *headers, int n_headers,
+                        mtk_closure_t cb) {
+	mtk_httpcli_get_raw(false, host, path, headers, n_headers, cb);
+}
+void mtk_httpcli_post_insecure(const char *host, const char *path,
+                        mtk_http_header_t *headers, int n_headers,
+						const char *body, int blen, 
+                        mtk_closure_t cb) {
+	mtk_httpcli_post_raw(false, host, path, headers, n_headers, body, blen, cb);
 }
 const char *mtk_httpsrv_read_path(mtk_httpsrv_request_t req, char *value, size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;

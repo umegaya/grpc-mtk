@@ -23,5 +23,6 @@ int main(int argc, char *argv[]) {
 	mtk_closure_init(&clsr, on_httpsrv, echo, nullptr);
 	mtk_httpsrv_listen(8008, clsr);
 	mtk_http_start(nullptr);
-	mtk_pause(mtk_sec(10));
+	mtk_pause(mtk_msec(argc > 1 ? std::stoi(argv[1]) : 1500));
+	mtk_http_stop();
 }

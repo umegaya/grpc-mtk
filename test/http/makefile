@@ -11,10 +11,12 @@ server:
 
 svtest: server
 	cd ./server/build && ./server &
-	echo "TODO: run http client by curl"
+	test `curl -d "fuga" http://localhost:8008/hoge` == 'fugahoge'
 
 cltest: client
-	echo "TODO: run http server with nc"
 	cd ./client/build && ./client
 
 build: client server
+
+test: svtest cltest
+

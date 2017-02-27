@@ -261,5 +261,6 @@ namespace mtk {
         static void Fin();
         static void Start(const std::string &root_cert);
         static void Stop();
+        static bool Available();
     };
 }

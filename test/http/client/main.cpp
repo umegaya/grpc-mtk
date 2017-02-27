@@ -10,10 +10,14 @@ int main(int argc, char *argv[]) {
 	int res = 0;
 	mtk_closure_init(&clsr, on_httpcli, recvresp, &res);
 	mtk_http_start(nullptr);
-	mtk_httpcli_get(argv[0], argv[1], nullptr, 0, clsr);
+	mtk_httpcli_get_insecure(
+		argc > 1 ? argv[1] : "localhost:8008", 
+		argc > 2 ? argv[2] : "/", 
+		nullptr, 0, clsr);
 	while (res == 0) {
 		mtk_sleep(mtk_msec(50));
 	}
+	mtk_http_stop();
 	if (res < 0) {
 		std::exit(res);
 	}

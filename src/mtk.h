@@ -123,9 +123,13 @@ extern mtk_closure_t mtk_closure_nop;
 /* common */
 extern void mtk_http_start(const char *root_cert);
 extern void mtk_http_stop();
+extern bool mtk_http_avail();
 /* client */
 extern void mtk_httpcli_get(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, mtk_closure_t cb);
 extern void mtk_httpcli_post(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, 
+						const char *body, int blen, mtk_closure_t cb);
+extern void mtk_httpcli_get_insecure(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, mtk_closure_t cb);
+extern void mtk_httpcli_post_insecure(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, 
 						const char *body, int blen, mtk_closure_t cb);
 /* server */
 extern bool mtk_httpsrv_listen(int port, mtk_closure_t cb);

@@ -1,5 +1,6 @@
 //this file is shared... so please not include client specific headers (eg. for TRACE)
 #include "http.h"
+#include <mtk.h>
 #include <grpc/grpc.h>
 #include <grpc/grpc_security.h>
 #include <grpc/support/sync.h>
@@ -42,7 +43,9 @@ namespace mtk {
                   HttpClient::Callback cb, bool ssl, uint32_t timeout_msec) {
             gpr_timespec timeout = gpr_time_add(gpr_now(GPR_CLOCK_MONOTONIC),
                                                 gpr_time_from_millis(timeout_msec, GPR_TIMESPAN));
+            gpr_mu_lock(g_polling_mu);
             pollent_ = grpc_polling_entity_create_from_pollset(g_pollset);
+            gpr_mu_unlock(g_polling_mu);
             grpc_closure_init(&closure_, _RequestContext::tranpoline, this, grpc_schedule_on_exec_ctx);
             memset(&response_, 0, sizeof(response_));
             cb_ = cb;
@@ -110,8 +113,8 @@ namespace mtk {
             grpc_pollset_shutdown(&g_exec_ctx,
                                   g_pollset,
                                   &destroy_closure);
-            free(g_pollset);
             grpc_exec_ctx_finish(&g_exec_ctx);
+            free(g_pollset);
             g_pollset = nullptr;
         }
     }
@@ -146,14 +149,18 @@ namespace mtk {
         if (g_http_alive) {
             return;
         }
-        g_webthr = std::thread([&root_cert] {
-            g_http_alive = true;
+        grpc_init();
+        g_webthr = std::thread([root_cert] {
             HttpClient::Init(root_cert);
+            g_http_alive = true;
             while (g_http_alive) {
                 HttpClient::Update();
             }
             HttpClient::Fin();
         });
+        while (!HttpClient::Available()) {
+            mtk_sleep(mtk_msec(10));
+        }
     }
     void HttpClient::Stop() {
         if (!g_http_alive) {
@@ -161,6 +168,10 @@ namespace mtk {
         }
         g_http_alive = false;
         g_webthr.join();
+        grpc_shutdown();
+    }
+    bool HttpClient::Available() {
+        return g_http_alive;
     }
 
 
@@ -773,6 +784,7 @@ namespace mtk {
     }
 
     bool HttpServer::Init() {
+        grpc_init();
         pollset_ = (grpc_pollset *)malloc(grpc_pollset_size());
         grpc_pollset_init(pollset_, &polling_mu_);
         grpc_closure_init(&on_destroy_, &HttpServer::_OnDestroy, this, grpc_schedule_on_exec_ctx);
@@ -780,6 +792,7 @@ namespace mtk {
     }
     void HttpServer::Fin() {
         alive_ = false;
+        grpc_shutdown();
     }
     bool HttpServer::DoListen(grpc_exec_ctx *exec_ctx, int port) {
         grpc_resolved_addresses *resolved = nullptr;
@@ -807,7 +820,6 @@ namespace mtk {
         return true;
     }
     bool HttpServer::Run(int sleep_ms) {
-        bool alive = true;
         grpc_exec_ctx exec_ctx = GRPC_EXEC_CTX_INIT;
         auto err = grpc_tcp_server_create(&exec_ctx, &on_destroy_, nullptr, &server_);
         if (err != GRPC_ERROR_NONE) {
@@ -823,7 +835,7 @@ namespace mtk {
         }
         grpc_tcp_server_ref(server_);
         grpc_tcp_server_start(&exec_ctx, server_, &pollset_, 1, &HttpServer::_OnAccept, this);
-        while (alive) {
+        while (alive_) {
             grpc_pollset_worker *worker = NULL;
             gpr_timespec now = gpr_now(GPR_CLOCK_MONOTONIC);
             gpr_mu_lock(polling_mu_);
