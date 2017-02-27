@@ -31,7 +31,7 @@ namespace mtk {
         virtual mtk_cid_t Id() const = 0;
         virtual bool Valid() const = 0;
         virtual bool AddPayload(SystemPayload::Connect &c, int stream_idx) = 0;
-        virtual bool OnOpenStream(mtk_result_t r, const char *p, size_t len, int stream_idx) = 0;
+        virtual bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len, int stream_idx) = 0;
         virtual mtk_time_t OnCloseStream(int reconnect_attempt) = 0;
         virtual void Poll() = 0;
     };

@@ -1,7 +1,7 @@
 #include <mtk.h>
 #include <cstdlib>
 
-static void recvresp(void *p, int st, mtk_http_header_t*, size_t, const char*, size_t) {
+static void recvresp(void *p, int st, mtk_http_header_t*, mtk_size_t, const char*, mtk_size_t) {
 	*((int *)p) = ((st == 200) ? 1 : -1);
 }
 

@@ -4,7 +4,7 @@ namespace mtktest {
 Error *HANDLE_PENDING_REPLY = (Error *)0x1;
 Error *HANDLE_OK = (Error *)0x0;
 
-bool test::launch(void *arg, mtk_cid_t cid, const char *p, size_t l) {
+bool test::launch(void *arg, mtk_cid_t cid, const char *p, mtk_size_t l) {
 	testconn *tc = (testconn *)arg;
 	if (tc->th.joinable()) {
 		tc->notify_cond();

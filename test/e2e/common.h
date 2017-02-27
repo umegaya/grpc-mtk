@@ -65,7 +65,7 @@ public:
 		return std::bind(&test::end, this, std::placeholders::_1);
 	}
 	bool run();
-	static bool launch(void *, mtk_cid_t, const char *, size_t);
+	static bool launch(void *, mtk_cid_t, const char *, mtk_size_t);
 	static mtk_time_t closed(void *arg, mtk_cid_t cid, long attempt);
 };
 
@@ -82,7 +82,7 @@ public:
 		mtk_closure_init(&clsr, on_msg, reply_closure_caller::call, this);
 		return clsr;
 	}
-	static void call(void *arg, mtk_result_t r, const char *p, size_t l) {
+	static void call(void *arg, mtk_result_t r, const char *p, mtk_size_t l) {
 		auto pcc = (reply_closure_caller *)arg;
 		if (r >= 0) {
 			REP rep;
@@ -108,7 +108,7 @@ public:
 		mtk_closure_init(&clsr, on_msg, notify_closure_caller::call, this);
 		return clsr;
 	}
-	static void call(void *arg, mtk_result_t r, const char *p, size_t l) {
+	static void call(void *arg, mtk_result_t r, const char *p, mtk_size_t l) {
 		auto pcc = (notify_closure_caller *)arg;
 		NOTIFY n;
 		mtk::Codec::Unpack((const uint8_t *)p, l, n);

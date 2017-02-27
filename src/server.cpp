@@ -12,16 +12,16 @@ ServerRunner &ServerRunner::Instance() {
 	}
 	return *instance_;
 }
-void ServerRunner::Run(Config &conf, IHandler *rhandler, IHandler *whandler, DuplexStream::ServerCredOptions *options) {
+void ServerRunner::Run(const std::string &listen_at, Config &conf, IHandler *rhandler, IHandler *whandler, DuplexStream::ServerCredOptions *options) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port
     bool secure = false;
     if (options != nullptr) {
         secure = true;
-        builder.AddListeningPort(conf.listen_at, grpc::SslServerCredentials(*options));
+        builder.AddListeningPort(listen_at, grpc::SslServerCredentials(*options));
     } else {
-        builder.AddListeningPort(conf.listen_at, grpc::InsecureServerCredentials());
+        builder.AddListeningPort(listen_at, grpc::InsecureServerCredentials());
     }
     // Register service and start sv
     builder.RegisterService(&service);

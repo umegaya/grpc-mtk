@@ -29,7 +29,7 @@ public:
 		if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq) < 0) {
 			return 0;
 		}
-		char *rep; size_t rlen = 0;
+		char *rep; mtk_size_t rlen = 0;
 		mtk_cid_t cid = mtk_closure_call(&acceptor_, on_accept, c, creq.id(), creq.payload().c_str(), creq.payload().length(), &rep, &rlen);
 		if (cid != 0) {
 			SystemPayload::Connect sysrep;
@@ -92,10 +92,10 @@ bool CreateCred(mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) 
 /* closure wrapper */
 class Closure : public mtk_closure_t {
 public:
-	void operator () (mtk_result_t r, const char *p, size_t l) {
+	void operator () (mtk_result_t r, const char *p, mtk_size_t l) {
 		on_msg(arg, r, p, l);
 	}
-	void operator () (mtk_cid_t cid, const char *p, size_t l) {
+	void operator () (mtk_cid_t cid, const char *p, mtk_size_t l) {
 		on_connect(arg, cid, p, l);
 	}
 };
@@ -114,7 +114,7 @@ public:
     	c.set_payload(clconf_.payload, clconf_.payload_len);
     	return true;
     }
-    bool OnOpenStream(mtk_result_t r, const char *p, size_t len, int stream_idx) {
+    bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len, int stream_idx) {
     	if (r < 0) {
 	    	return mtk_closure_call(&(clconf_.on_connect), on_connect, 0, "", 0);
     	}
@@ -163,17 +163,17 @@ mtk_closure_t mtk_clousure_nop = { nullptr, { nullptr } };
 mtk_server_t mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf) {
 	DuplexStream::ServerCredOptions opts;
 	bool has_cred = CreateCred(*addr, opts);
-	svconf->listen_at = addr->host;
 	if (svconf->exclusive) {
 		auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler, svconf->acceptor));
 		auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler, svconf->acceptor));
-		ServerRunner::Instance().Run(*svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
+		ServerRunner::Instance().Run(addr->host, *svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
 		return nullptr;
 	} else {
-		return new ServerThread(std::thread([svconf, has_cred, &opts] {
+		std::string host = addr->host;
+		return new ServerThread(std::thread([svconf, has_cred, &opts, host] {
 			auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler, svconf->acceptor));
 			auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler, svconf->acceptor));
-			ServerRunner::Instance().Run(*svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
+			ServerRunner::Instance().Run(host, *svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
 	    }));
 	}
 }
@@ -189,43 +189,43 @@ mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn) {
 mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn) {
 	return ((RConn *)conn)->CurrentMsgId();
 }
-void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen) {
+void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	std::string buf(data, datalen);
 	((RConn *)conn)->Rep(msgid, buf);
 }
-void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen) {
+void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen) {
 	std::string buf(data, datalen);
 	((RConn *)conn)->Notify(type, buf);
 }
-void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, size_t datalen) {
+void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	Error *e = new Error();
 	e->set_error_code(MTK_APPLICATION_ERROR);
 	e->set_payload(data, datalen);
 	((RConn *)conn)->Throw(msgid, e);
 }
-void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, size_t datalen) {
+void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen) {
 	std::string buf(data, datalen);
 	((RConn *)conn)->AddTask(type, buf);
 }
 void mtk_svconn_close(mtk_svconn_t conn) {
 	((RConn *)conn)->InternalClose();
 }
-void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen) {
+void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
 	return mtk_svconn_send(s.get(), msgid, data, datalen);
 }
-void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen) {
+void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
 	return mtk_svconn_notify(s.get(), type, data, datalen);
 }
-void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, size_t datalen) {
+void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
 	return mtk_svconn_error(s.get(), msgid, data, datalen);
 }
-void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, size_t datalen) {
+void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
 	return mtk_svconn_task(s.get(), type, data, datalen);
@@ -261,7 +261,7 @@ void mtk_conn_reset(mtk_conn_t c) {
 	StreamDelegate *ds = (StreamDelegate *)c;
 	ds->Release();
 }
-void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, size_t plen, mtk_closure_t clsr) {
+void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, mtk_size_t plen, mtk_closure_t clsr) {
 	StreamDelegate *ds = (StreamDelegate *)c;
 	ds->Call(type, p, plen, *(Closure*)&clsr);
 }
@@ -314,7 +314,7 @@ static void mtk_httpcli_get_raw(bool secure, const char *host, const char *path,
                         mtk_http_header_t *headers, int n_headers,
                         mtk_closure_t cb) {
 	HttpClient::Get(host, path, (grpc_http_header *)headers, n_headers, 
-	[cb](int st, grpc_http_header *h, size_t hl, const char *r, size_t rlen) {
+	[cb](int st, grpc_http_header *h, mtk_size_t hl, const char *r, mtk_size_t rlen) {
 		mtk_closure_call(&cb, on_httpcli, st, (mtk_http_header_t *)h, hl, r, rlen);
 	}, secure);
 }
@@ -323,7 +323,7 @@ static void mtk_httpcli_post_raw(bool secure, const char *host, const char *path
 						const char *body, int blen, 
                         mtk_closure_t cb) {
 	HttpClient::Post(host, path, (grpc_http_header *)headers, n_headers, body, blen, 
-	[cb](int st, grpc_http_header *h, size_t hl, const char *r, size_t rlen) {
+	[cb](int st, grpc_http_header *h, mtk_size_t hl, const char *r, mtk_size_t rlen) {
 		mtk_closure_call(&cb, on_httpcli, st, (mtk_http_header_t *)h, hl, r, rlen);
 	});
 }
@@ -349,12 +349,16 @@ void mtk_httpcli_post_insecure(const char *host, const char *path,
                         mtk_closure_t cb) {
 	mtk_httpcli_post_raw(false, host, path, headers, n_headers, body, blen, cb);
 }
-const char *mtk_httpsrv_read_path(mtk_httpsrv_request_t req, char *value, size_t *size) {
+const char *mtk_httpsrv_read_path(mtk_httpsrv_request_t req, char *value, mtk_size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;
-	size_t tmp = *size;
-	return fsm->url(value, tmp, size);
+	size_t tmp;
+	const char *ret = fsm->url(value, *size, &tmp);
+	if (ret != nullptr) {
+		*size = tmp;
+	}
+	return ret;
 }
-const char *mtk_httpsrv_read_header(mtk_httpsrv_request_t req, const char *key, char *value, size_t *size) {
+const char *mtk_httpsrv_read_header(mtk_httpsrv_request_t req, const char *key, char *value, mtk_size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;
 	int inlen = *size, outlen;
 	if (fsm->hdrstr(key, value, inlen, &outlen)) {
@@ -363,16 +367,16 @@ const char *mtk_httpsrv_read_header(mtk_httpsrv_request_t req, const char *key, 
 	}
 	return nullptr;
 }
-const char *mtk_httpsrv_read_body(mtk_httpsrv_request_t req, size_t *size) {
+const char *mtk_httpsrv_read_body(mtk_httpsrv_request_t req, mtk_size_t *size) {
 	HttpFSM *fsm = (HttpFSM *)req;
 	*size = fsm->bodylen();
 	return fsm->body();	
 }
-void mtk_httpsrv_write_header(mtk_httpsrv_response_t res, int status, mtk_http_header_t *hds, size_t n_hds) {
+void mtk_httpsrv_write_header(mtk_httpsrv_response_t res, int status, mtk_http_header_t *hds, mtk_size_t n_hds) {
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
 	writer->WriteHeader((http_result_code_t)status, (grpc_http_header *)hds, n_hds);
 }
-void mtk_httpsrv_write_body(mtk_httpsrv_response_t res, const char *buffer, size_t len) {
+void mtk_httpsrv_write_body(mtk_httpsrv_response_t res, const char *buffer, mtk_size_t len) {
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
 	writer->WriteBody((const uint8_t *)buffer, len);
 }

@@ -3,7 +3,7 @@
 
 static void echo(void *, mtk_httpsrv_request_t req, mtk_httpsrv_response_t res) {
 	char buff[256];
-	size_t len, bl = sizeof(buff);
+	mtk_size_t len, bl = sizeof(buff);
 	const char *body = mtk_httpsrv_read_body(req, &len);
 	mtk_httpsrv_read_path(req, buff, &bl);
 	if (len > 0) {

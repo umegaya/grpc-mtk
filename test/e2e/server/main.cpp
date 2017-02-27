@@ -3,7 +3,7 @@
 
 using namespace mtktest;
 
-mtk_result_t handler(void *, mtk_svconn_t c, mtk_result_t r, const char *p, size_t pl) {
+mtk_result_t handler(void *, mtk_svconn_t c, mtk_result_t r, const char *p, mtk_size_t pl) {
 	switch (r) {
 	HANDLE(c, Ping, [](mtk_svconn_t c, PingRequest &req, PingReply &rep) -> Error* {
 		rep.set_sent(req.sent());
@@ -45,7 +45,7 @@ mtk_result_t handler(void *, mtk_svconn_t c, mtk_result_t r, const char *p, size
 	return 0;
 }
 
-mtk_cid_t acceptor(void *arg, mtk_svconn_t c, mtk_cid_t cid, const char *p, size_t pl, char **rep, size_t *rep_len) {
+mtk_cid_t acceptor(void *arg, mtk_svconn_t c, mtk_cid_t cid, const char *p, mtk_size_t pl, char **rep, mtk_size_t *rep_len) {
 	auto &seed = *(ATOMIC_UINT64 *)arg;
 	*rep_len = 0;
 	if (cid != 0) {
