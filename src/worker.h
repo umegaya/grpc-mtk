@@ -29,6 +29,9 @@ namespace mtk {
         virtual void Run();
         virtual void OnRegister(IConn *) {}
         virtual void OnUnregister(IConn *) {}
+        //these are called when login postponed (eg. calling external API)
+        virtual void OnWaitLogin(IConn *) {}
+        virtual void OnFinishLogin(IConn *) {}
     };
     //worker which does IO and periodically call ConsumeTask for each connection
     class TaskConsumableWorker : public IWorker {
@@ -37,9 +40,11 @@ namespace mtk {
     public:
         TaskConsumableWorker(Service *service, IHandler *handler, ServerBuilder &builder) : 
             IWorker(service, handler, builder), connections_() {}
-        void Run();
-        void OnRegister(IConn *c) { connections_.push_back(c); }
-        void OnUnregister(IConn *);
+        void Run() override;
+        void OnRegister(IConn *c) override { connections_.push_back(c); }
+        void OnUnregister(IConn *) override;
+        void OnWaitLogin(IConn *c) override { OnRegister(c); }
+        void OnFinishLogin(IConn *c) override { OnUnregister(c); }
     };
     //inlines
     void IWorker::Process(bool ok, void *tag) {

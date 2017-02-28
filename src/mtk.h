@@ -13,6 +13,7 @@ typedef void *mtk_conn_t;
 typedef void *mtk_svconn_t;
 typedef int mtk_result_t;
 typedef uint64_t mtk_cid_t;
+typedef uint64_t mtk_login_cid_t;
 typedef uint32_t mtk_msgid_t;
 typedef uint64_t mtk_time_t;
 typedef uint32_t mtk_size_t;
@@ -26,7 +27,8 @@ typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, mtk_size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, mtk_size_t);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, mtk_size_t);
-typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_cid_t, const char *, mtk_size_t, char **, mtk_size_t*);
+typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, mtk_cid_t, 
+											const char *, mtk_size_t, char **, mtk_size_t*);
 typedef void (*mtk_httpsrv_cb_t)(void *, mtk_httpsrv_request_t, mtk_httpsrv_response_t);
 typedef void (*mtk_httpcli_cb_t)(void *, int, mtk_http_header_t*, mtk_size_t, const char*, mtk_size_t);
 typedef struct {
@@ -86,7 +88,9 @@ typedef enum {
 /* server */
 extern mtk_server_t mtk_listen(mtk_addr_t *listen_at, mtk_svconf_t *conf);
 extern void mtk_listen_stop(mtk_server_t sv);
-extern void mtk_svconn_accept(mtk_svconn_t conn, mtk_cid_t cid);
+extern mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn);
+extern void mtk_svconn_finish_login(mtk_login_cid_t login_cid, 
+									mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn);
 extern mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn);
 extern void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);

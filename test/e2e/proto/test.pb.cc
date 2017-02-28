@@ -24,6 +24,10 @@ namespace {
 const ::google::protobuf::Descriptor* Error_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Error_reflection_ = NULL;
+const ::google::protobuf::Descriptor* ConnectPayload_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  ConnectPayload_reflection_ = NULL;
+const ::google::protobuf::EnumDescriptor* ConnectPayload_LoginMode_descriptor_ = NULL;
 const ::google::protobuf::Descriptor* PingRequest_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   PingRequest_reflection_ = NULL;
@@ -60,6 +64,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* TextTransferTask_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   TextTransferTask_reflection_ = NULL;
+const ::google::protobuf::Descriptor* LoginTask_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  LoginTask_reflection_ = NULL;
 const ::google::protobuf::EnumDescriptor* MessageTypes_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* ErrorCodes_descriptor_ = NULL;
 
@@ -88,7 +95,22 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(Error),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Error, _internal_metadata_));
-  PingRequest_descriptor_ = file->message_type(1);
+  ConnectPayload_descriptor_ = file->message_type(1);
+  static const int ConnectPayload_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectPayload, login_mode_),
+  };
+  ConnectPayload_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      ConnectPayload_descriptor_,
+      ConnectPayload::internal_default_instance(),
+      ConnectPayload_offsets_,
+      -1,
+      -1,
+      -1,
+      sizeof(ConnectPayload),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectPayload, _internal_metadata_));
+  ConnectPayload_LoginMode_descriptor_ = ConnectPayload_descriptor_->enum_type(0);
+  PingRequest_descriptor_ = file->message_type(2);
   static const int PingRequest_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PingRequest, sent_),
   };
@@ -102,7 +124,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(PingRequest),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PingRequest, _internal_metadata_));
-  PingReply_descriptor_ = file->message_type(2);
+  PingReply_descriptor_ = file->message_type(3);
   static const int PingReply_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PingReply, sent_),
   };
@@ -116,7 +138,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(PingReply),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PingReply, _internal_metadata_));
-  CloseRequest_descriptor_ = file->message_type(3);
+  CloseRequest_descriptor_ = file->message_type(4);
   static const int CloseRequest_offsets_[1] = {
   };
   CloseRequest_reflection_ =
@@ -129,7 +151,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(CloseRequest),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CloseRequest, _internal_metadata_));
-  CloseReply_descriptor_ = file->message_type(4);
+  CloseReply_descriptor_ = file->message_type(5);
   static const int CloseReply_offsets_[1] = {
   };
   CloseReply_reflection_ =
@@ -142,7 +164,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(CloseReply),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CloseReply, _internal_metadata_));
-  RaiseRequest_descriptor_ = file->message_type(5);
+  RaiseRequest_descriptor_ = file->message_type(6);
   static const int RaiseRequest_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RaiseRequest, code_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RaiseRequest, message_),
@@ -157,7 +179,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(RaiseRequest),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RaiseRequest, _internal_metadata_));
-  RaiseReply_descriptor_ = file->message_type(6);
+  RaiseReply_descriptor_ = file->message_type(7);
   static const int RaiseReply_offsets_[1] = {
   };
   RaiseReply_reflection_ =
@@ -170,7 +192,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(RaiseReply),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RaiseReply, _internal_metadata_));
-  TaskRequest_descriptor_ = file->message_type(7);
+  TaskRequest_descriptor_ = file->message_type(8);
   static const int TaskRequest_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TaskRequest, text_),
   };
@@ -184,7 +206,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(TaskRequest),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TaskRequest, _internal_metadata_));
-  TaskReply_descriptor_ = file->message_type(8);
+  TaskReply_descriptor_ = file->message_type(9);
   static const int TaskReply_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TaskReply, text_),
   };
@@ -198,7 +220,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(TaskReply),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TaskReply, _internal_metadata_));
-  NotifyRequest_descriptor_ = file->message_type(9);
+  NotifyRequest_descriptor_ = file->message_type(10);
   static const int NotifyRequest_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NotifyRequest, text_),
   };
@@ -212,7 +234,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(NotifyRequest),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NotifyRequest, _internal_metadata_));
-  NotifyReply_descriptor_ = file->message_type(10);
+  NotifyReply_descriptor_ = file->message_type(11);
   static const int NotifyReply_offsets_[1] = {
   };
   NotifyReply_reflection_ =
@@ -225,7 +247,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(NotifyReply),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NotifyReply, _internal_metadata_));
-  TextNotify_descriptor_ = file->message_type(11);
+  TextNotify_descriptor_ = file->message_type(12);
   static const int TextNotify_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TextNotify, text_),
   };
@@ -239,7 +261,7 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(TextNotify),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TextNotify, _internal_metadata_));
-  TextTransferTask_descriptor_ = file->message_type(12);
+  TextTransferTask_descriptor_ = file->message_type(13);
   static const int TextTransferTask_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TextTransferTask, msgid_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TextTransferTask, text_),
@@ -254,6 +276,22 @@ void protobuf_AssignDesc_test_2eproto() {
       -1,
       sizeof(TextTransferTask),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TextTransferTask, _internal_metadata_));
+  LoginTask_descriptor_ = file->message_type(14);
+  static const int LoginTask_offsets_[3] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LoginTask, login_cid_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LoginTask, msgid_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LoginTask, use_pending_),
+  };
+  LoginTask_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      LoginTask_descriptor_,
+      LoginTask::internal_default_instance(),
+      LoginTask_offsets_,
+      -1,
+      -1,
+      -1,
+      sizeof(LoginTask),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LoginTask, _internal_metadata_));
   MessageTypes_descriptor_ = file->enum_type(0);
   ErrorCodes_descriptor_ = file->enum_type(1);
 }
@@ -271,6 +309,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Error_descriptor_, Error::internal_default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      ConnectPayload_descriptor_, ConnectPayload::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       PingRequest_descriptor_, PingRequest::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -295,6 +335,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
       TextNotify_descriptor_, TextNotify::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       TextTransferTask_descriptor_, TextTransferTask::internal_default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      LoginTask_descriptor_, LoginTask::internal_default_instance());
 }
 
 }  // namespace
@@ -302,6 +344,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void protobuf_ShutdownFile_test_2eproto() {
   Error_default_instance_.Shutdown();
   delete Error_reflection_;
+  ConnectPayload_default_instance_.Shutdown();
+  delete ConnectPayload_reflection_;
   PingRequest_default_instance_.Shutdown();
   delete PingRequest_reflection_;
   PingReply_default_instance_.Shutdown();
@@ -326,6 +370,8 @@ void protobuf_ShutdownFile_test_2eproto() {
   delete TextNotify_reflection_;
   TextTransferTask_default_instance_.Shutdown();
   delete TextTransferTask_reflection_;
+  LoginTask_default_instance_.Shutdown();
+  delete LoginTask_reflection_;
 }
 
 void protobuf_InitDefaults_test_2eproto_impl() {
@@ -333,6 +379,7 @@ void protobuf_InitDefaults_test_2eproto_impl() {
 
   ::google::protobuf::internal::GetEmptyString();
   Error_default_instance_.DefaultConstruct();
+  ConnectPayload_default_instance_.DefaultConstruct();
   PingRequest_default_instance_.DefaultConstruct();
   PingReply_default_instance_.DefaultConstruct();
   CloseRequest_default_instance_.DefaultConstruct();
@@ -351,7 +398,9 @@ void protobuf_InitDefaults_test_2eproto_impl() {
   TextNotify_default_instance_.DefaultConstruct();
   ::google::protobuf::internal::GetEmptyString();
   TextTransferTask_default_instance_.DefaultConstruct();
+  LoginTask_default_instance_.DefaultConstruct();
   Error_default_instance_.get_mutable()->InitAsDefaultInstance();
+  ConnectPayload_default_instance_.get_mutable()->InitAsDefaultInstance();
   PingRequest_default_instance_.get_mutable()->InitAsDefaultInstance();
   PingReply_default_instance_.get_mutable()->InitAsDefaultInstance();
   CloseRequest_default_instance_.get_mutable()->InitAsDefaultInstance();
@@ -364,6 +413,7 @@ void protobuf_InitDefaults_test_2eproto_impl() {
   NotifyReply_default_instance_.get_mutable()->InitAsDefaultInstance();
   TextNotify_default_instance_.get_mutable()->InitAsDefaultInstance();
   TextTransferTask_default_instance_.get_mutable()->InitAsDefaultInstance();
+  LoginTask_default_instance_.get_mutable()->InitAsDefaultInstance();
 }
 
 GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_InitDefaults_test_2eproto_once_);
@@ -377,20 +427,26 @@ void protobuf_AddDesc_test_2eproto_impl() {
   protobuf_InitDefaults_test_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\ntest.proto\022\007mtktest\"&\n\005Error\022\014\n\004code\030\001"
-    " \001(\005\022\017\n\007message\030\002 \001(\t\"\033\n\013PingRequest\022\014\n\004"
-    "sent\030\001 \001(\004\"\031\n\tPingReply\022\014\n\004sent\030\001 \001(\004\"\016\n"
-    "\014CloseRequest\"\014\n\nCloseReply\"-\n\014RaiseRequ"
-    "est\022\014\n\004code\030\001 \001(\005\022\017\n\007message\030\002 \001(\t\"\014\n\nRa"
-    "iseReply\"\033\n\013TaskRequest\022\014\n\004text\030\001 \001(\t\"\031\n"
-    "\tTaskReply\022\014\n\004text\030\001 \001(\t\"\035\n\rNotifyReques"
-    "t\022\014\n\004text\030\001 \001(\t\"\r\n\013NotifyReply\"\032\n\nTextNo"
-    "tify\022\014\n\004text\030\001 \001(\t\"/\n\020TextTransferTask\022\r"
-    "\n\005msgid\030\001 \001(\r\022\014\n\004text\030\002 \001(\t*\205\001\n\014MessageT"
-    "ypes\022\027\n\023Invalid_MessageType\020\000\022\010\n\004Ping\020\001\022"
-    "\t\n\005Close\020\002\022\t\n\005Raise\020\003\022\010\n\004Task\020\004\022\n\n\006Notif"
-    "y\020\005\022\025\n\021Task_TextTransfer\0202\022\017\n\013Notify_Tex"
-    "t\020d*@\n\nErrorCodes\022\025\n\021Invalid_ErrorCode\020\000"
-    "\022\033\n\016RaiseRequested\020\377\377\377\377\377\377\377\377\377\001b\006proto3", 597);
+    " \001(\005\022\017\n\007message\030\002 \001(\t\"{\n\016ConnectPayload\022"
+    "5\n\nlogin_mode\030\001 \001(\0162!.mtktest.ConnectPay"
+    "load.LoginMode\"2\n\tLoginMode\022\013\n\007Invalid\020\000"
+    "\022\013\n\007Pending\020\001\022\013\n\007Failure\020\002\"\033\n\013PingReques"
+    "t\022\014\n\004sent\030\001 \001(\004\"\031\n\tPingReply\022\014\n\004sent\030\001 \001"
+    "(\004\"\016\n\014CloseRequest\"\014\n\nCloseReply\"-\n\014Rais"
+    "eRequest\022\014\n\004code\030\001 \001(\005\022\017\n\007message\030\002 \001(\t\""
+    "\014\n\nRaiseReply\"\033\n\013TaskRequest\022\014\n\004text\030\001 \001"
+    "(\t\"\031\n\tTaskReply\022\014\n\004text\030\001 \001(\t\"\035\n\rNotifyR"
+    "equest\022\014\n\004text\030\001 \001(\t\"\r\n\013NotifyReply\"\032\n\nT"
+    "extNotify\022\014\n\004text\030\001 \001(\t\"/\n\020TextTransferT"
+    "ask\022\r\n\005msgid\030\001 \001(\r\022\014\n\004text\030\002 \001(\t\"B\n\tLogi"
+    "nTask\022\021\n\tlogin_cid\030\001 \001(\004\022\r\n\005msgid\030\002 \001(\r\022"
+    "\023\n\013use_pending\030\003 \001(\010*\225\001\n\014MessageTypes\022\027\n"
+    "\023Invalid_MessageType\020\000\022\010\n\004Ping\020\001\022\t\n\005Clos"
+    "e\020\002\022\t\n\005Raise\020\003\022\010\n\004Task\020\004\022\n\n\006Notify\020\005\022\025\n\021"
+    "Task_TextTransfer\0202\022\016\n\nTask_Login\0203\022\017\n\013N"
+    "otify_Text\020d*@\n\nErrorCodes\022\025\n\021Invalid_Er"
+    "rorCode\020\000\022\033\n\016RaiseRequested\020\377\377\377\377\377\377\377\377\377\001b\006"
+    "proto3", 806);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "test.proto", &protobuf_RegisterTypes);
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_test_2eproto);
@@ -420,6 +476,7 @@ bool MessageTypes_IsValid(int value) {
     case 4:
     case 5:
     case 50:
+    case 51:
     case 100:
       return true;
     default:
@@ -791,6 +848,275 @@ void Error::set_allocated_message(::std::string* message) {
 
 inline const Error* Error::internal_default_instance() {
   return &Error_default_instance_.get();
+}
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+const ::google::protobuf::EnumDescriptor* ConnectPayload_LoginMode_descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return ConnectPayload_LoginMode_descriptor_;
+}
+bool ConnectPayload_LoginMode_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const ConnectPayload_LoginMode ConnectPayload::Invalid;
+const ConnectPayload_LoginMode ConnectPayload::Pending;
+const ConnectPayload_LoginMode ConnectPayload::Failure;
+const ConnectPayload_LoginMode ConnectPayload::LoginMode_MIN;
+const ConnectPayload_LoginMode ConnectPayload::LoginMode_MAX;
+const int ConnectPayload::LoginMode_ARRAYSIZE;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int ConnectPayload::kLoginModeFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+ConnectPayload::ConnectPayload()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_test_2eproto();
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:mtktest.ConnectPayload)
+}
+
+void ConnectPayload::InitAsDefaultInstance() {
+}
+
+ConnectPayload::ConnectPayload(const ConnectPayload& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  UnsafeMergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:mtktest.ConnectPayload)
+}
+
+void ConnectPayload::SharedCtor() {
+  login_mode_ = 0;
+  _cached_size_ = 0;
+}
+
+ConnectPayload::~ConnectPayload() {
+  // @@protoc_insertion_point(destructor:mtktest.ConnectPayload)
+  SharedDtor();
+}
+
+void ConnectPayload::SharedDtor() {
+}
+
+void ConnectPayload::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* ConnectPayload::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return ConnectPayload_descriptor_;
+}
+
+const ConnectPayload& ConnectPayload::default_instance() {
+  protobuf_InitDefaults_test_2eproto();
+  return *internal_default_instance();
+}
+
+::google::protobuf::internal::ExplicitlyConstructed<ConnectPayload> ConnectPayload_default_instance_;
+
+ConnectPayload* ConnectPayload::New(::google::protobuf::Arena* arena) const {
+  ConnectPayload* n = new ConnectPayload;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void ConnectPayload::Clear() {
+// @@protoc_insertion_point(message_clear_start:mtktest.ConnectPayload)
+  login_mode_ = 0;
+}
+
+bool ConnectPayload::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:mtktest.ConnectPayload)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+      case 1: {
+        if (tag == 8) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          set_login_mode(static_cast< ::mtktest::ConnectPayload_LoginMode >(value));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:mtktest.ConnectPayload)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:mtktest.ConnectPayload)
+  return false;
+#undef DO_
+}
+
+void ConnectPayload::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:mtktest.ConnectPayload)
+  // optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+  if (this->login_mode() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->login_mode(), output);
+  }
+
+  // @@protoc_insertion_point(serialize_end:mtktest.ConnectPayload)
+}
+
+::google::protobuf::uint8* ConnectPayload::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:mtktest.ConnectPayload)
+  // optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+  if (this->login_mode() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      1, this->login_mode(), target);
+  }
+
+  // @@protoc_insertion_point(serialize_to_array_end:mtktest.ConnectPayload)
+  return target;
+}
+
+size_t ConnectPayload::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:mtktest.ConnectPayload)
+  size_t total_size = 0;
+
+  // optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+  if (this->login_mode() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::EnumSize(this->login_mode());
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = cached_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void ConnectPayload::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:mtktest.ConnectPayload)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const ConnectPayload* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const ConnectPayload>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:mtktest.ConnectPayload)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:mtktest.ConnectPayload)
+    UnsafeMergeFrom(*source);
+  }
+}
+
+void ConnectPayload::MergeFrom(const ConnectPayload& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:mtktest.ConnectPayload)
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
+  }
+}
+
+void ConnectPayload::UnsafeMergeFrom(const ConnectPayload& from) {
+  GOOGLE_DCHECK(&from != this);
+  if (from.login_mode() != 0) {
+    set_login_mode(from.login_mode());
+  }
+}
+
+void ConnectPayload::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:mtktest.ConnectPayload)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void ConnectPayload::CopyFrom(const ConnectPayload& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:mtktest.ConnectPayload)
+  if (&from == this) return;
+  Clear();
+  UnsafeMergeFrom(from);
+}
+
+bool ConnectPayload::IsInitialized() const {
+
+  return true;
+}
+
+void ConnectPayload::Swap(ConnectPayload* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void ConnectPayload::InternalSwap(ConnectPayload* other) {
+  std::swap(login_mode_, other->login_mode_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata ConnectPayload::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = ConnectPayload_descriptor_;
+  metadata.reflection = ConnectPayload_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// ConnectPayload
+
+// optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+void ConnectPayload::clear_login_mode() {
+  login_mode_ = 0;
+}
+::mtktest::ConnectPayload_LoginMode ConnectPayload::login_mode() const {
+  // @@protoc_insertion_point(field_get:mtktest.ConnectPayload.login_mode)
+  return static_cast< ::mtktest::ConnectPayload_LoginMode >(login_mode_);
+}
+void ConnectPayload::set_login_mode(::mtktest::ConnectPayload_LoginMode value) {
+  
+  login_mode_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.ConnectPayload.login_mode)
+}
+
+inline const ConnectPayload* ConnectPayload::internal_default_instance() {
+  return &ConnectPayload_default_instance_.get();
 }
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
@@ -3867,6 +4193,371 @@ void TextTransferTask::set_allocated_text(::std::string* text) {
 
 inline const TextTransferTask* TextTransferTask::internal_default_instance() {
   return &TextTransferTask_default_instance_.get();
+}
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int LoginTask::kLoginCidFieldNumber;
+const int LoginTask::kMsgidFieldNumber;
+const int LoginTask::kUsePendingFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+LoginTask::LoginTask()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_test_2eproto();
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:mtktest.LoginTask)
+}
+
+void LoginTask::InitAsDefaultInstance() {
+}
+
+LoginTask::LoginTask(const LoginTask& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  UnsafeMergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:mtktest.LoginTask)
+}
+
+void LoginTask::SharedCtor() {
+  ::memset(&login_cid_, 0, reinterpret_cast<char*>(&use_pending_) -
+    reinterpret_cast<char*>(&login_cid_) + sizeof(use_pending_));
+  _cached_size_ = 0;
+}
+
+LoginTask::~LoginTask() {
+  // @@protoc_insertion_point(destructor:mtktest.LoginTask)
+  SharedDtor();
+}
+
+void LoginTask::SharedDtor() {
+}
+
+void LoginTask::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* LoginTask::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return LoginTask_descriptor_;
+}
+
+const LoginTask& LoginTask::default_instance() {
+  protobuf_InitDefaults_test_2eproto();
+  return *internal_default_instance();
+}
+
+::google::protobuf::internal::ExplicitlyConstructed<LoginTask> LoginTask_default_instance_;
+
+LoginTask* LoginTask::New(::google::protobuf::Arena* arena) const {
+  LoginTask* n = new LoginTask;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void LoginTask::Clear() {
+// @@protoc_insertion_point(message_clear_start:mtktest.LoginTask)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(LoginTask, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<LoginTask*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&(first), 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  ZR_(login_cid_, use_pending_);
+
+#undef ZR_HELPER_
+#undef ZR_
+
+}
+
+bool LoginTask::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:mtktest.LoginTask)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional uint64 login_cid = 1;
+      case 1: {
+        if (tag == 8) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &login_cid_)));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_msgid;
+        break;
+      }
+
+      // optional uint32 msgid = 2;
+      case 2: {
+        if (tag == 16) {
+         parse_msgid:
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &msgid_)));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(24)) goto parse_use_pending;
+        break;
+      }
+
+      // optional bool use_pending = 3;
+      case 3: {
+        if (tag == 24) {
+         parse_use_pending:
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &use_pending_)));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:mtktest.LoginTask)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:mtktest.LoginTask)
+  return false;
+#undef DO_
+}
+
+void LoginTask::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:mtktest.LoginTask)
+  // optional uint64 login_cid = 1;
+  if (this->login_cid() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->login_cid(), output);
+  }
+
+  // optional uint32 msgid = 2;
+  if (this->msgid() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->msgid(), output);
+  }
+
+  // optional bool use_pending = 3;
+  if (this->use_pending() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(3, this->use_pending(), output);
+  }
+
+  // @@protoc_insertion_point(serialize_end:mtktest.LoginTask)
+}
+
+::google::protobuf::uint8* LoginTask::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:mtktest.LoginTask)
+  // optional uint64 login_cid = 1;
+  if (this->login_cid() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(1, this->login_cid(), target);
+  }
+
+  // optional uint32 msgid = 2;
+  if (this->msgid() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->msgid(), target);
+  }
+
+  // optional bool use_pending = 3;
+  if (this->use_pending() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(3, this->use_pending(), target);
+  }
+
+  // @@protoc_insertion_point(serialize_to_array_end:mtktest.LoginTask)
+  return target;
+}
+
+size_t LoginTask::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:mtktest.LoginTask)
+  size_t total_size = 0;
+
+  // optional uint64 login_cid = 1;
+  if (this->login_cid() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->login_cid());
+  }
+
+  // optional uint32 msgid = 2;
+  if (this->msgid() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->msgid());
+  }
+
+  // optional bool use_pending = 3;
+  if (this->use_pending() != 0) {
+    total_size += 1 + 1;
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = cached_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void LoginTask::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:mtktest.LoginTask)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const LoginTask* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const LoginTask>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:mtktest.LoginTask)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:mtktest.LoginTask)
+    UnsafeMergeFrom(*source);
+  }
+}
+
+void LoginTask::MergeFrom(const LoginTask& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:mtktest.LoginTask)
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
+  }
+}
+
+void LoginTask::UnsafeMergeFrom(const LoginTask& from) {
+  GOOGLE_DCHECK(&from != this);
+  if (from.login_cid() != 0) {
+    set_login_cid(from.login_cid());
+  }
+  if (from.msgid() != 0) {
+    set_msgid(from.msgid());
+  }
+  if (from.use_pending() != 0) {
+    set_use_pending(from.use_pending());
+  }
+}
+
+void LoginTask::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:mtktest.LoginTask)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void LoginTask::CopyFrom(const LoginTask& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:mtktest.LoginTask)
+  if (&from == this) return;
+  Clear();
+  UnsafeMergeFrom(from);
+}
+
+bool LoginTask::IsInitialized() const {
+
+  return true;
+}
+
+void LoginTask::Swap(LoginTask* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void LoginTask::InternalSwap(LoginTask* other) {
+  std::swap(login_cid_, other->login_cid_);
+  std::swap(msgid_, other->msgid_);
+  std::swap(use_pending_, other->use_pending_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata LoginTask::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = LoginTask_descriptor_;
+  metadata.reflection = LoginTask_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// LoginTask
+
+// optional uint64 login_cid = 1;
+void LoginTask::clear_login_cid() {
+  login_cid_ = GOOGLE_ULONGLONG(0);
+}
+::google::protobuf::uint64 LoginTask::login_cid() const {
+  // @@protoc_insertion_point(field_get:mtktest.LoginTask.login_cid)
+  return login_cid_;
+}
+void LoginTask::set_login_cid(::google::protobuf::uint64 value) {
+  
+  login_cid_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.LoginTask.login_cid)
+}
+
+// optional uint32 msgid = 2;
+void LoginTask::clear_msgid() {
+  msgid_ = 0u;
+}
+::google::protobuf::uint32 LoginTask::msgid() const {
+  // @@protoc_insertion_point(field_get:mtktest.LoginTask.msgid)
+  return msgid_;
+}
+void LoginTask::set_msgid(::google::protobuf::uint32 value) {
+  
+  msgid_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.LoginTask.msgid)
+}
+
+// optional bool use_pending = 3;
+void LoginTask::clear_use_pending() {
+  use_pending_ = false;
+}
+bool LoginTask::use_pending() const {
+  // @@protoc_insertion_point(field_get:mtktest.LoginTask.use_pending)
+  return use_pending_;
+}
+void LoginTask::set_use_pending(bool value) {
+  
+  use_pending_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.LoginTask.use_pending)
+}
+
+inline const LoginTask* LoginTask::internal_default_instance() {
+  return &LoginTask_default_instance_.get();
 }
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 

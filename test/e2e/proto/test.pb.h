@@ -40,7 +40,9 @@ void protobuf_ShutdownFile_test_2eproto();
 
 class CloseReply;
 class CloseRequest;
+class ConnectPayload;
 class Error;
+class LoginTask;
 class NotifyReply;
 class NotifyRequest;
 class PingReply;
@@ -52,6 +54,28 @@ class TaskRequest;
 class TextNotify;
 class TextTransferTask;
 
+enum ConnectPayload_LoginMode {
+  ConnectPayload_LoginMode_Invalid = 0,
+  ConnectPayload_LoginMode_Pending = 1,
+  ConnectPayload_LoginMode_Failure = 2,
+  ConnectPayload_LoginMode_ConnectPayload_LoginMode_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  ConnectPayload_LoginMode_ConnectPayload_LoginMode_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool ConnectPayload_LoginMode_IsValid(int value);
+const ConnectPayload_LoginMode ConnectPayload_LoginMode_LoginMode_MIN = ConnectPayload_LoginMode_Invalid;
+const ConnectPayload_LoginMode ConnectPayload_LoginMode_LoginMode_MAX = ConnectPayload_LoginMode_Failure;
+const int ConnectPayload_LoginMode_LoginMode_ARRAYSIZE = ConnectPayload_LoginMode_LoginMode_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* ConnectPayload_LoginMode_descriptor();
+inline const ::std::string& ConnectPayload_LoginMode_Name(ConnectPayload_LoginMode value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    ConnectPayload_LoginMode_descriptor(), value);
+}
+inline bool ConnectPayload_LoginMode_Parse(
+    const ::std::string& name, ConnectPayload_LoginMode* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<ConnectPayload_LoginMode>(
+    ConnectPayload_LoginMode_descriptor(), name, value);
+}
 enum MessageTypes {
   Invalid_MessageType = 0,
   Ping = 1,
@@ -60,6 +84,7 @@ enum MessageTypes {
   Task = 4,
   Notify = 5,
   Task_TextTransfer = 50,
+  Task_Login = 51,
   Notify_Text = 100,
   MessageTypes_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   MessageTypes_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
@@ -197,6 +222,120 @@ class Error : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
   void InitAsDefaultInstance();
 };
 extern ::google::protobuf::internal::ExplicitlyConstructed<Error> Error_default_instance_;
+
+// -------------------------------------------------------------------
+
+class ConnectPayload : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.ConnectPayload) */ {
+ public:
+  ConnectPayload();
+  virtual ~ConnectPayload();
+
+  ConnectPayload(const ConnectPayload& from);
+
+  inline ConnectPayload& operator=(const ConnectPayload& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const ConnectPayload& default_instance();
+
+  static const ConnectPayload* internal_default_instance();
+
+  void Swap(ConnectPayload* other);
+
+  // implements Message ----------------------------------------------
+
+  inline ConnectPayload* New() const { return New(NULL); }
+
+  ConnectPayload* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const ConnectPayload& from);
+  void MergeFrom(const ConnectPayload& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(ConnectPayload* other);
+  void UnsafeMergeFrom(const ConnectPayload& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  typedef ConnectPayload_LoginMode LoginMode;
+  static const LoginMode Invalid =
+    ConnectPayload_LoginMode_Invalid;
+  static const LoginMode Pending =
+    ConnectPayload_LoginMode_Pending;
+  static const LoginMode Failure =
+    ConnectPayload_LoginMode_Failure;
+  static inline bool LoginMode_IsValid(int value) {
+    return ConnectPayload_LoginMode_IsValid(value);
+  }
+  static const LoginMode LoginMode_MIN =
+    ConnectPayload_LoginMode_LoginMode_MIN;
+  static const LoginMode LoginMode_MAX =
+    ConnectPayload_LoginMode_LoginMode_MAX;
+  static const int LoginMode_ARRAYSIZE =
+    ConnectPayload_LoginMode_LoginMode_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor*
+  LoginMode_descriptor() {
+    return ConnectPayload_LoginMode_descriptor();
+  }
+  static inline const ::std::string& LoginMode_Name(LoginMode value) {
+    return ConnectPayload_LoginMode_Name(value);
+  }
+  static inline bool LoginMode_Parse(const ::std::string& name,
+      LoginMode* value) {
+    return ConnectPayload_LoginMode_Parse(name, value);
+  }
+
+  // accessors -------------------------------------------------------
+
+  // optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+  void clear_login_mode();
+  static const int kLoginModeFieldNumber = 1;
+  ::mtktest::ConnectPayload_LoginMode login_mode() const;
+  void set_login_mode(::mtktest::ConnectPayload_LoginMode value);
+
+  // @@protoc_insertion_point(class_scope:mtktest.ConnectPayload)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  int login_mode_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<ConnectPayload> ConnectPayload_default_instance_;
 
 // -------------------------------------------------------------------
 
@@ -1246,6 +1385,106 @@ class TextTransferTask : public ::google::protobuf::Message /* @@protoc_insertio
 };
 extern ::google::protobuf::internal::ExplicitlyConstructed<TextTransferTask> TextTransferTask_default_instance_;
 
+// -------------------------------------------------------------------
+
+class LoginTask : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtktest.LoginTask) */ {
+ public:
+  LoginTask();
+  virtual ~LoginTask();
+
+  LoginTask(const LoginTask& from);
+
+  inline LoginTask& operator=(const LoginTask& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const LoginTask& default_instance();
+
+  static const LoginTask* internal_default_instance();
+
+  void Swap(LoginTask* other);
+
+  // implements Message ----------------------------------------------
+
+  inline LoginTask* New() const { return New(NULL); }
+
+  LoginTask* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const LoginTask& from);
+  void MergeFrom(const LoginTask& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(LoginTask* other);
+  void UnsafeMergeFrom(const LoginTask& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 login_cid = 1;
+  void clear_login_cid();
+  static const int kLoginCidFieldNumber = 1;
+  ::google::protobuf::uint64 login_cid() const;
+  void set_login_cid(::google::protobuf::uint64 value);
+
+  // optional uint32 msgid = 2;
+  void clear_msgid();
+  static const int kMsgidFieldNumber = 2;
+  ::google::protobuf::uint32 msgid() const;
+  void set_msgid(::google::protobuf::uint32 value);
+
+  // optional bool use_pending = 3;
+  void clear_use_pending();
+  static const int kUsePendingFieldNumber = 3;
+  bool use_pending() const;
+  void set_use_pending(bool value);
+
+  // @@protoc_insertion_point(class_scope:mtktest.LoginTask)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::uint64 login_cid_;
+  ::google::protobuf::uint32 msgid_;
+  bool use_pending_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_test_2eproto_impl();
+  friend void  protobuf_AddDesc_test_2eproto_impl();
+  friend void protobuf_AssignDesc_test_2eproto();
+  friend void protobuf_ShutdownFile_test_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<LoginTask> LoginTask_default_instance_;
+
 // ===================================================================
 
 
@@ -1314,6 +1553,27 @@ inline void Error::set_allocated_message(::std::string* message) {
 
 inline const Error* Error::internal_default_instance() {
   return &Error_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
+// ConnectPayload
+
+// optional .mtktest.ConnectPayload.LoginMode login_mode = 1;
+inline void ConnectPayload::clear_login_mode() {
+  login_mode_ = 0;
+}
+inline ::mtktest::ConnectPayload_LoginMode ConnectPayload::login_mode() const {
+  // @@protoc_insertion_point(field_get:mtktest.ConnectPayload.login_mode)
+  return static_cast< ::mtktest::ConnectPayload_LoginMode >(login_mode_);
+}
+inline void ConnectPayload::set_login_mode(::mtktest::ConnectPayload_LoginMode value) {
+  
+  login_mode_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.ConnectPayload.login_mode)
+}
+
+inline const ConnectPayload* ConnectPayload::internal_default_instance() {
+  return &ConnectPayload_default_instance_.get();
 }
 // -------------------------------------------------------------------
 
@@ -1719,7 +1979,60 @@ inline void TextTransferTask::set_allocated_text(::std::string* text) {
 inline const TextTransferTask* TextTransferTask::internal_default_instance() {
   return &TextTransferTask_default_instance_.get();
 }
+// -------------------------------------------------------------------
+
+// LoginTask
+
+// optional uint64 login_cid = 1;
+inline void LoginTask::clear_login_cid() {
+  login_cid_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 LoginTask::login_cid() const {
+  // @@protoc_insertion_point(field_get:mtktest.LoginTask.login_cid)
+  return login_cid_;
+}
+inline void LoginTask::set_login_cid(::google::protobuf::uint64 value) {
+  
+  login_cid_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.LoginTask.login_cid)
+}
+
+// optional uint32 msgid = 2;
+inline void LoginTask::clear_msgid() {
+  msgid_ = 0u;
+}
+inline ::google::protobuf::uint32 LoginTask::msgid() const {
+  // @@protoc_insertion_point(field_get:mtktest.LoginTask.msgid)
+  return msgid_;
+}
+inline void LoginTask::set_msgid(::google::protobuf::uint32 value) {
+  
+  msgid_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.LoginTask.msgid)
+}
+
+// optional bool use_pending = 3;
+inline void LoginTask::clear_use_pending() {
+  use_pending_ = false;
+}
+inline bool LoginTask::use_pending() const {
+  // @@protoc_insertion_point(field_get:mtktest.LoginTask.use_pending)
+  return use_pending_;
+}
+inline void LoginTask::set_use_pending(bool value) {
+  
+  use_pending_ = value;
+  // @@protoc_insertion_point(field_set:mtktest.LoginTask.use_pending)
+}
+
+inline const LoginTask* LoginTask::internal_default_instance() {
+  return &LoginTask_default_instance_.get();
+}
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -1753,6 +2066,11 @@ inline const TextTransferTask* TextTransferTask::internal_default_instance() {
 namespace google {
 namespace protobuf {
 
+template <> struct is_proto_enum< ::mtktest::ConnectPayload_LoginMode> : ::google::protobuf::internal::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::mtktest::ConnectPayload_LoginMode>() {
+  return ::mtktest::ConnectPayload_LoginMode_descriptor();
+}
 template <> struct is_proto_enum< ::mtktest::MessageTypes> : ::google::protobuf::internal::true_type {};
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::mtktest::MessageTypes>() {

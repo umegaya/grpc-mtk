@@ -19,17 +19,22 @@ namespace {
 
 namespace mtk {
     class IWorker;
+    //TODO: separate IReadConn, IWriteConn, because some of interfaces are not necessary for write handler.
     class IConn {
     public:
+        virtual ~IConn() {}
         virtual void Step() = 0;
         virtual void Destroy() = 0;
         virtual void Register(mtk_cid_t cid) = 0;
+        virtual bool WaitLoginAccept() = 0;
+        virtual void AcceptLogin(SystemPayload::Login &) = 0;
         virtual void ConsumeTask(int) = 0;
     };
+    //TODO: separate IReadHandler, IWriteHandler, because some of interfaces are not necessary for write handler.
     class IHandler {
     public:
         virtual grpc::Status Handle(IConn *c, Request &req) = 0;
-        virtual mtk_cid_t Accept(IConn *c, Request &req) = 0;
+        virtual mtk_cid_t Login(IConn *c, Request &req) = 0;
         virtual IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) = 0;
     };
     typedef uint32_t MessageType;
@@ -39,6 +44,7 @@ namespace mtk {
             INIT,
             ACCEPT,
             LOGIN,
+            WAIT_LOGIN,
             BEFORE_READ,
             READ,
             WRITE,
@@ -65,13 +71,22 @@ namespace mtk {
         inline void SetId(mtk_cid_t uid) { owner_uid_ = uid; }
         inline mtk_cid_t Id() const { return owner_uid_; }
         inline uint32_t CurrentMsgId() const { return req_.msgid(); }
+        inline IWorker *AssignedWorker() { return worker_; }
         inline void InternalClose() {
             step_ = StepId::CLOSE;
+        }
+        inline void WaitLogin() {
+            step_ = StepId::WAIT_LOGIN;
+        }
+        inline bool WaitLoginAccept() { 
+            return step_ == StepId::WAIT_LOGIN;
+        }
+        inline void Accepted() {
+            step_ = StepId::BEFORE_READ;
         }
         inline void Finish() {
             io_.Finish(Status::OK, tag_);
         }
-        inline IWorker *AssignedWorker() { return worker_; }
     protected:
         template <class W> void Write(const W &w) {
             if (step_ != StepId::CLOSE) {
@@ -94,6 +109,16 @@ namespace mtk {
                 return false;
             }
             req.set_type(type);
+            req.set_payload(buffer, w.ByteSize());
+            return true;
+        }
+        template <class W>
+        bool SetupSysTask(Request &req, Request::Kind k, const W &w) {
+            uint8_t buffer[w.ByteSize()];
+            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+                return false;
+            }
+            req.set_kind(k);
             req.set_payload(buffer, w.ByteSize());
             return true;
         }
@@ -256,6 +281,11 @@ namespace mtk {
             SetupRequest(*r, type, w);
             tasks_.enqueue(r);
         }
+        template <class W> void SysTask(Request::Kind type, const W &w) {
+            Request *r = new Request(); //todo: get r from cache
+            SetupSysTask(*r, type, w);
+            tasks_.enqueue(r);
+        }
         void Throw(mtk_msgid_t msgid, Error *e) {
             if (sender_ != nullptr) {
                 sender_->Throw(msgid, e);
@@ -301,13 +331,18 @@ namespace mtk {
         Conn(IWorker *worker, Service* service, IHandler *handler, ServerCompletionQueue* cq) :
             stream_(std::make_shared<S>(worker, service, handler, cq, this)) {}
         virtual ~Conn() {}
+        //implements IConn
         void ConsumeTask(int n_process) override { stream_->ConsumeTask(n_process); }
         void Step() override { stream_->Step(); }
+        bool WaitLoginAccept() override { return stream_->WaitLoginAccept(); }
+        void AcceptLogin(SystemPayload::Login &) override {}
         void Destroy() override { 
             Unregister(); 
             stream_->OnClose();
+            //TRACE("{} should delete", (void *)this);
             delete this; 
         }
+        //inline 
         inline mtk_cid_t Id() { return stream_->Id(); }
         inline uint32_t CurrentMsgId() const { return stream_->CurrentMsgId(); }
         inline std::shared_ptr<S> &GetStream() { return stream_; }
@@ -320,8 +355,10 @@ namespace mtk {
         template <class W> void Notify(MessageType type, const W &w) { stream_->Notify(type, w); }
         template <class W> void AddTask(MessageType type, const W &w) { stream_->AddTask(type, w); }
         template <class SPL> void SysRep(mtk_msgid_t msgid, const SPL &spl) { stream_->SysRep(msgid, spl); }
+        template <class SPL> void SysTask(Request::Kind type, const SPL &spl) { stream_->SysTask(type, spl); }
     public:
         void Register(mtk_cid_t cid) override {
+            stream_->SetId(cid);
             stream_->AssignedWorker()->OnRegister(this);
         }
         virtual void Unregister() {
@@ -348,13 +385,18 @@ namespace mtk {
         typedef Conn<S> Super;
         typedef typename Super::Stream Stream;
         typedef std::map<mtk_cid_t, MappedConn<S>*> Map;
+        typedef std::map<mtk_login_cid_t, MappedConn<S>*> PendingMap;
     protected:
         static Map cmap_;
+        static PendingMap pmap_;
         static Stream default_;
-        static std::mutex cmap_mtx_;
+        static ATOMIC_UINT64 login_cid_seed_;
+        static std::mutex cmap_mtx_, pmap_mtx_;
+
+        mtk_login_cid_t lcid_;
     public:
         MappedConn(IWorker *worker, Service* service, IHandler *handler, ServerCompletionQueue* cq) :
-            Super(worker, service, handler, cq) {}
+            Super(worker, service, handler, cq), lcid_(0) {}
         static Stream &Get(mtk_cid_t uid) {
             cmap_mtx_.lock();
             auto it = cmap_.find(uid);
@@ -371,13 +413,14 @@ namespace mtk {
             cmap_mtx_.unlock();
         }
         void Register(mtk_cid_t cid) override {
+            ClearLoginCid();
             cmap_mtx_.lock();
             cmap_[cid] = this;
-            Super::stream_->SetId(cid);
             cmap_mtx_.unlock();
             Super::Register(cid);
         }
         void Unregister() override {
+            ClearLoginCid();
             cmap_mtx_.lock();
             auto it = cmap_.find(Super::stream_->Id());
             if (it != cmap_.end()) {
@@ -388,6 +431,23 @@ namespace mtk {
             cmap_mtx_.unlock();
             Super::Unregister();
         }
+        void AcceptLogin(SystemPayload::Login &a) override {
+            pmap_mtx_.lock();
+            auto it = pmap_.find(a.login_cid());
+            if (it != pmap_.end() && a.login_cid() == it->second->lcid_) {
+                auto mc = it->second;
+                pmap_mtx_.unlock();
+                mc->Register(a.id());
+                mc->GetStream()->Accepted(); //change state
+                SystemPayload::Connect sysrep;
+                sysrep.set_id(a.id());
+                *(sysrep.mutable_payload()) = a.payload();
+                mc->SysRep(a.msgid(), sysrep);
+            } else {
+                //already logout
+                pmap_mtx_.unlock();
+            }
+        }
         template <class WC>
         static bool MakePair(mtk_msgid_t cid, WC &wc) {
             typename Super::Stream s = Get(cid);
@@ -397,10 +457,55 @@ namespace mtk {
             s->SetStream(wc.GetStream());
             return true;
         }
+        static mtk_login_cid_t DeferLogin(mtk_svconn_t c) {
+            auto mc = (MappedConn<S>*)c;
+            mc->GetStream()->WaitLogin();
+            return mc->NewLoginCid();
+        }
+        static void FinishLogin(mtk_login_cid_t lcid, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
+            pmap_mtx_.lock();
+            auto it = pmap_.find(lcid);
+            if (it == pmap_.end()) {
+                pmap_mtx_.unlock();
+                return;
+            }
+            auto mc = it->second;
+            pmap_mtx_.unlock();
+            SystemPayload::Login a;
+            a.set_login_cid(lcid);
+            a.set_id(cid);
+            a.set_msgid(msgid);
+            a.set_payload(data, datalen);
+            mc->SysTask(Request::Login, a);
+        }
+    protected:
+        mtk_login_cid_t NewLoginCid() {
+            lcid_ = ++login_cid_seed_;
+            pmap_mtx_.lock();
+            pmap_[lcid_] = this;
+            pmap_mtx_.unlock();
+            Super::stream_->AssignedWorker()->OnWaitLogin(this);
+            return lcid_;
+        }
+        void ClearLoginCid() {
+            if (lcid_ != 0) {
+                pmap_mtx_.lock();
+                auto it = pmap_.find(lcid_);
+                if (it != pmap_.end()) {
+                    pmap_.erase(it);
+                }
+                pmap_mtx_.unlock();
+                lcid_ = 0;
+                Super::stream_->AssignedWorker()->OnFinishLogin(this);
+            }
+        }
     };
     template<typename T> typename MappedConn<T>::Map MappedConn<T>::cmap_;
-    template<typename T> typename Conn<T>::Stream MappedConn<T>::default_;
     template<typename T> std::mutex MappedConn<T>::cmap_mtx_;
+    template<typename T> typename MappedConn<T>::PendingMap MappedConn<T>::pmap_;
+    template<typename T> std::mutex MappedConn<T>::pmap_mtx_;
+    template<typename T> ATOMIC_UINT64 MappedConn<T>::login_cid_seed_;
+    template<typename T> typename Conn<T>::Stream MappedConn<T>::default_;
     //default io connection
     typedef Conn<WSVStream> WConn;
     typedef MappedConn<RSVStream> RConn;

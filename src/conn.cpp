@@ -26,11 +26,14 @@ namespace mtk {
                 io_.Read(&req_, tag_);
                 break;
             case StepId::LOGIN: {
-                mtk_cid_t cid = handler_->Accept(tag_, req_);
-                if (cid == 0 || step_ == StepId::CLOSE) {
+                //TODO: im not sure why, but after Login processed, one more Step() will be called.
+                //so any kind of io_.XXXX should not be called.
+                mtk_cid_t cid = handler_->Login(tag_, req_);
+                if (step_ == StepId::WAIT_LOGIN) {
+                    //skip processing and wait 
+                } else if (cid == 0 || step_ == StepId::CLOSE) {
                     this->LogError("ev:app closed by Login failure");
                     step_ = StepId::CLOSE;
-                    Finish();
                 } else {
                     tag_->Register(cid);
                     this->LogInfo("ev:accept");
@@ -49,7 +52,7 @@ namespace mtk {
                     Finish();
                     break;
                 }
-                Status st = handler_->Handle((IConn *)tag_, req_);
+                Status st = handler_->Handle(tag_, req_);
                 if (st.ok() && step_ != StepId::CLOSE) {
                     io_.Read(&req_, tag_);
                 } else {
@@ -60,7 +63,12 @@ namespace mtk {
             case StepId::CLOSE: {
                 tag_->Destroy();
             } break;
+            case StepId::WAIT_LOGIN: {
+                ASSERT(false);
+                io_.Read(&req_, tag_); //ignore all received packet
+            } break;
             default:
+                ASSERT(false);
                 this->LogDebug("ev:unknown step,step:{}", step_);
                 step_ = StepId::CLOSE;
                 Finish();
@@ -81,7 +89,7 @@ namespace mtk {
                 io_.Read(&req_, tag_);
                 break;
             case StepId::READ: {
-                mtk_cid_t cid = handler_->Accept(tag_, req_);
+                mtk_cid_t cid = handler_->Login(tag_, req_);
                 if (cid != 0) {
                     tag_->Register(cid);
                     step_ = StepId::WRITE;

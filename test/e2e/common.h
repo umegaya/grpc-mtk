@@ -64,7 +64,7 @@ public:
 		start();
 		return std::bind(&test::end, this, std::placeholders::_1);
 	}
-	bool run();
+	bool run(ConnectPayload::LoginMode login_mode = ConnectPayload::Invalid, mtk_time_t timeout = 0);
 	static bool launch(void *, mtk_cid_t, const char *, mtk_size_t);
 	static mtk_time_t closed(void *arg, mtk_cid_t cid, long attempt);
 };

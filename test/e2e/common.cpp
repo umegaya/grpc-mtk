@@ -29,14 +29,19 @@ mtk_time_t test::closed(void *arg, mtk_cid_t cid, long attempt) {
 	tc->notify_cond();
 	return mtk_sec(1);
 }
-bool test::run() {
+bool test::run(ConnectPayload::LoginMode login_mode, mtk_time_t timeout) {
+	ConnectPayload p;
+	p.set_login_mode(login_mode);
+	char buff[p.ByteSize()];
+	mtk::Codec::Pack(p, (uint8_t *)buff, p.ByteSize());
 	mtk_addr_t addr = {
 		.host = addr_.c_str(),
 		.cert = nullptr,
 	};
 	mtk_clconf_t conf = {
 		.validate = nullptr,
-		.payload_len = 0,
+		.payload = (char *)buff,
+		.payload_len = static_cast<mtk_size_t>(p.ByteSize()),
 	};
 	testconn *conns = new testconn[concurrency_];
 	for (int i = 0; i < concurrency_; i++) {
@@ -45,7 +50,8 @@ bool test::run() {
 		conns[i].t = this;
 		conns[i].c = mtk_connect(&addr, &conf);
 	}
-	while (!finished()) {
+	mtk_time_t end = mtk_time() + timeout;
+	while (!finished() && (timeout == 0 || mtk_time() < end)) {
 		for (int i = 0; i < concurrency_; i++) {
 			mtk_conn_poll(conns[i].c);
 		}
@@ -60,6 +66,9 @@ bool test::run() {
 		mtk_conn_close(conns[i].c);
 	}
 	delete []conns;
+	if (timeout > 0) {
+		return true;
+	}
 	return success();
 }
 }

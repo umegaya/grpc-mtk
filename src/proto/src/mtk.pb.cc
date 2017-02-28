@@ -33,6 +33,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* SystemPayload_Ping_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   SystemPayload_Ping_reflection_ = NULL;
+const ::google::protobuf::Descriptor* SystemPayload_Login_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  SystemPayload_Login_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Request_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Request_reflection_ = NULL;
@@ -67,9 +70,7 @@ void protobuf_AssignDesc_mtk_2eproto() {
       sizeof(Error),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Error, _internal_metadata_));
   SystemPayload_descriptor_ = file->message_type(1);
-  static const int SystemPayload_offsets_[2] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, connect_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload, ping_),
+  static const int SystemPayload_offsets_[1] = {
   };
   SystemPayload_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -111,6 +112,23 @@ void protobuf_AssignDesc_mtk_2eproto() {
       -1,
       sizeof(SystemPayload_Ping),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Ping, _internal_metadata_));
+  SystemPayload_Login_descriptor_ = SystemPayload_descriptor_->nested_type(2);
+  static const int SystemPayload_Login_offsets_[4] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Login, login_cid_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Login, id_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Login, msgid_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Login, payload_),
+  };
+  SystemPayload_Login_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      SystemPayload_Login_descriptor_,
+      SystemPayload_Login::internal_default_instance(),
+      SystemPayload_Login_offsets_,
+      -1,
+      -1,
+      -1,
+      sizeof(SystemPayload_Login),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SystemPayload_Login, _internal_metadata_));
   Request_descriptor_ = file->message_type(2);
   static const int Request_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Request, type_),
@@ -168,6 +186,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       SystemPayload_Ping_descriptor_, SystemPayload_Ping::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      SystemPayload_Login_descriptor_, SystemPayload_Login::internal_default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Request_descriptor_, Request::internal_default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Reply_descriptor_, Reply::internal_default_instance());
@@ -184,6 +204,8 @@ void protobuf_ShutdownFile_mtk_2eproto() {
   delete SystemPayload_Connect_reflection_;
   SystemPayload_Ping_default_instance_.Shutdown();
   delete SystemPayload_Ping_reflection_;
+  SystemPayload_Login_default_instance_.Shutdown();
+  delete SystemPayload_Login_reflection_;
   Request_default_instance_.Shutdown();
   delete Request_reflection_;
   Reply_default_instance_.Shutdown();
@@ -201,6 +223,8 @@ void protobuf_InitDefaults_mtk_2eproto_impl() {
   ::google::protobuf::internal::GetEmptyString();
   SystemPayload_Ping_default_instance_.DefaultConstruct();
   ::google::protobuf::internal::GetEmptyString();
+  SystemPayload_Login_default_instance_.DefaultConstruct();
+  ::google::protobuf::internal::GetEmptyString();
   Request_default_instance_.DefaultConstruct();
   ::google::protobuf::internal::GetEmptyString();
   Reply_default_instance_.DefaultConstruct();
@@ -208,6 +232,7 @@ void protobuf_InitDefaults_mtk_2eproto_impl() {
   SystemPayload_default_instance_.get_mutable()->InitAsDefaultInstance();
   SystemPayload_Connect_default_instance_.get_mutable()->InitAsDefaultInstance();
   SystemPayload_Ping_default_instance_.get_mutable()->InitAsDefaultInstance();
+  SystemPayload_Login_default_instance_.get_mutable()->InitAsDefaultInstance();
   Request_default_instance_.get_mutable()->InitAsDefaultInstance();
   Reply_default_instance_.get_mutable()->InitAsDefaultInstance();
 }
@@ -223,19 +248,19 @@ void protobuf_AddDesc_mtk_2eproto_impl() {
   protobuf_InitDefaults_mtk_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\tmtk.proto\022\003mtk\",\n\005Error\022\022\n\nerror_code\030"
-    "\001 \001(\005\022\017\n\007payload\030\002 \001(\014\"\261\001\n\rSystemPayload"
-    "\022+\n\007connect\030\001 \001(\0132\032.mtk.SystemPayload.Co"
-    "nnect\022%\n\004ping\030\002 \001(\0132\027.mtk.SystemPayload."
-    "Ping\032&\n\007Connect\022\n\n\002id\030\001 \001(\004\022\017\n\007payload\030\002"
-    " \001(\014\032$\n\004Ping\022\013\n\003now\030\001 \001(\004\022\017\n\007payload\030\002 \001"
-    "(\014\"\203\001\n\007Request\022\014\n\004type\030\001 \001(\r\022\r\n\005msgid\030\002 "
-    "\001(\r\022\037\n\004kind\030\003 \001(\0162\021.mtk.Request.Kind\022\017\n\007"
-    "payload\030\n \001(\014\")\n\004Kind\022\n\n\006Normal\020\000\022\010\n\004Pin"
-    "g\020\001\022\013\n\007Connect\020\002\"P\n\005Reply\022\014\n\004type\030\001 \001(\r\022"
-    "\r\n\005msgid\030\002 \001(\r\022\031\n\005error\030\003 \001(\0132\n.mtk.Erro"
-    "r\022\017\n\007payload\030\n \001(\0142Y\n\006Stream\022&\n\004Read\022\014.m"
-    "tk.Request\032\n.mtk.Reply\"\000(\0010\001\022\'\n\005Write\022\014."
-    "mtk.Request\032\n.mtk.Reply\"\000(\0010\001b\006proto3", 557);
+    "\001 \001(\005\022\017\n\007payload\030\002 \001(\014\"\245\001\n\rSystemPayload"
+    "\032&\n\007Connect\022\n\n\002id\030\001 \001(\004\022\017\n\007payload\030\002 \001(\014"
+    "\032$\n\004Ping\022\013\n\003now\030\001 \001(\004\022\017\n\007payload\030\002 \001(\014\032F"
+    "\n\005Login\022\021\n\tlogin_cid\030\001 \001(\004\022\n\n\002id\030\002 \001(\004\022\r"
+    "\n\005msgid\030\003 \001(\r\022\017\n\007payload\030\004 \001(\014\"\216\001\n\007Reque"
+    "st\022\014\n\004type\030\001 \001(\r\022\r\n\005msgid\030\002 \001(\r\022\037\n\004kind\030"
+    "\003 \001(\0162\021.mtk.Request.Kind\022\017\n\007payload\030\n \001("
+    "\014\"4\n\004Kind\022\n\n\006Normal\020\000\022\010\n\004Ping\020\001\022\013\n\007Conne"
+    "ct\020\002\022\t\n\005Login\020\003\"P\n\005Reply\022\014\n\004type\030\001 \001(\r\022\r"
+    "\n\005msgid\030\002 \001(\r\022\031\n\005error\030\003 \001(\0132\n.mtk.Error"
+    "\022\017\n\007payload\030\n \001(\0142Y\n\006Stream\022&\n\004Read\022\014.mt"
+    "k.Request\032\n.mtk.Reply\"\000(\0010\001\022\'\n\005Write\022\014.m"
+    "tk.Request\032\n.mtk.Reply\"\000(\0010\001b\006proto3", 556);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "mtk.proto", &protobuf_RegisterTypes);
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_mtk_2eproto);
@@ -1126,8 +1151,366 @@ void SystemPayload_Ping::InternalSwap(SystemPayload_Ping* other) {
 // -------------------------------------------------------------------
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int SystemPayload::kConnectFieldNumber;
-const int SystemPayload::kPingFieldNumber;
+const int SystemPayload_Login::kLoginCidFieldNumber;
+const int SystemPayload_Login::kIdFieldNumber;
+const int SystemPayload_Login::kMsgidFieldNumber;
+const int SystemPayload_Login::kPayloadFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+SystemPayload_Login::SystemPayload_Login()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (this != internal_default_instance()) protobuf_InitDefaults_mtk_2eproto();
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:mtk.SystemPayload.Login)
+}
+
+void SystemPayload_Login::InitAsDefaultInstance() {
+}
+
+SystemPayload_Login::SystemPayload_Login(const SystemPayload_Login& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  UnsafeMergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:mtk.SystemPayload.Login)
+}
+
+void SystemPayload_Login::SharedCtor() {
+  payload_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ::memset(&login_cid_, 0, reinterpret_cast<char*>(&msgid_) -
+    reinterpret_cast<char*>(&login_cid_) + sizeof(msgid_));
+  _cached_size_ = 0;
+}
+
+SystemPayload_Login::~SystemPayload_Login() {
+  // @@protoc_insertion_point(destructor:mtk.SystemPayload.Login)
+  SharedDtor();
+}
+
+void SystemPayload_Login::SharedDtor() {
+  payload_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+void SystemPayload_Login::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* SystemPayload_Login::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return SystemPayload_Login_descriptor_;
+}
+
+const SystemPayload_Login& SystemPayload_Login::default_instance() {
+  protobuf_InitDefaults_mtk_2eproto();
+  return *internal_default_instance();
+}
+
+::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Login> SystemPayload_Login_default_instance_;
+
+SystemPayload_Login* SystemPayload_Login::New(::google::protobuf::Arena* arena) const {
+  SystemPayload_Login* n = new SystemPayload_Login;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void SystemPayload_Login::Clear() {
+// @@protoc_insertion_point(message_clear_start:mtk.SystemPayload.Login)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(SystemPayload_Login, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<SystemPayload_Login*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&(first), 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  ZR_(login_cid_, msgid_);
+  payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+
+#undef ZR_HELPER_
+#undef ZR_
+
+}
+
+bool SystemPayload_Login::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:mtk.SystemPayload.Login)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional uint64 login_cid = 1;
+      case 1: {
+        if (tag == 8) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &login_cid_)));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_id;
+        break;
+      }
+
+      // optional uint64 id = 2;
+      case 2: {
+        if (tag == 16) {
+         parse_id:
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &id_)));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(24)) goto parse_msgid;
+        break;
+      }
+
+      // optional uint32 msgid = 3;
+      case 3: {
+        if (tag == 24) {
+         parse_msgid:
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &msgid_)));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(34)) goto parse_payload;
+        break;
+      }
+
+      // optional bytes payload = 4;
+      case 4: {
+        if (tag == 34) {
+         parse_payload:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_payload()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:mtk.SystemPayload.Login)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:mtk.SystemPayload.Login)
+  return false;
+#undef DO_
+}
+
+void SystemPayload_Login::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:mtk.SystemPayload.Login)
+  // optional uint64 login_cid = 1;
+  if (this->login_cid() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->login_cid(), output);
+  }
+
+  // optional uint64 id = 2;
+  if (this->id() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->id(), output);
+  }
+
+  // optional uint32 msgid = 3;
+  if (this->msgid() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->msgid(), output);
+  }
+
+  // optional bytes payload = 4;
+  if (this->payload().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
+      4, this->payload(), output);
+  }
+
+  // @@protoc_insertion_point(serialize_end:mtk.SystemPayload.Login)
+}
+
+::google::protobuf::uint8* SystemPayload_Login::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:mtk.SystemPayload.Login)
+  // optional uint64 login_cid = 1;
+  if (this->login_cid() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(1, this->login_cid(), target);
+  }
+
+  // optional uint64 id = 2;
+  if (this->id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(2, this->id(), target);
+  }
+
+  // optional uint32 msgid = 3;
+  if (this->msgid() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(3, this->msgid(), target);
+  }
+
+  // optional bytes payload = 4;
+  if (this->payload().size() > 0) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        4, this->payload(), target);
+  }
+
+  // @@protoc_insertion_point(serialize_to_array_end:mtk.SystemPayload.Login)
+  return target;
+}
+
+size_t SystemPayload_Login::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:mtk.SystemPayload.Login)
+  size_t total_size = 0;
+
+  // optional uint64 login_cid = 1;
+  if (this->login_cid() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->login_cid());
+  }
+
+  // optional uint64 id = 2;
+  if (this->id() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->id());
+  }
+
+  // optional uint32 msgid = 3;
+  if (this->msgid() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->msgid());
+  }
+
+  // optional bytes payload = 4;
+  if (this->payload().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->payload());
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = cached_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void SystemPayload_Login::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:mtk.SystemPayload.Login)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  const SystemPayload_Login* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const SystemPayload_Login>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:mtk.SystemPayload.Login)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:mtk.SystemPayload.Login)
+    UnsafeMergeFrom(*source);
+  }
+}
+
+void SystemPayload_Login::MergeFrom(const SystemPayload_Login& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:mtk.SystemPayload.Login)
+  if (GOOGLE_PREDICT_TRUE(&from != this)) {
+    UnsafeMergeFrom(from);
+  } else {
+    MergeFromFail(__LINE__);
+  }
+}
+
+void SystemPayload_Login::UnsafeMergeFrom(const SystemPayload_Login& from) {
+  GOOGLE_DCHECK(&from != this);
+  if (from.login_cid() != 0) {
+    set_login_cid(from.login_cid());
+  }
+  if (from.id() != 0) {
+    set_id(from.id());
+  }
+  if (from.msgid() != 0) {
+    set_msgid(from.msgid());
+  }
+  if (from.payload().size() > 0) {
+
+    payload_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.payload_);
+  }
+}
+
+void SystemPayload_Login::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:mtk.SystemPayload.Login)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void SystemPayload_Login::CopyFrom(const SystemPayload_Login& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:mtk.SystemPayload.Login)
+  if (&from == this) return;
+  Clear();
+  UnsafeMergeFrom(from);
+}
+
+bool SystemPayload_Login::IsInitialized() const {
+
+  return true;
+}
+
+void SystemPayload_Login::Swap(SystemPayload_Login* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void SystemPayload_Login::InternalSwap(SystemPayload_Login* other) {
+  std::swap(login_cid_, other->login_cid_);
+  std::swap(id_, other->id_);
+  std::swap(msgid_, other->msgid_);
+  payload_.Swap(&other->payload_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata SystemPayload_Login::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = SystemPayload_Login_descriptor_;
+  metadata.reflection = SystemPayload_Login_reflection_;
+  return metadata;
+}
+
+
+// -------------------------------------------------------------------
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 SystemPayload::SystemPayload()
@@ -1138,10 +1521,6 @@ SystemPayload::SystemPayload()
 }
 
 void SystemPayload::InitAsDefaultInstance() {
-  connect_ = const_cast< ::mtk::SystemPayload_Connect*>(
-      ::mtk::SystemPayload_Connect::internal_default_instance());
-  ping_ = const_cast< ::mtk::SystemPayload_Ping*>(
-      ::mtk::SystemPayload_Ping::internal_default_instance());
 }
 
 SystemPayload::SystemPayload(const SystemPayload& from)
@@ -1153,8 +1532,6 @@ SystemPayload::SystemPayload(const SystemPayload& from)
 }
 
 void SystemPayload::SharedCtor() {
-  connect_ = NULL;
-  ping_ = NULL;
   _cached_size_ = 0;
 }
 
@@ -1164,10 +1541,6 @@ SystemPayload::~SystemPayload() {
 }
 
 void SystemPayload::SharedDtor() {
-  if (this != &SystemPayload_default_instance_.get()) {
-    delete connect_;
-    delete ping_;
-  }
 }
 
 void SystemPayload::SetCachedSize(int size) const {
@@ -1197,10 +1570,6 @@ SystemPayload* SystemPayload::New(::google::protobuf::Arena* arena) const {
 
 void SystemPayload::Clear() {
 // @@protoc_insertion_point(message_clear_start:mtk.SystemPayload)
-  if (GetArenaNoVirtual() == NULL && connect_ != NULL) delete connect_;
-  connect_ = NULL;
-  if (GetArenaNoVirtual() == NULL && ping_ != NULL) delete ping_;
-  ping_ = NULL;
 }
 
 bool SystemPayload::MergePartialFromCodedStream(
@@ -1212,43 +1581,13 @@ bool SystemPayload::MergePartialFromCodedStream(
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
     tag = p.first;
     if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional .mtk.SystemPayload.Connect connect = 1;
-      case 1: {
-        if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_connect()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_ping;
-        break;
-      }
-
-      // optional .mtk.SystemPayload.Ping ping = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_ping:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_ping()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
-        break;
-      }
+  handle_unusual:
+    if (tag == 0 ||
+        ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+        ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+      goto success;
     }
+    DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
   }
 success:
   // @@protoc_insertion_point(parse_success:mtk.SystemPayload)
@@ -1262,18 +1601,6 @@ failure:
 void SystemPayload::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:mtk.SystemPayload)
-  // optional .mtk.SystemPayload.Connect connect = 1;
-  if (this->has_connect()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      1, *this->connect_, output);
-  }
-
-  // optional .mtk.SystemPayload.Ping ping = 2;
-  if (this->has_ping()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      2, *this->ping_, output);
-  }
-
   // @@protoc_insertion_point(serialize_end:mtk.SystemPayload)
 }
 
@@ -1281,20 +1608,6 @@ void SystemPayload::SerializeWithCachedSizes(
     bool deterministic, ::google::protobuf::uint8* target) const {
   (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:mtk.SystemPayload)
-  // optional .mtk.SystemPayload.Connect connect = 1;
-  if (this->has_connect()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageNoVirtualToArray(
-        1, *this->connect_, false, target);
-  }
-
-  // optional .mtk.SystemPayload.Ping ping = 2;
-  if (this->has_ping()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageNoVirtualToArray(
-        2, *this->ping_, false, target);
-  }
-
   // @@protoc_insertion_point(serialize_to_array_end:mtk.SystemPayload)
   return target;
 }
@@ -1302,20 +1615,6 @@ void SystemPayload::SerializeWithCachedSizes(
 size_t SystemPayload::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mtk.SystemPayload)
   size_t total_size = 0;
-
-  // optional .mtk.SystemPayload.Connect connect = 1;
-  if (this->has_connect()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        *this->connect_);
-  }
-
-  // optional .mtk.SystemPayload.Ping ping = 2;
-  if (this->has_ping()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        *this->ping_);
-  }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
@@ -1350,12 +1649,6 @@ void SystemPayload::MergeFrom(const SystemPayload& from) {
 
 void SystemPayload::UnsafeMergeFrom(const SystemPayload& from) {
   GOOGLE_DCHECK(&from != this);
-  if (from.has_connect()) {
-    mutable_connect()->::mtk::SystemPayload_Connect::MergeFrom(from.connect());
-  }
-  if (from.has_ping()) {
-    mutable_ping()->::mtk::SystemPayload_Ping::MergeFrom(from.ping());
-  }
 }
 
 void SystemPayload::CopyFrom(const ::google::protobuf::Message& from) {
@@ -1382,8 +1675,6 @@ void SystemPayload::Swap(SystemPayload* other) {
   InternalSwap(other);
 }
 void SystemPayload::InternalSwap(SystemPayload* other) {
-  std::swap(connect_, other->connect_);
-  std::swap(ping_, other->ping_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
 }
@@ -1527,85 +1818,100 @@ inline const SystemPayload_Ping* SystemPayload_Ping::internal_default_instance()
 }
 // -------------------------------------------------------------------
 
+// SystemPayload_Login
+
+// optional uint64 login_cid = 1;
+void SystemPayload_Login::clear_login_cid() {
+  login_cid_ = GOOGLE_ULONGLONG(0);
+}
+::google::protobuf::uint64 SystemPayload_Login::login_cid() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.login_cid)
+  return login_cid_;
+}
+void SystemPayload_Login::set_login_cid(::google::protobuf::uint64 value) {
+  
+  login_cid_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.login_cid)
+}
+
+// optional uint64 id = 2;
+void SystemPayload_Login::clear_id() {
+  id_ = GOOGLE_ULONGLONG(0);
+}
+::google::protobuf::uint64 SystemPayload_Login::id() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.id)
+  return id_;
+}
+void SystemPayload_Login::set_id(::google::protobuf::uint64 value) {
+  
+  id_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.id)
+}
+
+// optional uint32 msgid = 3;
+void SystemPayload_Login::clear_msgid() {
+  msgid_ = 0u;
+}
+::google::protobuf::uint32 SystemPayload_Login::msgid() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.msgid)
+  return msgid_;
+}
+void SystemPayload_Login::set_msgid(::google::protobuf::uint32 value) {
+  
+  msgid_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.msgid)
+}
+
+// optional bytes payload = 4;
+void SystemPayload_Login::clear_payload() {
+  payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+const ::std::string& SystemPayload_Login::payload() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.payload)
+  return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+void SystemPayload_Login::set_payload(const ::std::string& value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.payload)
+}
+void SystemPayload_Login::set_payload(const char* value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtk.SystemPayload.Login.payload)
+}
+void SystemPayload_Login::set_payload(const void* value, size_t size) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtk.SystemPayload.Login.payload)
+}
+::std::string* SystemPayload_Login::mutable_payload() {
+  
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.Login.payload)
+  return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+::std::string* SystemPayload_Login::release_payload() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.Login.payload)
+  
+  return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+void SystemPayload_Login::set_allocated_payload(::std::string* payload) {
+  if (payload != NULL) {
+    
+  } else {
+    
+  }
+  payload_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), payload);
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.Login.payload)
+}
+
+inline const SystemPayload_Login* SystemPayload_Login::internal_default_instance() {
+  return &SystemPayload_Login_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
 // SystemPayload
-
-// optional .mtk.SystemPayload.Connect connect = 1;
-bool SystemPayload::has_connect() const {
-  return this != internal_default_instance() && connect_ != NULL;
-}
-void SystemPayload::clear_connect() {
-  if (GetArenaNoVirtual() == NULL && connect_ != NULL) delete connect_;
-  connect_ = NULL;
-}
-const ::mtk::SystemPayload_Connect& SystemPayload::connect() const {
-  // @@protoc_insertion_point(field_get:mtk.SystemPayload.connect)
-  return connect_ != NULL ? *connect_
-                         : *::mtk::SystemPayload_Connect::internal_default_instance();
-}
-::mtk::SystemPayload_Connect* SystemPayload::mutable_connect() {
-  
-  if (connect_ == NULL) {
-    connect_ = new ::mtk::SystemPayload_Connect;
-  }
-  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.connect)
-  return connect_;
-}
-::mtk::SystemPayload_Connect* SystemPayload::release_connect() {
-  // @@protoc_insertion_point(field_release:mtk.SystemPayload.connect)
-  
-  ::mtk::SystemPayload_Connect* temp = connect_;
-  connect_ = NULL;
-  return temp;
-}
-void SystemPayload::set_allocated_connect(::mtk::SystemPayload_Connect* connect) {
-  delete connect_;
-  connect_ = connect;
-  if (connect) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.connect)
-}
-
-// optional .mtk.SystemPayload.Ping ping = 2;
-bool SystemPayload::has_ping() const {
-  return this != internal_default_instance() && ping_ != NULL;
-}
-void SystemPayload::clear_ping() {
-  if (GetArenaNoVirtual() == NULL && ping_ != NULL) delete ping_;
-  ping_ = NULL;
-}
-const ::mtk::SystemPayload_Ping& SystemPayload::ping() const {
-  // @@protoc_insertion_point(field_get:mtk.SystemPayload.ping)
-  return ping_ != NULL ? *ping_
-                         : *::mtk::SystemPayload_Ping::internal_default_instance();
-}
-::mtk::SystemPayload_Ping* SystemPayload::mutable_ping() {
-  
-  if (ping_ == NULL) {
-    ping_ = new ::mtk::SystemPayload_Ping;
-  }
-  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.ping)
-  return ping_;
-}
-::mtk::SystemPayload_Ping* SystemPayload::release_ping() {
-  // @@protoc_insertion_point(field_release:mtk.SystemPayload.ping)
-  
-  ::mtk::SystemPayload_Ping* temp = ping_;
-  ping_ = NULL;
-  return temp;
-}
-void SystemPayload::set_allocated_ping(::mtk::SystemPayload_Ping* ping) {
-  delete ping_;
-  ping_ = ping;
-  if (ping) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.ping)
-}
 
 inline const SystemPayload* SystemPayload::internal_default_instance() {
   return &SystemPayload_default_instance_.get();
@@ -1623,6 +1929,7 @@ bool Request_Kind_IsValid(int value) {
     case 0:
     case 1:
     case 2:
+    case 3:
       return true;
     default:
       return false;
@@ -1633,6 +1940,7 @@ bool Request_Kind_IsValid(int value) {
 const Request_Kind Request::Normal;
 const Request_Kind Request::Ping;
 const Request_Kind Request::Connect;
+const Request_Kind Request::Login;
 const Request_Kind Request::Kind_MIN;
 const Request_Kind Request::Kind_MAX;
 const int Request::Kind_ARRAYSIZE;

@@ -10,6 +10,7 @@ enum MessageTypes {
 	Notify = 5;
 
 	Task_TextTransfer = 50;
+	Task_Login = 51;
 
 	Notify_Text = 100;
 }
@@ -22,6 +23,15 @@ enum ErrorCodes {
 message Error {
 	int32 code = 1;
 	string message = 2;
+}
+
+message ConnectPayload {
+	enum LoginMode {
+		Invalid = 0;
+		Pending = 1;
+		Failure = 2;
+	}
+	LoginMode login_mode = 1;
 }
 
 /* ping */
@@ -80,5 +90,10 @@ message TextNotify {
 message TextTransferTask {
 	uint32 msgid = 1;
 	string text = 2;
+}
+message LoginTask {
+	uint64 login_cid = 1;
+	uint32 msgid = 2;
+	bool use_pending = 3;
 }
 

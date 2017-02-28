@@ -175,6 +175,10 @@ namespace Mtk {
         }
     }
     public class Server {
+        public struct AcceptReply {
+            public ulong cid;
+            public byte[] data;
+        }
         System.IntPtr server_;
         public Server(System.IntPtr s) {
             server_ = s;
@@ -238,7 +242,9 @@ namespace Mtk {
                         id = id_, payload = p, payload_len = payload_.Length,
                         on_connect = on_connect_, on_close = on_close_,
                     };
-                    return new Conn(mtk_connect(ref addr, ref conf));
+                    var c = new Conn(mtk_connect(ref addr, ref conf));
+                    Core.Instance().ConnMap[id_] = c;
+                    return c;
                 }
             }
         }
@@ -280,20 +286,27 @@ namespace Mtk {
                         thread = thread_, exclusive = false,
                         acceptor = acceptor_, handler = handler_,
                     };
-                    return new Server(mtk_listen(ref addr, ref conf));
+                    var s = new Server(mtk_listen(ref addr, ref conf));
+                    Core.Instance().ServerMap[host_] = s;
+                    return s;
                 }
             }
         }
     }
     public class Core {
         static Core instance_ = null;
-        public Core Instance() {
+        public Dictionary<ulong, Conn> ConnMap { get; set; }
+        public Dictionary<string, Server> ServerMap { get; set; }
+        static public Core Instance() {
             if (instance_ == null) {
                 instance_ = new Core();
             }
             return instance_;
         }
-        Core() {}
+        Core() {
+            ConnMap = new Dictionary<ulong, Conn>();
+            ServerMap = new Dictionary<string Server>();
+        }
     };
 }
 

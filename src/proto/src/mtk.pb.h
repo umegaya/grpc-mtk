@@ -43,18 +43,20 @@ class Reply;
 class Request;
 class SystemPayload;
 class SystemPayload_Connect;
+class SystemPayload_Login;
 class SystemPayload_Ping;
 
 enum Request_Kind {
   Request_Kind_Normal = 0,
   Request_Kind_Ping = 1,
   Request_Kind_Connect = 2,
+  Request_Kind_Login = 3,
   Request_Kind_Request_Kind_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   Request_Kind_Request_Kind_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool Request_Kind_IsValid(int value);
 const Request_Kind Request_Kind_Kind_MIN = Request_Kind_Normal;
-const Request_Kind Request_Kind_Kind_MAX = Request_Kind_Connect;
+const Request_Kind Request_Kind_Kind_MAX = Request_Kind_Login;
 const int Request_Kind_Kind_ARRAYSIZE = Request_Kind_Kind_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Request_Kind_descriptor();
@@ -363,6 +365,118 @@ extern ::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Ping> S
 
 // -------------------------------------------------------------------
 
+class SystemPayload_Login : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload.Login) */ {
+ public:
+  SystemPayload_Login();
+  virtual ~SystemPayload_Login();
+
+  SystemPayload_Login(const SystemPayload_Login& from);
+
+  inline SystemPayload_Login& operator=(const SystemPayload_Login& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SystemPayload_Login& default_instance();
+
+  static const SystemPayload_Login* internal_default_instance();
+
+  void Swap(SystemPayload_Login* other);
+
+  // implements Message ----------------------------------------------
+
+  inline SystemPayload_Login* New() const { return New(NULL); }
+
+  SystemPayload_Login* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SystemPayload_Login& from);
+  void MergeFrom(const SystemPayload_Login& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(SystemPayload_Login* other);
+  void UnsafeMergeFrom(const SystemPayload_Login& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 login_cid = 1;
+  void clear_login_cid();
+  static const int kLoginCidFieldNumber = 1;
+  ::google::protobuf::uint64 login_cid() const;
+  void set_login_cid(::google::protobuf::uint64 value);
+
+  // optional uint64 id = 2;
+  void clear_id();
+  static const int kIdFieldNumber = 2;
+  ::google::protobuf::uint64 id() const;
+  void set_id(::google::protobuf::uint64 value);
+
+  // optional uint32 msgid = 3;
+  void clear_msgid();
+  static const int kMsgidFieldNumber = 3;
+  ::google::protobuf::uint32 msgid() const;
+  void set_msgid(::google::protobuf::uint32 value);
+
+  // optional bytes payload = 4;
+  void clear_payload();
+  static const int kPayloadFieldNumber = 4;
+  const ::std::string& payload() const;
+  void set_payload(const ::std::string& value);
+  void set_payload(const char* value);
+  void set_payload(const void* value, size_t size);
+  ::std::string* mutable_payload();
+  ::std::string* release_payload();
+  void set_allocated_payload(::std::string* payload);
+
+  // @@protoc_insertion_point(class_scope:mtk.SystemPayload.Login)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr payload_;
+  ::google::protobuf::uint64 login_cid_;
+  ::google::protobuf::uint64 id_;
+  ::google::protobuf::uint32 msgid_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_mtk_2eproto_impl();
+  friend void  protobuf_AddDesc_mtk_2eproto_impl();
+  friend void protobuf_AssignDesc_mtk_2eproto();
+  friend void protobuf_ShutdownFile_mtk_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Login> SystemPayload_Login_default_instance_;
+
+// -------------------------------------------------------------------
+
 class SystemPayload : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload) */ {
  public:
   SystemPayload();
@@ -426,33 +540,14 @@ class SystemPayload : public ::google::protobuf::Message /* @@protoc_insertion_p
 
   typedef SystemPayload_Connect Connect;
   typedef SystemPayload_Ping Ping;
+  typedef SystemPayload_Login Login;
 
   // accessors -------------------------------------------------------
-
-  // optional .mtk.SystemPayload.Connect connect = 1;
-  bool has_connect() const;
-  void clear_connect();
-  static const int kConnectFieldNumber = 1;
-  const ::mtk::SystemPayload_Connect& connect() const;
-  ::mtk::SystemPayload_Connect* mutable_connect();
-  ::mtk::SystemPayload_Connect* release_connect();
-  void set_allocated_connect(::mtk::SystemPayload_Connect* connect);
-
-  // optional .mtk.SystemPayload.Ping ping = 2;
-  bool has_ping() const;
-  void clear_ping();
-  static const int kPingFieldNumber = 2;
-  const ::mtk::SystemPayload_Ping& ping() const;
-  ::mtk::SystemPayload_Ping* mutable_ping();
-  ::mtk::SystemPayload_Ping* release_ping();
-  void set_allocated_ping(::mtk::SystemPayload_Ping* ping);
 
   // @@protoc_insertion_point(class_scope:mtk.SystemPayload)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  ::mtk::SystemPayload_Connect* connect_;
-  ::mtk::SystemPayload_Ping* ping_;
   mutable int _cached_size_;
   friend void  protobuf_InitDefaults_mtk_2eproto_impl();
   friend void  protobuf_AddDesc_mtk_2eproto_impl();
@@ -533,6 +628,8 @@ class Request : public ::google::protobuf::Message /* @@protoc_insertion_point(c
     Request_Kind_Ping;
   static const Kind Connect =
     Request_Kind_Connect;
+  static const Kind Login =
+    Request_Kind_Login;
   static inline bool Kind_IsValid(int value) {
     return Request_Kind_IsValid(value);
   }
@@ -919,85 +1016,100 @@ inline const SystemPayload_Ping* SystemPayload_Ping::internal_default_instance()
 }
 // -------------------------------------------------------------------
 
+// SystemPayload_Login
+
+// optional uint64 login_cid = 1;
+inline void SystemPayload_Login::clear_login_cid() {
+  login_cid_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 SystemPayload_Login::login_cid() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.login_cid)
+  return login_cid_;
+}
+inline void SystemPayload_Login::set_login_cid(::google::protobuf::uint64 value) {
+  
+  login_cid_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.login_cid)
+}
+
+// optional uint64 id = 2;
+inline void SystemPayload_Login::clear_id() {
+  id_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 SystemPayload_Login::id() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.id)
+  return id_;
+}
+inline void SystemPayload_Login::set_id(::google::protobuf::uint64 value) {
+  
+  id_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.id)
+}
+
+// optional uint32 msgid = 3;
+inline void SystemPayload_Login::clear_msgid() {
+  msgid_ = 0u;
+}
+inline ::google::protobuf::uint32 SystemPayload_Login::msgid() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.msgid)
+  return msgid_;
+}
+inline void SystemPayload_Login::set_msgid(::google::protobuf::uint32 value) {
+  
+  msgid_ = value;
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.msgid)
+}
+
+// optional bytes payload = 4;
+inline void SystemPayload_Login::clear_payload() {
+  payload_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& SystemPayload_Login::payload() const {
+  // @@protoc_insertion_point(field_get:mtk.SystemPayload.Login.payload)
+  return payload_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SystemPayload_Login::set_payload(const ::std::string& value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:mtk.SystemPayload.Login.payload)
+}
+inline void SystemPayload_Login::set_payload(const char* value) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mtk.SystemPayload.Login.payload)
+}
+inline void SystemPayload_Login::set_payload(const void* value, size_t size) {
+  
+  payload_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:mtk.SystemPayload.Login.payload)
+}
+inline ::std::string* SystemPayload_Login::mutable_payload() {
+  
+  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.Login.payload)
+  return payload_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* SystemPayload_Login::release_payload() {
+  // @@protoc_insertion_point(field_release:mtk.SystemPayload.Login.payload)
+  
+  return payload_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SystemPayload_Login::set_allocated_payload(::std::string* payload) {
+  if (payload != NULL) {
+    
+  } else {
+    
+  }
+  payload_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), payload);
+  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.Login.payload)
+}
+
+inline const SystemPayload_Login* SystemPayload_Login::internal_default_instance() {
+  return &SystemPayload_Login_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
 // SystemPayload
-
-// optional .mtk.SystemPayload.Connect connect = 1;
-inline bool SystemPayload::has_connect() const {
-  return this != internal_default_instance() && connect_ != NULL;
-}
-inline void SystemPayload::clear_connect() {
-  if (GetArenaNoVirtual() == NULL && connect_ != NULL) delete connect_;
-  connect_ = NULL;
-}
-inline const ::mtk::SystemPayload_Connect& SystemPayload::connect() const {
-  // @@protoc_insertion_point(field_get:mtk.SystemPayload.connect)
-  return connect_ != NULL ? *connect_
-                         : *::mtk::SystemPayload_Connect::internal_default_instance();
-}
-inline ::mtk::SystemPayload_Connect* SystemPayload::mutable_connect() {
-  
-  if (connect_ == NULL) {
-    connect_ = new ::mtk::SystemPayload_Connect;
-  }
-  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.connect)
-  return connect_;
-}
-inline ::mtk::SystemPayload_Connect* SystemPayload::release_connect() {
-  // @@protoc_insertion_point(field_release:mtk.SystemPayload.connect)
-  
-  ::mtk::SystemPayload_Connect* temp = connect_;
-  connect_ = NULL;
-  return temp;
-}
-inline void SystemPayload::set_allocated_connect(::mtk::SystemPayload_Connect* connect) {
-  delete connect_;
-  connect_ = connect;
-  if (connect) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.connect)
-}
-
-// optional .mtk.SystemPayload.Ping ping = 2;
-inline bool SystemPayload::has_ping() const {
-  return this != internal_default_instance() && ping_ != NULL;
-}
-inline void SystemPayload::clear_ping() {
-  if (GetArenaNoVirtual() == NULL && ping_ != NULL) delete ping_;
-  ping_ = NULL;
-}
-inline const ::mtk::SystemPayload_Ping& SystemPayload::ping() const {
-  // @@protoc_insertion_point(field_get:mtk.SystemPayload.ping)
-  return ping_ != NULL ? *ping_
-                         : *::mtk::SystemPayload_Ping::internal_default_instance();
-}
-inline ::mtk::SystemPayload_Ping* SystemPayload::mutable_ping() {
-  
-  if (ping_ == NULL) {
-    ping_ = new ::mtk::SystemPayload_Ping;
-  }
-  // @@protoc_insertion_point(field_mutable:mtk.SystemPayload.ping)
-  return ping_;
-}
-inline ::mtk::SystemPayload_Ping* SystemPayload::release_ping() {
-  // @@protoc_insertion_point(field_release:mtk.SystemPayload.ping)
-  
-  ::mtk::SystemPayload_Ping* temp = ping_;
-  ping_ = NULL;
-  return temp;
-}
-inline void SystemPayload::set_allocated_ping(::mtk::SystemPayload_Ping* ping) {
-  delete ping_;
-  ping_ = ping;
-  if (ping) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:mtk.SystemPayload.ping)
-}
 
 inline const SystemPayload* SystemPayload::internal_default_instance() {
   return &SystemPayload_default_instance_.get();
@@ -1214,6 +1326,8 @@ inline const Reply* Reply::internal_default_instance() {
   return &Reply_default_instance_.get();
 }
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

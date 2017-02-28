@@ -21,20 +21,48 @@ public:
 	FunctionHandler(mtk_closure_t handler, mtk_closure_t acceptor) : handler_(handler), acceptor_(acceptor) {}
 	//implements IHandler
 	grpc::Status Handle(IConn *c, Request &req) {
-		return mtk_closure_call(&handler_, on_svmsg, c, req.type(), req.payload().c_str(), req.payload().length()) >= 0 ? 
-			grpc::Status::OK : grpc::Status::CANCELLED;
+		if (__builtin_expect(req.kind() != Request::Normal, 0)) {
+        	switch(req.kind()) {
+        	case Request::Login: {
+				SystemPayload::Login lreq;
+				if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), lreq) >= 0) {
+					if (lreq.id() != 0) {
+	        			c->AcceptLogin(lreq);
+					} else {
+						Error *e = new Error();
+						e->set_error_code(MTK_ACCEPT_DENY);
+						((Conn<S> *)c)->Throw(lreq.msgid(), e);	
+					}
+				} else {
+					ASSERT(false);
+					((Conn<S> *)c)->InternalClose();
+				}
+				return grpc::Status::OK;
+        	} break;
+        	default:
+        		TRACE("invalid system payload kind: {}", req.kind());
+        		return grpc::Status::CANCELLED;
+        	}
+		} else {
+			return mtk_closure_call(&handler_, on_svmsg, c, req.type(), req.payload().c_str(), req.payload().length()) >= 0 ? 
+				grpc::Status::OK : grpc::Status::CANCELLED;
+		}
 	}
-	mtk_cid_t Accept(IConn *c, Request &req) {
+	mtk_cid_t Login(IConn *c, Request &req) {
 		SystemPayload::Connect creq;
 		if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq) < 0) {
 			return 0;
 		}
 		char *rep; mtk_size_t rlen = 0;
-		mtk_cid_t cid = mtk_closure_call(&acceptor_, on_accept, c, creq.id(), creq.payload().c_str(), creq.payload().length(), &rep, &rlen);
-		if (cid != 0) {
+		mtk_cid_t cid = mtk_closure_call(&acceptor_, on_accept, c, req.msgid(), 
+										creq.id(), creq.payload().c_str(), creq.payload().length(), &rep, &rlen);
+		if (c->WaitLoginAccept()) {
+			return cid;
+		} else if (cid != 0) {
 			SystemPayload::Connect sysrep;
 			sysrep.set_id(cid);
 			if (rlen > 0) {
+				ASSERT(rep != nullptr);
 				sysrep.set_payload(rep, rlen);
 				free(rep);
 			}
@@ -54,11 +82,12 @@ typedef FunctionHandler<RSVStream> ReadHandler;
 class WriteHandler : public FunctionHandler<WSVStream> {
 public:
 	WriteHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<WSVStream>(handler, acceptor) {}
-	mtk_cid_t Accept(IConn *c, Request &req) {
-		mtk_cid_t cid = FunctionHandler<WSVStream>::Accept(c, req);
+	mtk_cid_t Login(IConn *c, Request &req) {
+		mtk_cid_t cid = FunctionHandler<WSVStream>::Login(c, req);
 		if (cid != 0) {
 			if (!RConn::MakePair(cid, *(WConn *)c)) {
 				TRACE("RConn::MakePair: fails");
+				return cid;
 			}
 		}
 		return cid;	
@@ -180,8 +209,11 @@ mtk_server_t mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf) {
 void mtk_listen_stop(mtk_server_t sv) {
 	((ServerThread *)sv)->Join();
 }
-void mtk_svconn_accept(mtk_svconn_t conn, mtk_cid_t cid) {
-	((RConn *)conn)->Register(cid);
+mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn) {
+	return RConn::DeferLogin(conn);
+}
+void mtk_svconn_finish_login(mtk_login_cid_t login_cid, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
+	RConn::FinishLogin(login_cid, cid, msgid, data, datalen);
 }
 mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn) {
 	return ((RConn *)conn)->Id();

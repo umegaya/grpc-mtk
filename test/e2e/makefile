@@ -24,8 +24,9 @@ server: proto
 	cd server/build && (rm server || true) && cmake .. && make
 
 test: server client
-	cd ./server/build && ./server &
-	cd ./client/build && ./client
+	ulimit -n 2048 && cd ./server/build && ./server &
+	ulimit -n 2048 && cd ./client/build && ./client
+	killall server
 
 clean:
 	rm -rf ./client/build
