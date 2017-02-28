@@ -63,6 +63,12 @@ namespace Mtk {
         ConnectStartReadyCB validate; //pending actual handshake until this returns true
     };
 
+    //util
+    [DllImport (DllName)]
+    private static extern unsafe bool mtk_queue_pop(void *q, ref System.IntPtr elem);
+    [DllImport (DllName)]
+    private static extern unsafe void mtk_queue_elem_free(void *q, void *elem);
+
     //listener
     [DllImport (DllName)]
     private static extern unsafe void *mtk_listen(ref Address listen_at, ref ServerConfig conf);

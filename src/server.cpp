@@ -12,7 +12,8 @@ ServerRunner &ServerRunner::Instance() {
 	}
 	return *instance_;
 }
-void ServerRunner::Run(const std::string &listen_at, const Config &conf, IHandler *rhandler, IHandler *whandler, DuplexStream::ServerCredOptions *options) {
+void ServerRunner::Run(const std::string &listen_at, const Config &conf, IHandler *rhandler, IHandler *whandler, ServerThread &th, 
+                        DuplexStream::ServerCredOptions *options) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port
@@ -47,6 +48,8 @@ void ServerRunner::Run(const std::string &listen_at, const Config &conf, IHandle
         w->Launch();
     }
     
+    // notify this thread ready
+    th.Signal();
     // Wait for the server to shutdown. 
     server->Wait();
 }

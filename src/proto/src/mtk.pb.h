@@ -42,6 +42,7 @@ class Error;
 class Reply;
 class Request;
 class SystemPayload;
+class SystemPayload_Close;
 class SystemPayload_Connect;
 class SystemPayload_Login;
 class SystemPayload_Ping;
@@ -51,12 +52,13 @@ enum Request_Kind {
   Request_Kind_Ping = 1,
   Request_Kind_Connect = 2,
   Request_Kind_Login = 3,
+  Request_Kind_Close = 4,
   Request_Kind_Request_Kind_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   Request_Kind_Request_Kind_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool Request_Kind_IsValid(int value);
 const Request_Kind Request_Kind_Kind_MIN = Request_Kind_Normal;
-const Request_Kind Request_Kind_Kind_MAX = Request_Kind_Login;
+const Request_Kind Request_Kind_Kind_MAX = Request_Kind_Close;
 const int Request_Kind_Kind_ARRAYSIZE = Request_Kind_Kind_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Request_Kind_descriptor();
@@ -477,6 +479,85 @@ extern ::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Login> 
 
 // -------------------------------------------------------------------
 
+class SystemPayload_Close : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload.Close) */ {
+ public:
+  SystemPayload_Close();
+  virtual ~SystemPayload_Close();
+
+  SystemPayload_Close(const SystemPayload_Close& from);
+
+  inline SystemPayload_Close& operator=(const SystemPayload_Close& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SystemPayload_Close& default_instance();
+
+  static const SystemPayload_Close* internal_default_instance();
+
+  void Swap(SystemPayload_Close* other);
+
+  // implements Message ----------------------------------------------
+
+  inline SystemPayload_Close* New() const { return New(NULL); }
+
+  SystemPayload_Close* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SystemPayload_Close& from);
+  void MergeFrom(const SystemPayload_Close& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  size_t ByteSizeLong() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(SystemPayload_Close* other);
+  void UnsafeMergeFrom(const SystemPayload_Close& from);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:mtk.SystemPayload.Close)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  mutable int _cached_size_;
+  friend void  protobuf_InitDefaults_mtk_2eproto_impl();
+  friend void  protobuf_AddDesc_mtk_2eproto_impl();
+  friend void protobuf_AssignDesc_mtk_2eproto();
+  friend void protobuf_ShutdownFile_mtk_2eproto();
+
+  void InitAsDefaultInstance();
+};
+extern ::google::protobuf::internal::ExplicitlyConstructed<SystemPayload_Close> SystemPayload_Close_default_instance_;
+
+// -------------------------------------------------------------------
+
 class SystemPayload : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:mtk.SystemPayload) */ {
  public:
   SystemPayload();
@@ -541,6 +622,7 @@ class SystemPayload : public ::google::protobuf::Message /* @@protoc_insertion_p
   typedef SystemPayload_Connect Connect;
   typedef SystemPayload_Ping Ping;
   typedef SystemPayload_Login Login;
+  typedef SystemPayload_Close Close;
 
   // accessors -------------------------------------------------------
 
@@ -630,6 +712,8 @@ class Request : public ::google::protobuf::Message /* @@protoc_insertion_point(c
     Request_Kind_Connect;
   static const Kind Login =
     Request_Kind_Login;
+  static const Kind Close =
+    Request_Kind_Close;
   static inline bool Kind_IsValid(int value) {
     return Request_Kind_IsValid(value);
   }
@@ -1109,6 +1193,13 @@ inline const SystemPayload_Login* SystemPayload_Login::internal_default_instance
 }
 // -------------------------------------------------------------------
 
+// SystemPayload_Close
+
+inline const SystemPayload_Close* SystemPayload_Close::internal_default_instance() {
+  return &SystemPayload_Close_default_instance_.get();
+}
+// -------------------------------------------------------------------
+
 // SystemPayload
 
 inline const SystemPayload* SystemPayload::internal_default_instance() {
@@ -1326,6 +1417,8 @@ inline const Reply* Reply::internal_default_instance() {
   return &Reply_default_instance_.get();
 }
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -5,28 +5,35 @@
 
 using namespace mtktest;
 
-int main(int argc, char *argv[]) {
-	mtk_log_init();
+void testsuites(const char *addr, bool skip = true) {
 	{
-		test t("localhost:50051", test_rpc);
+		test t(addr, test_rpc);
 		if (!t.run()) { ALERT_AND_EXIT("test_rpc fails"); }
 	}//*/
 	{
-		test t("localhost:50051", test_reconnect, 32);
+		test t(addr, test_reconnect, 32);
 		if (!t.run()) { ALERT_AND_EXIT("test_reconnect fails"); }
 	}//*/
-	{
-		test t("localhost:50051", test_reconnect, 4);
+	if (skip) {
+		test t(addr, test_reconnect, 4);
 		if (!t.run(ConnectPayload::Pending)) { ALERT_AND_EXIT("test_reconnect pending fails"); }
 	}//*/
-	{
-		test t("localhost:50051", test_reconnect, 1);
+	if (skip) {
+		test t(addr, test_reconnect, 1);
 		if (!t.run(ConnectPayload::Failure, mtk_sec(3))) { ALERT_AND_EXIT("test_reconnect failure fails"); }
 	}//*/
-	{
-		test t("localhost:50051", test_bench, 256);
+	if (skip) {
+		test t(addr, test_bench, 256);
 		if (!t.run()) { ALERT_AND_EXIT("test_bench fails"); }
 	}//*/
+}
+
+int main(int argc, char *argv[]) {
+	mtk_log_init();
+	TRACE("============== test with normal mode ==============");
+	//testsuites("localhost:50051");
+	TRACE("============== test with queue mode ==============");
+	testsuites("localhost:50052", false);
 	return 0;
 }
 

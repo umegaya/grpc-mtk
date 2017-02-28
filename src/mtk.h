@@ -84,13 +84,10 @@ typedef struct {
 	mtk_queue_t queue; //if use_queue is true, mtk_listen initializes it with created queue.
 } mtk_svconf_t;
 typedef struct {
-	// below 2 are != 0 for accept event, 0 for recv event
-	mtk_login_cid_t lcid; 
+	mtk_login_cid_t lcid; // != 0 for accept event, 0 for recv event
 	mtk_cid_t cid;
-	union {
-		mtk_result_t result;
-		mtk_msgid_t msgid;
-	};
+	mtk_msgid_t msgid;
+	mtk_result_t result;
 	mtk_size_t datalen;
 	char data[0];
 } mtk_svevent_t;
@@ -108,8 +105,9 @@ typedef enum {
 } mtk_error_t;
 
 /* server */
-extern mtk_server_t mtk_listen(mtk_addr_t *listen_at, mtk_svconf_t *conf);
-extern void mtk_listen_stop(mtk_server_t sv);
+extern void mtk_listen(mtk_addr_t *listen_at, mtk_svconf_t *conf, mtk_server_t *sv);
+extern void mtk_server_join(mtk_server_t sv);
+extern mtk_queue_t mtk_server_queue(mtk_server_t sv);
 extern mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn);
 extern void mtk_svconn_finish_login(mtk_login_cid_t login_cid, 
 									mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);

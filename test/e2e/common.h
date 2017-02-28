@@ -116,32 +116,49 @@ public:
 	}
 };
 
+struct reply_dest {
+	mtk_cid_t cid;
+	mtk_msgid_t msgid;
+};
+
 extern Error *HANDLE_PENDING_REPLY;
 extern Error *HANDLE_OK;
 
 template <class TASK>
-void task_sender(mtk_svconn_t conn, uint32_t type, TASK &t) {
+void task_sender(mtk_svconn_t conn, reply_dest *dst, uint32_t type, TASK &t) {
 	char buff[t.ByteSize()];
 	mtk::Codec::Pack(t, (uint8_t *)buff, t.ByteSize());	
-	mtk_svconn_task(conn, type, buff, t.ByteSize());
+	if (conn != nullptr) {
+		mtk_svconn_task(conn, type, buff, t.ByteSize());
+	} else {
+		mtk_cid_task(dst->cid, type, buff, t.ByteSize());
+	}
 }
 template <class REPLY>
-void reply_sender(mtk_svconn_t conn, mtk_msgid_t msgid, REPLY &rep) {
+void reply_sender(mtk_svconn_t conn, reply_dest *dst, mtk_msgid_t msgid, REPLY &rep) {
 	char buff[rep.ByteSize()];
 	mtk::Codec::Pack(rep, (uint8_t *)buff, rep.ByteSize());	
-	mtk_svconn_send(conn, msgid, buff, rep.ByteSize());
+	if (conn != nullptr) {
+		mtk_svconn_send(conn, msgid, buff, rep.ByteSize());
+	} else {
+		mtk_cid_send(dst->cid, msgid, buff, rep.ByteSize());
+	}
 }
 template <class NOTIFY>
-void notify_sender(mtk_svconn_t conn, uint32_t type, NOTIFY &n) {
+void notify_sender(mtk_svconn_t conn, reply_dest *dst, uint32_t type, NOTIFY &n) {
 	char buff[n.ByteSize()];
 	mtk::Codec::Pack(n, (uint8_t *)buff, n.ByteSize());	
-	mtk_svconn_notify(conn, type, buff, n.ByteSize());
+	if (conn != nullptr) {
+		mtk_svconn_notify(conn, type, buff, n.ByteSize());
+	} else {
+		mtk_cid_notify(dst->cid, type, buff, n.ByteSize());		
+	}
 }
 }
 
 
 
-#define HANDLE(conn, type, handler) case mtktest::MessageTypes::type: { \
+#define HANDLE(conn, dest, type, handler) case mtktest::MessageTypes::type: { \
 	type##Request req__; type##Reply rep__; \
 	mtk::Codec::Unpack((const uint8_t *)p, pl, req__); \
 	auto f = handler; \
@@ -150,11 +167,19 @@ void notify_sender(mtk_svconn_t conn, uint32_t type, NOTIFY &n) {
 	if (e == nullptr) { \
 		char buff[rep__.ByteSize()]; \
 		mtk::Codec::Pack(rep__, (uint8_t *)buff, rep__.ByteSize()); \
-		mtk_svconn_send(conn, mtk_svconn_msgid(conn), buff, rep__.ByteSize()); \
+		if (conn == nullptr) { \
+			mtk_cid_send(dest->cid, dest->msgid, buff, rep__.ByteSize()); \
+		} else { \
+			mtk_svconn_send(conn, mtk_svconn_msgid(conn), buff, rep__.ByteSize()); \
+		} \
 	} else if (e != HANDLE_PENDING_REPLY) { \
 		char buff[e->ByteSize()]; \
 		mtk::Codec::Pack(*e, (uint8_t *)buff, e->ByteSize()); \
-		mtk_svconn_error(conn, mtk_svconn_msgid(conn), buff, e->ByteSize()); \
+		if (conn == nullptr) { \
+			mtk_cid_error(dest->cid, dest->msgid, buff, e->ByteSize()); \
+		} else { \
+			mtk_svconn_error(conn, mtk_svconn_msgid(conn), buff, e->ByteSize()); \
+		} \
 	} \
 } break;
 

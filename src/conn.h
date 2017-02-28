@@ -434,15 +434,22 @@ namespace mtk {
         void AcceptLogin(SystemPayload::Login &a) override {
             pmap_mtx_.lock();
             auto it = pmap_.find(a.login_cid());
-            if (it != pmap_.end() && a.login_cid() == it->second->lcid_) {
+            if (it != pmap_.end()) {
                 auto mc = it->second;
                 pmap_mtx_.unlock();
-                mc->Register(a.id());
-                mc->GetStream()->Accepted(); //change state
-                SystemPayload::Connect sysrep;
-                sysrep.set_id(a.id());
-                *(sysrep.mutable_payload()) = a.payload();
-                mc->SysRep(a.msgid(), sysrep);
+                if (a.id() == 0) {
+                    Error *e = new Error();
+                    e->set_error_code(MTK_ACCEPT_DENY);
+                    *(e->mutable_payload()) = a.payload();
+                    mc->Throw(a.msgid(), e);
+                } else {
+                    mc->Register(a.id());
+                    mc->GetStream()->Accepted(); //change state
+                    SystemPayload::Connect sysrep;
+                    sysrep.set_id(a.id());
+                    *(sysrep.mutable_payload()) = a.payload();
+                    mc->SysRep(a.msgid(), sysrep);
+                }
             } else {
                 //already logout
                 pmap_mtx_.unlock();

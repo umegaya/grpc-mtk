@@ -22,6 +22,8 @@ message SystemPayload {
 		uint32 msgid = 3;
 		bytes payload = 4;
 	}
+	message Close {
+	}
 }
 
 message Request {
@@ -30,6 +32,7 @@ message Request {
 		Ping = 1;
 		Connect = 2;
 		Login = 3;
+		Close = 4;
 	}
 	uint32 type = 1;
     uint32 msgid = 2;

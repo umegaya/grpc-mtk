@@ -31,7 +31,7 @@ namespace mtk {
                 mtk_cid_t cid = handler_->Login(tag_, req_);
                 if (step_ == StepId::WAIT_LOGIN) {
                     //skip processing and wait 
-                } else if (cid == 0 || step_ == StepId::CLOSE) {
+                } else if (step_ == StepId::CLOSE) {
                     this->LogError("ev:app closed by Login failure");
                     step_ = StepId::CLOSE;
                 } else {
