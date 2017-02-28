@@ -12,7 +12,7 @@ ServerRunner &ServerRunner::Instance() {
 	}
 	return *instance_;
 }
-void ServerRunner::Run(const std::string &listen_at, Config &conf, IHandler *rhandler, IHandler *whandler, DuplexStream::ServerCredOptions *options) {
+void ServerRunner::Run(const std::string &listen_at, const Config &conf, IHandler *rhandler, IHandler *whandler, DuplexStream::ServerCredOptions *options) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port

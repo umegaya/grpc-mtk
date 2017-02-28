@@ -48,6 +48,9 @@ typedef struct {
 
 
 /******** utils ********/
+typedef void *mtk_queue_t;
+typedef void (*mtk_queue_elem_free_t)(void *);
+
 /* time */
 static inline mtk_time_t mtk_sec(uint64_t n) { return ((n) * 1000 * 1000 * 1000); }
 static inline mtk_time_t mtk_msec(uint64_t n) { return ((n) * 1000 * 1000); }
@@ -58,6 +61,12 @@ extern mtk_time_t mtk_sleep(mtk_time_t d); //ignore EINTR
 extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
 /* log */
 extern void mtk_log_init();
+/* event queue */
+extern mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor);
+extern void mtk_queue_destroy(mtk_queue_t q);
+extern void mtk_queue_push(mtk_queue_t q, void *elem);
+extern bool mtk_queue_pop(mtk_queue_t q, void **elem);
+extern void mtk_queue_elem_free(mtk_queue_t q, void *elem);
 
 
 
@@ -71,7 +80,20 @@ typedef struct {
 	} thread;
 	mtk_closure_t handler, acceptor;
 	bool exclusive; //if true, caller thread of mtk_listen blocks
+	bool use_queue; //if true, mtk_listen put all callback event data into below queue.
+	mtk_queue_t queue; //if use_queue is true, mtk_listen initializes it with created queue.
 } mtk_svconf_t;
+typedef struct {
+	// below 2 are != 0 for accept event, 0 for recv event
+	mtk_login_cid_t lcid; 
+	mtk_cid_t cid;
+	union {
+		mtk_result_t result;
+		mtk_msgid_t msgid;
+	};
+	mtk_size_t datalen;
+	char data[0];
+} mtk_svevent_t;
 typedef struct {
 	mtk_cid_t id;
 	const char *payload;

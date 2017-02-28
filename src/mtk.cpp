@@ -12,7 +12,7 @@
 using namespace mtk;
 
 /******* internal bridge *******/
-/* worker handler */
+/* worker handler (callback) */
 template <class S>
 class FunctionHandler : public IHandler {
 protected:
@@ -21,32 +21,8 @@ public:
 	FunctionHandler(mtk_closure_t handler, mtk_closure_t acceptor) : handler_(handler), acceptor_(acceptor) {}
 	//implements IHandler
 	grpc::Status Handle(IConn *c, Request &req) {
-		if (__builtin_expect(req.kind() != Request::Normal, 0)) {
-        	switch(req.kind()) {
-        	case Request::Login: {
-				SystemPayload::Login lreq;
-				if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), lreq) >= 0) {
-					if (lreq.id() != 0) {
-	        			c->AcceptLogin(lreq);
-					} else {
-						Error *e = new Error();
-						e->set_error_code(MTK_ACCEPT_DENY);
-						((Conn<S> *)c)->Throw(lreq.msgid(), e);	
-					}
-				} else {
-					ASSERT(false);
-					((Conn<S> *)c)->InternalClose();
-				}
-				return grpc::Status::OK;
-        	} break;
-        	default:
-        		TRACE("invalid system payload kind: {}", req.kind());
-        		return grpc::Status::CANCELLED;
-        	}
-		} else {
-			return mtk_closure_call(&handler_, on_svmsg, c, req.type(), req.payload().c_str(), req.payload().length()) >= 0 ? 
-				grpc::Status::OK : grpc::Status::CANCELLED;
-		}
+		return mtk_closure_call(&handler_, on_svmsg, c, req.type(), req.payload().c_str(), req.payload().length()) >= 0 ? 
+			grpc::Status::OK : grpc::Status::CANCELLED;
 	}
 	mtk_cid_t Login(IConn *c, Request &req) {
 		SystemPayload::Connect creq;
@@ -78,7 +54,37 @@ public:
 		return new RConn(worker, service, handler, cq);
 	}
 };
-typedef FunctionHandler<RSVStream> ReadHandler;
+class ReadHandler : public FunctionHandler<RSVStream> {
+public:
+	ReadHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<RSVStream>(handler, acceptor) {}
+	grpc::Status Handle(IConn *c, Request &req) {
+		if (__builtin_expect(req.kind() != Request::Normal, 0)) {
+        	switch(req.kind()) {
+        	case Request::Login: {
+				SystemPayload::Login lreq;
+				if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), lreq) >= 0) {
+					if (lreq.id() != 0) {
+	        			c->AcceptLogin(lreq);
+					} else {
+						Error *e = new Error();
+						e->set_error_code(MTK_ACCEPT_DENY);
+						((Conn<RSVStream> *)c)->Throw(lreq.msgid(), e);	
+					}
+				} else {
+					ASSERT(false);
+					((Conn<RSVStream> *)c)->InternalClose();
+				}
+				return grpc::Status::OK;
+        	} break;
+        	default:
+        		TRACE("invalid system payload kind: {}", req.kind());
+        		return grpc::Status::CANCELLED;
+        	}
+		} else {
+			return FunctionHandler<RSVStream>::Handle(c, req);
+		}
+	}	
+};
 class WriteHandler : public FunctionHandler<WSVStream> {
 public:
 	WriteHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<WSVStream>(handler, acceptor) {}
@@ -97,8 +103,52 @@ public:
 	}
 };
 
+
+/* worker handler (queue) */
+class QueueReadHandler : public ReadHandler {
+protected:
+	static mtk_closure_t dummy_;
+	mtk_queue_t queue_;
+public:
+	QueueReadHandler() : ReadHandler(dummy_, dummy_) {
+		queue_ = mtk_queue_create(_DestroyEvent);
+		mtk_closure_init(&handler_, on_svmsg, &_OnRecv, queue_);
+		mtk_closure_init(&acceptor_, on_accept, &_OnAccept, queue_);
+	}
+	mtk_queue_t Queue() { return queue_; }
+protected://tranpoline
+	static mtk_result_t _OnRecv(void *arg, mtk_svconn_t c, mtk_result_t r, const char *p, mtk_size_t l) {
+		mtk_queue_t q = ((mtk_queue_t)arg);
+		//receiver send reply by using mtk_cid_send
+		mtk_svevent_t *ev = (mtk_svevent_t *)std::malloc(sizeof(mtk_svevent_t) + l);
+		ev->lcid = 0;
+		ev->result = r;
+		ev->datalen = l;
+		std::memcpy(ev->data, p, l);
+		mtk_queue_push(q, ev);
+		return 0;
+	}
+	static mtk_cid_t _OnAccept(void *arg, mtk_svconn_t c, mtk_msgid_t msgid, mtk_cid_t cid, 
+											const char *p, mtk_size_t l, char **, mtk_size_t *) {
+		mtk_queue_t q = ((mtk_queue_t)arg);
+		mtk_login_cid_t lcid = mtk_svconn_defer_login(c);
+		//receiver send reply by using mtk_svconn_finish_login
+		mtk_svevent_t *ev = (mtk_svevent_t *)std::malloc(sizeof(mtk_svevent_t) + l);
+		ev->lcid = lcid;
+		ev->msgid = msgid;
+		ev->datalen = l;
+		std::memcpy(ev->data, p, l);
+		mtk_queue_push(q, ev);
+		return 0;
+	}
+	static void _DestroyEvent(void *p) {
+		delete (mtk_svevent_t *)p;
+	}
+};
+mtk_closure_t QueueReadHandler::dummy_;
+
 /* credentical generation */
-bool CreateCred(mtk_addr_t &settings, DuplexStream::CredOptions &options) {
+bool CreateCred(const mtk_addr_t &settings, DuplexStream::CredOptions &options) {
     if (settings.cert == nullptr) {
         return false;
     }
@@ -107,7 +157,7 @@ bool CreateCred(mtk_addr_t &settings, DuplexStream::CredOptions &options) {
     options.pem_root_certs = settings.ca;
     return true;
 }
-bool CreateCred(mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) {
+bool CreateCred(const mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) {
     if (settings.cert == nullptr) {
         return false;
     }
@@ -116,6 +166,22 @@ bool CreateCred(mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) 
         { .private_key = settings.key, .cert_chain = settings.cert },
     };
     return true;
+}
+
+/* mtk specific server runner */
+void ServerRunner::Run(const Address &listen_at, Config &conf) {
+    DuplexStream::ServerCredOptions opts;
+    bool has_cred = CreateCred(listen_at, opts);
+    if (conf.use_queue) {
+        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
+        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf.handler, conf.acceptor));
+        conf.queue = r->Queue();
+        ServerRunner::Instance().Run(listen_at.host, conf, r.get(), w.get(), has_cred ? &opts : nullptr);
+    } else {
+        auto r = std::unique_ptr<ReadHandler>(new ReadHandler(conf.handler, conf.acceptor));
+        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf.handler, conf.acceptor));
+        ServerRunner::Instance().Run(listen_at.host, conf, r.get(), w.get(), has_cred ? &opts : nullptr);
+    }
 }
 
 /* closure wrapper */
@@ -185,24 +251,35 @@ public:
 	}
 };
 
+/* Queue */
+class Queue : public moodycamel::ConcurrentQueue<void *> {
+protected:
+	mtk_queue_elem_free_t dtor_;
+public:
+	Queue(mtk_queue_elem_free_t dtor) : moodycamel::ConcurrentQueue<void *>() {
+		dtor_ = dtor;
+	}
+	~Queue() {
+		void *ptr;
+		while (try_dequeue(ptr)) {
+			FreeElement(ptr);
+		}
+	}
+	inline void FreeElement(void *elem) {
+		if (dtor_ != nullptr) { dtor_(elem); }
+	}
+};
 
 
 /******* grpc client/server API *******/
 mtk_closure_t mtk_clousure_nop = { nullptr, { nullptr } };
 mtk_server_t mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf) {
-	DuplexStream::ServerCredOptions opts;
-	bool has_cred = CreateCred(*addr, opts);
 	if (svconf->exclusive) {
-		auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler, svconf->acceptor));
-		auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler, svconf->acceptor));
-		ServerRunner::Instance().Run(addr->host, *svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
+		ServerRunner::Instance().Run(*addr, *svconf);
 		return nullptr;
 	} else {
-		std::string host = addr->host;
-		return new ServerThread(std::thread([svconf, has_cred, &opts, host] {
-			auto r = std::unique_ptr<ReadHandler>(new ReadHandler(svconf->handler, svconf->acceptor));
-			auto w = std::unique_ptr<WriteHandler>(new WriteHandler(svconf->handler, svconf->acceptor));
-			ServerRunner::Instance().Run(host, *svconf, r.get(), w.get(), has_cred ? &opts : nullptr);
+		return new ServerThread(std::thread([addr, svconf] {
+			ServerRunner::Instance().Run(*addr, *svconf);
 	    }));
 	}
 }
@@ -428,3 +505,20 @@ mtk_time_t mtk_pause(mtk_time_t d) {
 void mtk_log_init() {
 	logger::Initialize();
 }
+
+mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor) {
+	return new Queue(dtor);
+}
+void mtk_queue_destroy(mtk_queue_t q) {
+	delete (Queue *)q;
+}
+void mtk_queue_push(mtk_queue_t q, void *elem) {
+	((Queue *)q)->enqueue(elem);
+}
+bool mtk_queue_pop(mtk_queue_t q, void **elem) {
+	return ((Queue *)q)->try_dequeue(*elem);
+}
+void mtk_queue_free_elem(mtk_queue_t q, void *elem) {
+	((Queue *)q)->FreeElement(elem);
+}
+
