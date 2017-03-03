@@ -3,6 +3,7 @@
 #include <grpc++/server_builder.h>
 #include <thread>
 #include "conn.h"
+#include "defs.h"
 
 namespace {
     using grpc::ServerCompletionQueue;
@@ -19,13 +20,26 @@ namespace mtk {
         Service* service_;
         IHandler* handler_;
         std::unique_ptr<ServerCompletionQueue> cq_;
+        bool dying_;
     public:
         IWorker(Service *service, IHandler *handler, ServerBuilder &builder) :
-            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()) {}
-        ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
+            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
+            dying_(false) {}
+        virtual ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
         void Launch();
         IConn *New();
-        inline void Process(bool ok, void *tag);
+        inline void Process(bool ok, void *tag) {
+            IConn *c = static_cast<IConn*>(tag);
+            if (!ok) {
+                c->Destroy();
+            } else {
+                c->Step();
+            }
+        }
+        inline bool Dying() const { return dying_;  }
+        inline void Shutdown() { cq_->Shutdown(); }
+        inline void PrepareShutdown() { dying_ = true; }
+    public: //interface
         virtual void Run();
         virtual void OnRegister(IConn *) {}
         virtual void OnUnregister(IConn *) {}
@@ -46,15 +60,6 @@ namespace mtk {
         void OnWaitLogin(IConn *c) override { OnRegister(c); }
         void OnFinishLogin(IConn *c) override { OnUnregister(c); }
     };
-    //inlines
-    void IWorker::Process(bool ok, void *tag) {
-        IConn *c = static_cast<IConn*>(tag);
-        if (!ok) {
-            c->Destroy();
-        } else {
-            c->Step();
-        }
-    }
     //default definition
     typedef IWorker WriteWorker;
     typedef TaskConsumableWorker ReadWorker;

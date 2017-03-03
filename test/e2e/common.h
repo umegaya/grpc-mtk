@@ -8,7 +8,7 @@
 #include <condition_variable>
 #include <codec.h>
 #include <debug.h>
-#include <atomic_compat.h>
+#include <defs.h>
 #if defined(CHECK)
 #undef CHECK
 #endif

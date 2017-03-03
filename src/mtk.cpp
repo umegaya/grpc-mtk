@@ -65,7 +65,7 @@ class ReadHandler : public FunctionHandler<RSVStream> {
 public:
 	ReadHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<RSVStream>(handler, acceptor) {}
 	grpc::Status Handle(IConn *c, Request &req) {
-		if (__builtin_expect(req.kind() != Request::Normal, 0)) {
+		if (mtk_unlikely(req.kind() != Request::Normal)) {
         	switch(req.kind()) {
         	case Request::Login: {
 				SystemPayload::Login lreq;
@@ -152,7 +152,7 @@ protected://tranpoline
 mtk_closure_t QueueReadHandler::dummy_;
 
 /* credentical generation */
-bool CreateCred(const mtk_addr_t &settings, DuplexStream::CredOptions &options) {
+static bool CreateCred(const mtk_addr_t &settings, DuplexStream::CredOptions &options) {
     if (settings.cert == nullptr) {
         return false;
     }
@@ -161,32 +161,47 @@ bool CreateCred(const mtk_addr_t &settings, DuplexStream::CredOptions &options) 
     options.pem_root_certs = settings.ca;
     return true;
 }
-bool CreateCred(const mtk_addr_t &settings, DuplexStream::ServerCredOptions &options) {
-    if (settings.cert == nullptr) {
-        return false;
-    }
-    options.pem_root_certs = settings.ca;
-    options.pem_key_cert_pairs = {
-        { .private_key = settings.key, .cert_chain = settings.cert },
-    };
-    return true;
-}
 
 /* mtk specific server runner */
-void ServerRunner::Run(const Address &listen_at, const Config &conf, ServerThread &th) {
-    DuplexStream::ServerCredOptions opts;
-    bool has_cred = CreateCred(listen_at, opts);
-    if (conf.use_queue) {
-        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
-        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf.handler, conf.acceptor));
-        th.Assign(r->Queue());
-        ServerRunner::Instance().Run(listen_at.host, conf, r.get(), w.get(), th, has_cred ? &opts : nullptr);
-    } else {
-        auto r = std::unique_ptr<ReadHandler>(new ReadHandler(conf.handler, conf.acceptor));
-        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf.handler, conf.acceptor));
-        ServerRunner::Instance().Run(listen_at.host, conf, r.get(), w.get(), th, has_cred ? &opts : nullptr);
-    }
-}
+class ServerThread : public IServerThread {
+public:
+	ServerThread(const mtk_addr_t &listen_at, const mtk_svconf_t &conf) : 
+		IServerThread(), queue_(nullptr), listen_at_(listen_at), conf_(conf) {}
+	~ServerThread() {
+		if (queue_ != nullptr) {
+			mtk_queue_destroy(queue_);
+		}
+	}
+	inline mtk_queue_t Queue() { return queue_; }
+	bool CreateCred(CredOptions &options) {
+	    if (listen_at_.cert == nullptr) {
+	        return false;
+	    }
+	    options.pem_root_certs = listen_at_.ca;
+	    options.pem_key_cert_pairs = {
+	        { .private_key = listen_at_.key, .cert_chain = listen_at_.cert },
+	    };
+	    return true;
+	}
+	void Run() override {
+	    CredOptions opts;
+	    bool has_cred = CreateCred(opts);
+	    if (conf_.use_queue) {
+	        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
+	        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf_.handler, conf_.acceptor));
+	        queue_ = r->Queue();
+	        Kick(listen_at_.host, conf_.thread.n_reader, conf_.thread.n_writer, r.get(), w.get(), has_cred ? &opts : nullptr);
+	    } else {
+	        auto r = std::unique_ptr<ReadHandler>(new ReadHandler(conf_.handler, conf_.acceptor));
+	        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf_.handler, conf_.acceptor));
+	        Kick(listen_at_.host, conf_.thread.n_reader, conf_.thread.n_writer, r.get(), w.get(), has_cred ? &opts : nullptr);
+	    }
+	}
+private:
+	mtk_queue_t queue_;
+	mtk_addr_t listen_at_;
+	mtk_svconf_t conf_;
+};
 
 /* closure wrapper */
 class Closure : public mtk_closure_t {
@@ -263,16 +278,16 @@ public:
 /******* grpc client/server API *******/
 mtk_closure_t mtk_clousure_nop = { nullptr, { nullptr } };
 void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf, mtk_server_t *psv) {
-	ServerThread *th = new ServerThread(svconf->exclusive);
+	ServerThread *th = new ServerThread(*addr, *svconf);
 	*psv = th;
 	if (svconf->exclusive) {
-		ServerRunner::Instance().Run(*addr, *svconf, *th);
+		th->Run();
 	} else {
-		th->Assign(std::thread([addr, svconf, th] {
-			ServerRunner::Instance().Run(*addr, *svconf, *th);
-	    }));
-	    th->Wait();
+		th->Start();
 	}
+}
+void mtk_server_shutdown(mtk_server_t sv) {
+	((ServerThread *)sv)->Shutdown();
 }
 void mtk_server_join(mtk_server_t sv) {
 	((ServerThread *)sv)->Join();

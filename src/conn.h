@@ -4,7 +4,7 @@
 #include <queue>
 #include <mutex>
 #include "codec.h"
-#include "atomic_compat.h"
+#include "defs.h"
 #include "mtk.grpc.pb.h"
 #include <MoodyCamel/concurrentqueue.h>
 #include "debug.h"

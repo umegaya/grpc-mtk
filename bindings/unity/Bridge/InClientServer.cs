@@ -16,7 +16,24 @@ namespace Mtk {
 		}
 		void FixedUpdate() {
 			unsafe {
-
+				System.IntPtr elem;
+				while (sv_.PopEvent(ref elem)) {
+					ServerEvent *ev = (ServerEvent *)elem;
+					var svcn = new CidConn(ev->cid, ev->msgid);
+					if (ev->lcid != 0) {
+						var ret = new byte[ev->datalen];
+						Marshal.Copy(((uint8_t *)ev) + sizeof(ServerEvent), ret, 0, ev->datalen);
+						var rep = OnAccept(svcn, ev->cid, ret);
+						if (rep.cid != 0) {
+							mtk_svconn_finish_login(ev->lcid, rep.cid, ev->msgid, rep.data, rep.data.Length);
+						}
+					} else {
+						var ret = new byte[ev->datalen];
+						Marshal.Copy(((uint8_t *)ev) + sizeof(ServerEvent), ret, 0, ev->datalen);
+						OnRecv(svcn, ev->cid, ret);
+					}
+					sv_.FreeEvent(elem);
+				}
 			}
 		}
 		virtual void InitServerLogic() {}

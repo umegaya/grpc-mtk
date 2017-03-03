@@ -1,4 +1,5 @@
 #include "conn.h"
+#include "worker.h"
 
 namespace mtk {
     template <>
@@ -27,13 +28,13 @@ namespace mtk {
                 break;
             case StepId::LOGIN: {
                 //TODO: im not sure why, but after Login processed, one more Step() will be called.
-                //so any kind of io_.XXXX should not be called.
+                //so any kind of io_.XXXX should not be called here.
                 mtk_cid_t cid = handler_->Login(tag_, req_);
-                if (step_ == StepId::WAIT_LOGIN) {
-                    //skip processing and wait 
-                } else if (step_ == StepId::CLOSE) {
-                    this->LogError("ev:app closed by Login failure");
+                if (mtk_unlikely(step_ == StepId::CLOSE || worker_->Dying())) {
+                    this->LogInfo("ev:app closed by {}", worker_->Dying() ? "Shutdown starts" : "Login failure");
                     step_ = StepId::CLOSE;
+                } if (step_ == StepId::WAIT_LOGIN) {
+                    //skip processing and wait 
                 } else {
                     tag_->Register(cid);
                     this->LogInfo("ev:accept");
@@ -53,10 +54,11 @@ namespace mtk {
                     break;
                 }
                 Status st = handler_->Handle(tag_, req_);
-                if (st.ok() && step_ != StepId::CLOSE) {
+                if (mtk_likely(st.ok() && (step_ != StepId::CLOSE && !worker_->Dying()))) {
                     io_.Read(&req_, tag_);
                 } else {
-                    this->LogInfo("ev:app closed by {}", st.ok() ? "Close called" : "RPC error");
+                    this->LogInfo("ev:app closed by {}", st.ok() ? "Close called" : (worker_->Dying() ? "Shutdown starts" : "RPC error"));
+                    step_ = StepId::CLOSE;
                     Finish();
                 }
             } break;
@@ -90,7 +92,7 @@ namespace mtk {
                 break;
             case StepId::READ: {
                 mtk_cid_t cid = handler_->Login(tag_, req_);
-                if (cid != 0) {
+                if (mtk_likely(cid != 0 && !worker_->Dying())) {
                     tag_->Register(cid);
                     step_ = StepId::WRITE;
                 } else {
@@ -103,7 +105,7 @@ namespace mtk {
                 if (queue_.size() > 0) {
                     //pop one from queue and send it.
                     Reply *r = &(*queue_.front());
-                    if (r == nullptr) {
+                    if (mtk_unlikely(r == nullptr)) {
                         this->LogDebug("ev:mark connection close,tag:{}", (void *)tag_);
                         step_ = StepId::CLOSE;
                         io_.Finish(Status::OK, tag_);

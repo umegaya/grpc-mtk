@@ -14,8 +14,7 @@ namespace mtk {
         New();
         void* tag;  // uniquely identifies a request.
         bool ok;
-        while (true) {
-            cq_->Next(&tag, &ok);
+        while (cq_->Next(&tag, &ok)) {
             Process(ok, tag);
         }
     }
@@ -35,8 +34,10 @@ namespace mtk {
         while (true) {
             switch (cq_->AsyncNext(&tag, &ok, wait)) {
                 case grpc::CompletionQueue::SHUTDOWN:
-                    Process(false, tag);
-                    break;
+                    for (int i = 0; i < connections_.size(); i++) {
+                        connections_[i]->Destroy();
+                    }
+                    return;
                 case grpc::CompletionQueue::GOT_EVENT:
                     Process(ok, tag);
                     break;

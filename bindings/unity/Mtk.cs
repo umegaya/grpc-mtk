@@ -54,6 +54,7 @@ namespace Mtk {
         ThreadConfig thread;
         Closure handler, acceptor;
         bool exclusive; //if true, caller thread of mtk_listen blocks
+
     };
     struct ClientConfig {
         ulong id;
@@ -62,6 +63,14 @@ namespace Mtk {
         Closure on_connect, on_close;
         ConnectStartReadyCB validate; //pending actual handshake until this returns true
     };
+    struct ServerEvent {
+        ulong lcid; // != 0 for accept event, 0 for recv event
+        ulong cid;
+        uint msgid;
+        int result;
+        uint datalen;
+    };
+
 
     //util
     [DllImport (DllName)]
@@ -71,9 +80,11 @@ namespace Mtk {
 
     //listener
     [DllImport (DllName)]
-    private static extern unsafe void *mtk_listen(ref Address listen_at, ref ServerConfig conf);
+    private static extern unsafe void mtk_listen(ref Address listen_at, ref ServerConfig conf ref System.IntPtr sv);
     [DllImport (DllName)]
-    private static extern unsafe void mtk_listen_stop(void *sv);
+    private static extern unsafe void mtk_server_stop(void *sv);
+    [DllImport (DllName)]
+    private static extern unsafe void *mtk_server_queue(void *sv);
 
     //server conn operation
     [DllImport (DllName)]
@@ -126,12 +137,20 @@ namespace Mtk {
         public ulong Id { get; }
         public void Close();
     }
+    public interface ISVConn : IConn {
+        public uint MsgId { get; }
+        public void Reply(uint msgid, byte[] data);
+        public void Task(uint type, byte[] data);
+        public void Error(uint msgid, byte[] data);
+        public void Notify(uint type, byte[] data);
+        public void Close();     
+    }
     public class Conn : IConn {
         System.IntPtr conn_;
         public Conn(System.IntPtr c) {
             conn_ = c;
         }
-        public ulong Id { 
+        public override ulong Id { 
             get { unsafe { return mtk_conn_cid(conn_); } } 
         }
         public bool IsConnected {
@@ -149,35 +168,64 @@ namespace Mtk {
         public void Reset() {
             unsafe { mtk_conn_reset(conn_); }
         }
-        public void Close() {
+        public override void Close() {
             unsafe { mtk_conn_close(conn_); }
         }
     }
-    public class SVConn : IConn {
+    public class SVConn : ISVConn {
         System.IntPtr conn_;
         public SVConn(System.IntPtr c) {
             conn_ = c;
         }
-        public ulong Id {
+        public override ulong Id {
             get { unsafe { return mtk_svconn_cid(conn_); } }
         }
-        public uint MsgId {
+        public override uint MsgId {
             get { unsafe { return mtk_svconn_msgid(conn_); } }
         }
-        public void Reply(uint msgid, byte[] data) {
+        public override　void Reply(uint msgid, byte[] data) {
             unsafe { fixed (byte* d = data) { mtk_svconn_send(conn_, msgid, d, data.Length); } }
         }
-        public void Task(uint type, byte[] data) {
+        public override　void Task(uint type, byte[] data) {
             unsafe { fixed (byte* d = data) { mtk_svconn_task(conn_, type, d, data.Length); } }
         }
-        public void Error(uint msgid, byte[] data) {
+        public override void Error(uint msgid, byte[] data) {
             unsafe { fixed (byte* d = data) { mtk_svconn_error(conn_, msgid, d, data.Length); } }
         }
-        public void Notify(uint type, byte[] data) {
+        public override void Notify(uint type, byte[] data) {
             unsafe { fixed (byte* d = data) { mtk_svconn_notify(conn_, type, d, data.Length); } }
         }
-        public void Close() {
+        public override　void Close() {
             unsafe { mtk_svconn_close(conn_); }
+        }
+    }
+    public class CidConn : ISVConn {
+        System.IntPtr cid_;
+        uint msgid_;
+        public SVConn(System.IntPtr cid, uint msgid) {
+            cid_ = cid;
+            msgid_ = msgid;
+        }
+        public ulong Id {
+            get { unsafe { return cid_; } }
+        }
+        virtual public uint MsgId {
+            get { unsafe { return msgid_; } }
+        }
+        virtual public void Reply(uint msgid, byte[] data) {
+            unsafe { fixed (byte* d = data) { mtk_cid_send(cid_, msgid, d, data.Length); } }
+        }
+        virtual public void Task(uint type, byte[] data) {
+            unsafe { fixed (byte* d = data) { mtk_cid_task(cid_, type, d, data.Length); } }
+        }
+        virtual public void Error(uint msgid, byte[] data) {
+            unsafe { fixed (byte* d = data) { mtk_cid_error(cid_, msgid, d, data.Length); } }
+        }
+        virtual public void Notify(uint type, byte[] data) {
+            unsafe { fixed (byte* d = data) { mtk_cid_notify(cid_, type, d, data.Length); } }
+        }
+        virtual public void Close() {
+            unsafe { mtk_cid_close(cid_); }
         }
     }
     public class Server {
@@ -186,8 +234,22 @@ namespace Mtk {
             public byte[] data;
         }
         System.IntPtr server_;
+        System.IntPtr queue_;
         public Server(System.IntPtr s) {
             server_ = s;
+            unsafe {
+                queue_ = mtk_server_queue(server_);
+            }
+        }
+        public bool PopEvent(ref System.IntPtr elem) {
+            unsafe {
+                return mtk_queue_pop(queue_, elem);
+            }
+        }
+        public void FreeEvent(System.IntPtr elem) {
+            unsafe {
+                mtk_queue_elem_free(queue_. elem);
+            }
         }
     }
     class Builder {
@@ -292,7 +354,9 @@ namespace Mtk {
                         thread = thread_, exclusive = false,
                         acceptor = acceptor_, handler = handler_,
                     };
-                    var s = new Server(mtk_listen(ref addr, ref conf));
+                    System.IntPtr svp;
+                    mtk_listen(ref addr, ref conf, ref svp)
+                    var s = new Server(svp);
                     Core.Instance().ServerMap[host_] = s;
                     return s;
                 }

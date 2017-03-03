@@ -8,7 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <functional>
-#include "atomic_compat.h"
+#include "defs.h"
 #include "debug.h"
 
 namespace {
@@ -57,7 +57,6 @@ namespace mtk {
         static Error *TIMEOUT_ERROR;
         typedef Stream::Stub Stub;
         typedef grpc::SslCredentialsOptions CredOptions;
-        typedef grpc::SslServerCredentialsOptions ServerCredOptions;
         struct SEntry {
             typedef std::function<void (mtk_result_t, const char *, size_t)> Callback;
             timespec_t start_at_;
