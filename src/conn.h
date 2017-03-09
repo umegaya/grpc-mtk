@@ -49,6 +49,7 @@ namespace mtk {
             READ,
             WRITE,
             CLOSE,
+            CLOSE_BY_TASK,
         };
     protected:
         IWorker *worker_;
@@ -246,13 +247,7 @@ namespace mtk {
         }
         inline void SetStream(std::shared_ptr<WSVStream> &c) { sender_ = c; }
         void Step();
-        void ConsumeTask(int n_process) {
-            Request *t;
-            while (n_process != 0 && tasks_.try_dequeue(t)) {
-                handler_->Handle(tag_, *t);
-                n_process--;
-            }
-        }
+        void ConsumeTask(int n_process);
         template <class W> void Rep(mtk_msgid_t msgid, const W &w) {
             if (sender_ != nullptr) {
                 sender_->Rep(msgid, w);

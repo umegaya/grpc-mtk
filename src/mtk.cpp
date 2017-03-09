@@ -64,27 +64,6 @@ public:
 class ReadHandler : public FunctionHandler<RSVStream> {
 public:
 	ReadHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<RSVStream>(handler, acceptor) {}
-	grpc::Status Handle(IConn *c, Request &req) {
-		if (mtk_unlikely(req.kind() != Request::Normal)) {
-        	switch(req.kind()) {
-        	case Request::Login: {
-				SystemPayload::Login lreq;
-				if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), lreq) >= 0) {
-					c->AcceptLogin(lreq);
-				} else {
-					ASSERT(false);
-					((Conn<RSVStream> *)c)->InternalClose();
-				}
-				return grpc::Status::OK;
-        	} break;
-        	default:
-        		TRACE("invalid system payload kind: {}", req.kind());
-        		return grpc::Status::CANCELLED;
-        	}
-		} else {
-			return FunctionHandler<RSVStream>::Handle(c, req);
-		}
-	}	
 };
 class WriteHandler : public FunctionHandler<WSVStream> {
 public:
@@ -357,7 +336,8 @@ void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t dat
 void mtk_cid_close(mtk_cid_t cid) {
 	RConn::Stream s = RConn::Get(cid);
 	if (s == nullptr) { return; }
-	s->InternalClose();
+	SystemPayload::Close c;
+	s->SysTask(Request::Close, c);
 }
 
 
