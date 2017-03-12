@@ -216,7 +216,7 @@ public:
     			return false;
     		}
 			clconf_.id = crep_.id();
-			return true;
+			return mtk_closure_call(&clconf_.on_connect, on_connect, crep_.id(), crep_.payload().c_str(), crep_.payload().length());;
 		} else if (stream_idx == READ) {
 	    	return mtk_closure_call(&clconf_.on_connect, on_connect, crep_.id(), crep_.payload().c_str(), crep_.payload().length());
 		} else {

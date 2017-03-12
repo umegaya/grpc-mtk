@@ -74,7 +74,7 @@ void DuplexStream::StartWrite() {
     delegate_->AddPayload(payload, WRITE);
     Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
         if (r >= 0 && delegate_->OnOpenStream(r, p, len, WRITE)) {
-            status_ = NetworkStatus::REGISTER;
+            status_ = NetworkStatus::CONNECT;
         } else {
             replys_.enqueue(DISCONNECT_EVENT);
         }

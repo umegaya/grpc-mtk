@@ -42,49 +42,66 @@ namespace mtk {
             n_process--;
         }        
     }
+    void RSVStream::WStep() {
+        //TRACE("RSVStream[{}]:wstep = {} {}", (void *)this, step_, ref_);
+        ref_--;
+        ASSERT(ref_ >= 0);
+        if (step_ == StepId::CLOSE) {
+            if (ref_ <= 0) {
+                tag_->Destroy();
+            }
+            return;
+        }
+        mtx_.lock();
+        //TRACE("RSVStream[{}]:wstep = {}, {}, {}", (void *)this, step_, queue_.size(), is_sending_);
+        if (queue_.size() > 0) {
+            //pop one from queue and send it.
+            Reply *r = &(*queue_.front());
+            Write(r);
+            delete r; //todo return r to cache instead of delete
+            queue_.pop();
+        } else {
+            //turn off sending flag so that next Send call kick io.Write again
+            //otherwise, WSVStream never processed by this worker thread.
+            is_sending_ = false;
+        }
+        mtx_.unlock();        
+    }
     void RSVStream::Step() {
-        //TRACE("RSVStream[{}]:step = {}", (void *)this, step_);
+        //TRACE("RSVStream[{}]:step = {}, {}", (void *)this, step_, ref_);
+        ref_--;
+        ASSERT(ref_ >= 0);
         switch(step_) {
             case StepId::INIT:
                 step_ = StepId::ACCEPT;
                 //server read stream read from write stream of client
+                ref_++;
                 service_->RequestWrite(&ctx_, &io_, cq_, cq_, tag_);
                 break;
             case StepId::ACCEPT:
                 handler_->NewConn(worker_, service_, handler_, cq_)->Step(); //create next waiter
                 step_ = StepId::LOGIN;
-                io_.Read(&req_, tag_);
+                Read();
                 break;
             case StepId::LOGIN: {
-                //TODO: im not sure why, but after Login processed, one more Step() will be called.
-                //so any kind of io_.XXXX should not be called here.
                 mtk_cid_t cid = handler_->Login(tag_, req_);
                 if (mtk_unlikely(step_ == StepId::CLOSE || worker_->Dying())) {
                     this->LogInfo("ev:app closed by {}", worker_->Dying() ? "Shutdown starts" : "Login failure");
                     step_ = StepId::CLOSE;
-                } if (step_ == StepId::WAIT_LOGIN) {
+                    Finish();
+                } else if (step_ == StepId::WAIT_LOGIN) {
                     //skip processing and wait 
                 } else {
                     tag_->Register(cid);
                     this->LogInfo("ev:accept");
-                    step_ = StepId::BEFORE_READ;
+                    Read();
+                    step_ = StepId::READ;
                 }
-            } break;
-            case StepId::BEFORE_READ: {
-                //when write for login reply finished, reach here. prepare for read loop
-                io_.Read(&req_, tag_);
-                step_ = StepId::READ;
             } break;
             case StepId::READ: {
-                if (sender_ == nullptr) {
-                    this->LogDebug("ev:handshake not finished,ptr:{}", (void *)tag_);
-                    step_ = StepId::CLOSE;
-                    Finish();
-                    break;
-                }
                 Status st = handler_->Handle(tag_, req_);
                 if (mtk_likely(st.ok() && (step_ != StepId::CLOSE && !worker_->Dying()))) {
-                    io_.Read(&req_, tag_);
+                    Read();
                 } else {
                     this->LogInfo("ev:app closed by {}", st.ok() ? "Close called" : (worker_->Dying() ? "Shutdown starts" : "RPC error"));
                     step_ = StepId::CLOSE;
@@ -92,7 +109,9 @@ namespace mtk {
                 }
             } break;
             case StepId::CLOSE: {
-                tag_->Destroy();
+                if (ref_ <= 0) {
+                    tag_->Destroy();
+                }
             } break;
             case StepId::CLOSE_BY_TASK: {
                 //TRACE("CLOSE_BY_TASK: {} {} {}", req_.kind(), req_.type(), req_.msgid());
@@ -100,7 +119,7 @@ namespace mtk {
             } break;
             case StepId::WAIT_LOGIN: {
                 ASSERT(false);
-                io_.Read(&req_, tag_); //ignore all received packet
+                Read();
             } break;
             default:
                 ASSERT(false);

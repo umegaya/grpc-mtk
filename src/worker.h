@@ -29,9 +29,11 @@ namespace mtk {
         void Launch();
         IConn *New();
         inline void Process(bool ok, void *tag) {
-            IConn *c = static_cast<IConn*>(tag);
+            IConn *c = (IConn *)(((uintptr_t)tag) & ~((uintptr_t)0x1));
             if (!ok) {
                 c->Destroy();
+            } else if (((uintptr_t)tag) & 0x1) {
+                c->WStep();
             } else {
                 c->Step();
             }

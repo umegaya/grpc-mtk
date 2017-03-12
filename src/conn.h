@@ -24,6 +24,7 @@ namespace mtk {
     public:
         virtual ~IConn() {}
         virtual void Step() = 0;
+        virtual void WStep() = 0;
         virtual void Destroy() = 0;
         virtual void Register(mtk_cid_t cid) = 0;
         virtual bool WaitLoginAccept() = 0;
@@ -45,7 +46,6 @@ namespace mtk {
             ACCEPT,
             LOGIN,
             WAIT_LOGIN,
-            BEFORE_READ,
             READ,
             WRITE,
             CLOSE,
@@ -83,7 +83,7 @@ namespace mtk {
             return step_ == StepId::WAIT_LOGIN;
         }
         inline void Accepted() {
-            step_ = StepId::BEFORE_READ;
+            step_ = StepId::READ;
         }
         inline void Finish() {
             io_.Finish(Status::OK, tag_);
@@ -180,6 +180,7 @@ namespace mtk {
         }
         void ConsumeTask(int) {}
         void Step();
+        void WStep() { Step(); }
 
         template <class W> void Notify(MessageType type, const W &w) {
             if (step_ != StepId::CLOSE) {
@@ -238,37 +239,47 @@ namespace mtk {
         ATOMIC_INT closed_;
         IWorker *worker_;
         moodycamel::ConcurrentQueue<Request*> tasks_;
+        std::mutex mtx_; //TODO: if mtx overhead is matter, need to do some trick with atomic primitives
+        //but on recent linux this does not seem big issue any more (http://stackoverflow.com/questions/1277627/overhead-of-pthread-mutexes)
+        std::queue<Reply*> queue_;
+        bool is_sending_; int8_t ref_;
     public:
         RSVStream(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq, IConn *tag) :
-            SVStream(worker, service, handler, cq, tag), sender_(), closed_(0), worker_(worker), tasks_() {}
+            SVStream(worker, service, handler, cq, tag), sender_(), closed_(0), worker_(worker), tasks_(), 
+            mtx_(), queue_(), is_sending_(false), ref_(1) {}
         virtual ~RSVStream() {
             Cleanup();
             LogInfo("RSVStream destroy {}({})", (void *)this, Id());
         }
         inline void SetStream(std::shared_ptr<WSVStream> &c) { sender_ = c; }
         void Step();
+        void WStep();
         void ConsumeTask(int n_process);
         template <class W> void Rep(mtk_msgid_t msgid, const W &w) {
             if (sender_ != nullptr) {
                 sender_->Rep(msgid, w);
             } else { //only 1 thread do this. so no need to lock.
-                Reply r;
-                SetupReply(r, msgid, w);
-                Write(r);
+                Reply *r = new Reply();
+                SetupReply(*r, msgid, w);
+                Send(r);
             }
         }
         template <class W> void SysRep(mtk_msgid_t msgid, const W &w) {
             if (sender_ != nullptr) {
                 sender_->SysRep(msgid, w);
             } else { //only 1 thread do this. so no need to lock.
-                Reply r;
-                SetupSystemReply(r, msgid, w);
-                Write(r);
+                Reply *r = new Reply();
+                SetupSystemReply(*r, msgid, w);
+                Send(r);
             }
         }
         template <class W> void Notify(MessageType type, const W &w) {
             if (sender_ != nullptr) {
                 sender_->Notify(type, w);
+            } else {
+                Reply *r = new Reply(); //todo: get r from cache
+                if (!SetupNotify(*r, type, w)) { return; }
+                Send(r);                
             }
         }
         template <class W> void AddTask(MessageType type, const W &w) {
@@ -285,10 +296,33 @@ namespace mtk {
             if (sender_ != nullptr) {
                 sender_->Throw(msgid, e);
             } else { //only 1 thread do this. so no need to lock.
-                Reply r;
-                SetupThrow(r, msgid, e);
+                Reply *r = new Reply(); //todo: get r from cache
+                SetupThrow(*r, msgid, e);
                 Write(r);
             }
+        }
+        void Read() {
+            ref_++;
+            io_.Read(&req_, tag_);
+        }
+        void Write(Reply *r) {
+            ref_++;
+            io_.Write(*r, (void *)(((uintptr_t)tag_) | 0x1));            
+        }
+        inline void Finish() {
+            ref_++;
+            io_.Finish(Status::OK, tag_);
+        }
+        void Send(Reply *r) {
+            mtx_.lock();
+            if (!is_sending_) {
+                is_sending_ = true;
+                Write(r);
+                delete r;
+            } else {
+                queue_.push(r);
+            }
+            mtx_.unlock();
         }
         void Close() { closed_.store(1); }
         bool IsClosed() const { return closed_.load() != 0; }
@@ -329,6 +363,7 @@ namespace mtk {
         //implements IConn
         void ConsumeTask(int n_process) override { stream_->ConsumeTask(n_process); }
         void Step() override { stream_->Step(); }
+        void WStep() override { stream_->WStep(); }
         bool WaitLoginAccept() override { return stream_->WaitLoginAccept(); }
         void AcceptLogin(SystemPayload::Login &) override {}
         void Destroy() override { 
@@ -427,27 +462,19 @@ namespace mtk {
             Super::Unregister();
         }
         void AcceptLogin(SystemPayload::Login &a) override {
-            pmap_mtx_.lock();
-            auto it = pmap_.find(a.login_cid());
-            if (it != pmap_.end()) {
-                auto mc = it->second;
-                pmap_mtx_.unlock();
-                if (a.id() == 0) {
-                    Error *e = new Error();
-                    e->set_error_code(MTK_ACCEPT_DENY);
-                    *(e->mutable_payload()) = a.payload();
-                    mc->Throw(a.msgid(), e);
-                } else {
-                    mc->Register(a.id());
-                    mc->GetStream()->Accepted(); //change state
-                    SystemPayload::Connect sysrep;
-                    sysrep.set_id(a.id());
-                    *(sysrep.mutable_payload()) = a.payload();
-                    mc->SysRep(a.msgid(), sysrep);
-                }
+           if (a.id() == 0) {
+                Error *e = new Error();
+                e->set_error_code(MTK_ACCEPT_DENY);
+                e->set_payload(a.payload());
+                Super::Throw(a.msgid(), e);
             } else {
-                //already logout
-                pmap_mtx_.unlock();
+                Register(a.id());
+                Super::GetStream()->Accepted(); //change state
+                Super::GetStream()->Read(); //start read again
+                SystemPayload::Connect sysrep;
+                sysrep.set_id(a.id());
+                sysrep.set_payload(a.payload());
+                Super::SysRep(a.msgid(), sysrep);
             }
         }
         template <class WC>

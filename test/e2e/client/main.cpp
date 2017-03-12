@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	TRACE("============== test with normal mode ==============");
 	testsuites("localhost:50051");
 	TRACE("============== test with queue mode ==============");
-	testsuites("localhost:50052", false);
+	//testsuites("localhost:50052", false);
 	return 0;
 }
 

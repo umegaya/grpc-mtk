@@ -47,6 +47,7 @@ static inline mtk_result_t handler_common(void *, mtk_svconn_t c, reply_dest *ds
 	});
 	default:
 		TRACE("unknown message: {}", r);
+		ASSERT(false);
 		exit(-1);
 		break;
 	}

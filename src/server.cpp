@@ -37,10 +37,10 @@ void IServerThread::Kick(const std::string &listen_at, int n_reader, int n_write
         IWorker *w = new ReadWorker(&service, rhandler, builder);
         read_workers_.push_back(w);
     }
-    for (int i = 0; i < n_writer; i++) {
+    /*for (int i = 0; i < n_writer; i++) {
         IWorker *w = new WriteWorker(&service, whandler, builder);
         write_workers_.push_back(w);
-    }
+    }*/
     // create server
     server_ = std::unique_ptr<grpc::Server>(builder.BuildAndStart());
     // start worker thread
