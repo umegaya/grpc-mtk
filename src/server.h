@@ -12,14 +12,11 @@ namespace mtk {
 		std::mutex mutex_;
 		std::condition_variable cond_;
 		std::unique_ptr<grpc::Server> server_;
-		std::vector<IWorker*> read_workers_, write_workers_;
+		std::vector<IWorker*> workers_;
 	public:
-		IServerThread() : thread_(), mutex_(), server_(), read_workers_(), write_workers_() {}
+		IServerThread() : thread_(), mutex_(), server_(), workers_() {}
 		virtual ~IServerThread() {
-			for (IWorker *w : read_workers_) {
-				delete w;
-			}
-			for (IWorker *w : write_workers_) {
+			for (IWorker *w : workers_) {
 				delete w;
 			}
 		}
@@ -39,7 +36,6 @@ namespace mtk {
 		virtual void Run() = 0;
 		virtual void Shutdown();
 	protected:
-		void Kick(const std::string &listen_at, int n_reader, int n_writer, 
-				IHandler *h_read, IHandler *h_write, CredOptions *options = nullptr);
+		void Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options = nullptr);
 	};
 }

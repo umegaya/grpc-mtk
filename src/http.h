@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 #include <map>
+#include <cstdlib>
 extern "C" {
 #include "src/core/lib/http/parser.h"
 #include "src/core/lib/http/httpcli.h"
@@ -110,8 +111,8 @@ namespace mtk {
         const char *m_buf;
         char *m_p;
     public:
-        HttpFSM() {}
-        ~HttpFSM() {}
+        HttpFSM() : m_p(nullptr) {}
+        ~HttpFSM() { if (m_p != nullptr) { std::free(m_p); } }
         state   append(char *b, int bl);
         void    reset(uint32_t chunk_size);
     public:

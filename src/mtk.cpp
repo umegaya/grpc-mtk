@@ -15,7 +15,6 @@ static_assert(offsetof(mtk_svevent_t, data) == 28, "mtk_svevent_t offset illegal
 
 /******* internal bridge *******/
 /* worker handler (callback) */
-template <class S>
 class FunctionHandler : public IHandler {
 protected:
 	mtk_closure_t handler_, acceptor_;
@@ -34,7 +33,7 @@ public:
 		char *rep; mtk_size_t rlen = 0;
 		mtk_cid_t cid = mtk_closure_call(&acceptor_, on_accept, c, req.msgid(), 
 										creq.id(), creq.payload().c_str(), creq.payload().length(), &rep, &rlen);
-		if (c->WaitLoginAccept()) {
+		if (((Conn *)c)->WaitLoginAccept()) {
 			return cid;
 		} else if (cid != 0) {
 			SystemPayload::Connect sysrep;
@@ -44,7 +43,7 @@ public:
 				sysrep.set_payload(rep, rlen);
 				free(rep);
 			}
-			((Conn<S> *)c)->SysRep(req.msgid(), sysrep);
+			((Conn *)c)->SysRep(req.msgid(), sysrep);
 		} else {
 			Error *e = new Error();
 			e->set_error_code(MTK_ACCEPT_DENY);
@@ -53,44 +52,24 @@ public:
 				e->set_payload(rep, rlen);
 				free(rep);
 			}
-			((Conn<S> *)c)->Throw(req.msgid(), e);
+			((Conn *)c)->Throw(req.msgid(), e);
 		}
 		return cid;
 	}
-	IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
-		return new RConn(worker, service, handler, cq);
+	IConn *NewConn(IWorker *worker, IHandler *handler) {
+		return new Conn(worker, handler);
 	}
 };
-class ReadHandler : public FunctionHandler<RSVStream> {
-public:
-	ReadHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<RSVStream>(handler, acceptor) {}
-};
-class WriteHandler : public FunctionHandler<WSVStream> {
-public:
-	WriteHandler(mtk_closure_t handler, mtk_closure_t acceptor) : FunctionHandler<WSVStream>(handler, acceptor) {}
-	mtk_cid_t Login(IConn *c, Request &req) {
-		mtk_cid_t cid = FunctionHandler<WSVStream>::Login(c, req);
-		if (cid != 0) {
-			if (!RConn::MakePair(cid, *(WConn *)c)) {
-				TRACE("RConn::MakePair: fails");
-				return cid;
-			}
-		}
-		return cid;	
-	}	
-	IConn *NewConn(IWorker *worker, Service *service, IHandler *handler, ServerCompletionQueue *cq) {
-		return new WConn(worker, service, handler, cq);
-	}
-};
+
 
 
 /* worker handler (queue) */
-class QueueReadHandler : public ReadHandler {
+class QueueReadHandler : public FunctionHandler {
 protected:
 	static mtk_closure_t dummy_;
 	mtk_queue_t queue_;
 public:
-	QueueReadHandler() : ReadHandler(dummy_, dummy_) {
+	QueueReadHandler() : FunctionHandler(dummy_, dummy_) {
 		queue_ = mtk_queue_create(_DestroyEvent);
 		mtk_closure_init(&handler_, on_svmsg, &_OnRecv, queue_);
 		mtk_closure_init(&acceptor_, on_accept, &_OnAccept, queue_);
@@ -167,13 +146,11 @@ public:
 	    bool has_cred = CreateCred(opts);
 	    if (conf_.use_queue) {
 	        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
-	        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf_.handler, conf_.acceptor));
 	        queue_ = r->Queue();
-	        Kick(listen_at_.host, conf_.thread.n_reader, conf_.thread.n_writer, r.get(), w.get(), has_cred ? &opts : nullptr);
+	        Kick(listen_at_.host, conf_.thread.n_reader, r.get(), has_cred ? &opts : nullptr);
 	    } else {
-	        auto r = std::unique_ptr<ReadHandler>(new ReadHandler(conf_.handler, conf_.acceptor));
-	        auto w = std::unique_ptr<WriteHandler>(new WriteHandler(conf_.handler, conf_.acceptor));
-	        Kick(listen_at_.host, conf_.thread.n_reader, conf_.thread.n_writer, r.get(), w.get(), has_cred ? &opts : nullptr);
+	        auto r = std::unique_ptr<FunctionHandler>(new FunctionHandler(conf_.handler, conf_.acceptor));
+	        Kick(listen_at_.host, conf_.thread.n_reader, r.get(), has_cred ? &opts : nullptr);
 	    }
 	}
 private:
@@ -275,52 +252,52 @@ mtk_queue_t mtk_server_queue(mtk_server_t sv) {
 	return ((ServerThread *)sv)->Queue();
 }
 mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn) {
-	return RConn::DeferLogin(conn);
+	return Conn::DeferLogin(conn);
 }
 void mtk_svconn_finish_login(mtk_login_cid_t login_cid, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
-	RConn::FinishLogin(login_cid, cid, msgid, data, datalen);
+	Conn::FinishLogin(login_cid, cid, msgid, data, datalen);
 }
 mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn) {
-	return ((RConn *)conn)->Id();
+	return ((Conn *)conn)->Id();
 }
 mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn) {
-	return ((RConn *)conn)->CurrentMsgId();
+	return ((Conn *)conn)->CurrentMsgId();
 }
 void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	std::string buf(data, datalen);
-	((RConn *)conn)->Rep(msgid, buf);
+	((Conn *)conn)->Rep(msgid, buf);
 }
 void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen) {
 	std::string buf(data, datalen);
-	((RConn *)conn)->Notify(type, buf);
+	((Conn *)conn)->Notify(type, buf);
 }
 void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	Error *e = new Error();
 	e->set_error_code(MTK_APPLICATION_ERROR);
 	e->set_payload(data, datalen);
-	((RConn *)conn)->Throw(msgid, e);
+	((Conn *)conn)->Throw(msgid, e);
 }
 void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen) {
 	std::string buf(data, datalen);
-	((RConn *)conn)->AddTask(type, buf);
+	((Conn *)conn)->AddTask(type, buf);
 }
 void mtk_svconn_close(mtk_svconn_t conn) {
-	((RConn *)conn)->InternalClose();
+	((Conn *)conn)->InternalClose();
 }
 void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
-	RConn::Stream s = RConn::Get(cid);
+	Conn::Stream s = Conn::Get(cid);
 	if (s == nullptr) { return; }
 	std::string buf(data, datalen);
 	s->Rep(msgid, buf);
 }
 void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
-	RConn::Stream s = RConn::Get(cid);
+	Conn::Stream s = Conn::Get(cid);
 	if (s == nullptr) { return; }
 	std::string buf(data, datalen);
 	s->Notify(type, buf);
 }
 void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
-	RConn::Stream s = RConn::Get(cid);
+	Conn::Stream s = Conn::Get(cid);
 	if (s == nullptr) { return; }
 	Error *e = new Error();
 	e->set_error_code(MTK_APPLICATION_ERROR);
@@ -328,16 +305,15 @@ void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_
 	s->Throw(msgid, e);
 }
 void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
-	RConn::Stream s = RConn::Get(cid);
+	Conn::Stream s = Conn::Get(cid);
 	if (s == nullptr) { return; }
 	std::string buf(data, datalen);
 	s->AddTask(type, buf);
 }
 void mtk_cid_close(mtk_cid_t cid) {
-	RConn::Stream s = RConn::Get(cid);
+	Conn::Stream s = Conn::Get(cid);
 	if (s == nullptr) { return; }
-	SystemPayload::Close c;
-	s->SysTask(Request::Close, c);
+	s->Close();
 }
 
 

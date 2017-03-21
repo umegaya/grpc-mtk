@@ -113,11 +113,13 @@ extern void mtk_svconn_finish_login(mtk_login_cid_t login_cid,
 									mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn);
 extern mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn);
+//mtk_svconn_* is callable only when it called inside function which is provided as mtk_svconf_t::handler. 
 extern void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_close(mtk_svconn_t conn);
+//mtk_cid_* is callable anywhere. but you need cid which obtained by mtk_svconn_cid.
 extern void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);

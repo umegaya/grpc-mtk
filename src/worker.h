@@ -20,20 +20,19 @@ namespace mtk {
         Service* service_;
         IHandler* handler_;
         std::unique_ptr<ServerCompletionQueue> cq_;
+        std::vector<IConn *> connections_;
         bool dying_;
     public:
         IWorker(Service *service, IHandler *handler, ServerBuilder &builder) :
             service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
-            dying_(false) {}
+            connections_(), dying_(false) {}
         virtual ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
         void Launch();
         IConn *New();
         inline void Process(bool ok, void *tag) {
-            IConn *c = (IConn *)(((uintptr_t)tag) & ~((uintptr_t)0x1));
-            if (!ok) {
+            IConn *c = (IConn *)(tag);
+            if (mtk_unlikely(!ok)) {
                 c->Destroy();
-            } else if (((uintptr_t)tag) & 0x1) {
-                c->WStep();
             } else {
                 c->Step();
             }
@@ -42,27 +41,15 @@ namespace mtk {
         inline void Shutdown() { cq_->Shutdown(); }
         inline void PrepareShutdown() { dying_ = true; }
     public: //interface
-        virtual void Run();
-        virtual void OnRegister(IConn *) {}
-        virtual void OnUnregister(IConn *) {}
-        //these are called when login postponed (eg. calling external API)
-        virtual void OnWaitLogin(IConn *) {}
-        virtual void OnFinishLogin(IConn *) {}
-    };
-    //worker which does IO and periodically call ConsumeTask for each connection
-    class TaskConsumableWorker : public IWorker {
-    protected:
-        std::vector<IConn *> connections_;
-    public:
-        TaskConsumableWorker(Service *service, IHandler *handler, ServerBuilder &builder) : 
-            IWorker(service, handler, builder), connections_() {}
-        void Run() override;
-        void OnRegister(IConn *c) override { connections_.push_back(c); }
-        void OnUnregister(IConn *) override;
-        void OnWaitLogin(IConn *c) override { OnRegister(c); }
-        void OnFinishLogin(IConn *c) override { OnUnregister(c); }
+        void Run();
+        void OnRegister(IConn *c);
+        void OnUnregister(IConn *);
+        void OnWaitLogin(IConn *c) { OnRegister(c); }
+        void OnFinishLogin(IConn *c) { OnUnregister(c); }
+        void WaitAccept(ServerContext *ctx, ServerAsyncReaderWriter<Reply, Request> *io, IConn *c) {
+           service_->RequestWrite(ctx, io, cq_.get(), cq_.get(), c);
+        }
     };
     //default definition
-    typedef IWorker WriteWorker;
-    typedef TaskConsumableWorker ReadWorker;
+    typedef IWorker Worker;
 }

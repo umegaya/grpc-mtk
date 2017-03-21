@@ -6,26 +6,21 @@ namespace mtk {
         thr_ = std::thread([this](){ this->Run(); });
     }
     IConn *IWorker::New() {
-        IConn *c = handler_->NewConn(this, service_, handler_, cq_.get());
+        IConn *c = handler_->NewConn(this, handler_);
         c->Step();
         return c;
     }
-    void IWorker::Run() {
-        New();
-        void* tag;  // uniquely identifies a request.
-        bool ok;
-        while (cq_->Next(&tag, &ok)) {
-            Process(ok, tag);
-        }
+    void IWorker::OnRegister(IConn *c) { 
+        ASSERT(std::find(connections_.begin(), connections_.end(), c) == connections_.end());
+        connections_.push_back(c); 
     }
-    //task consumable worker
-    void TaskConsumableWorker::OnUnregister(IConn *c) {
+    void IWorker::OnUnregister(IConn *c) {
         auto it = std::find(connections_.begin(), connections_.end(), c);
         if (it != connections_.end()) {
             connections_.erase(it);
         }
     }
-    void TaskConsumableWorker::Run() {
+    void IWorker::Run() {
         New();
         gpr_timespec wait = gpr_time_from_millis(50, GPR_TIMESPAN);
         const int n_process = 3;
