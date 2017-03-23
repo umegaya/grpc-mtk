@@ -35,7 +35,7 @@ namespace mtk {
 			return rawsleep(dur, true);
 		}
 		timespec_t pause(timespec_t dur) {
-			return rawsleep(dur, true);
+			return rawsleep(dur, false);
 		}
 	}
 }

@@ -1,5 +1,5 @@
 #include "mtk.h"
-#include "stream.h"
+#include "rpc.h"
 #include "worker.h"
 #include "conn.h"
 #include "server.h"
@@ -108,7 +108,7 @@ protected://tranpoline
 mtk_closure_t QueueReadHandler::dummy_;
 
 /* credentical generation */
-static bool CreateCred(const mtk_addr_t &settings, DuplexStream::CredOptions &options) {
+static bool CreateCred(const mtk_addr_t &settings, RPCStream::CredOptions &options) {
     if (settings.cert == nullptr) {
         return false;
     }
@@ -168,15 +168,20 @@ public:
 	}
 };
 
-/* client stream delegate */
-class StreamDelegate : public DuplexStream, IDuplexStreamDelegate {
+/* client */
+class Client : public RPCStream, RPCStream::IClientDelegate {
 protected:
 	mtk_clconf_t clconf_;
 	SystemPayload::Connect crep_;
 public:
-	StreamDelegate(mtk_clconf_t *clconf) : DuplexStream(this), clconf_(*clconf) {}
+	Client(mtk_clconf_t *clconf) : RPCStream(this), clconf_(*clconf) {}
+	//implements RPCStream::IClientDelegate
 	uint64_t Id() const { return clconf_.id; }
-   	bool Valid() const { return clconf_.validate == nullptr ? true : clconf_.validate(); }
+   	bool Ready() const { 
+   		return mtk_closure_valid(&clconf_.on_validate) ? 
+   			mtk_closure_call_noarg(&clconf_.on_validate, on_validate) : 
+   			true; 
+   	}
     bool AddPayload(SystemPayload::Connect &c) {
     	c.set_id(clconf_.id);
     	c.set_payload(clconf_.payload, clconf_.payload_len);
@@ -197,7 +202,7 @@ public:
     	if (mtk_closure_valid(&clconf_.on_close)) {
     		dur = mtk_closure_call(&clconf_.on_close, on_close, clconf_.id, reconnect_attempt);
     	}
-    	return dur != 0 ? dur : DuplexStream::CalcReconnectWaitDuration(reconnect_attempt);
+    	return dur != 0 ? dur : CalcReconnectWaitDuration(reconnect_attempt);
     }
     void Poll() {}
 };
@@ -223,7 +228,6 @@ public:
 
 
 /******* grpc client/server API *******/
-mtk_closure_t mtk_clousure_nop = { nullptr, { nullptr } };
 void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf, mtk_server_t *psv) {
 	Server *sv = new Server(*addr, *svconf);
 	*psv = sv;
@@ -310,39 +314,39 @@ void mtk_cid_close(mtk_cid_t cid) {
 
 
 mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
-	DuplexStream *ds = new StreamDelegate(clconf);
-	DuplexStream::CredOptions opts;
-	ds->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
-	return (void *)ds;
+	Client *cl = new Client(clconf);
+	Client::CredOptions opts;
+	cl->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
+	return (void *)cl;
 }
 mtk_cid_t mtk_conn_cid(mtk_conn_t c) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	return ds->Id();
+	Client *cl = (Client *)c;
+	return cl->Id();
 }
 void mtk_conn_poll(mtk_conn_t c) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	ds->Update();
+	Client *cl = (Client *)c;
+	cl->Update();
 }
 void mtk_conn_close(mtk_conn_t c) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	ds->Finalize();
-	delete ds;
+	Client *cl = (Client *)c;
+	cl->Finalize();
+	delete cl;
 }
 void mtk_conn_reset(mtk_conn_t c) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	ds->Release();
+	Client *cl = (Client *)c;
+	cl->Release();
 }
 void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, mtk_size_t plen, mtk_closure_t clsr) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	ds->Call(type, p, plen, *(Closure*)&clsr);
+	Client *cl = (Client *)c;
+	cl->Call(type, p, plen, *(Closure*)&clsr);
 }
 void mtk_conn_watch(mtk_conn_t c, uint32_t type, mtk_closure_t clsr) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	ds->RegisterNotifyCB(type, *(Closure*)&clsr);
+	Client *cl = (Client *)c;
+	cl->RegisterNotifyCB(type, *(Closure*)&clsr);
 }
 bool mtk_conn_connected(mtk_svconn_t c) {
-	StreamDelegate *ds = (StreamDelegate *)c;
-	return ds->IsConnected();
+	Client *cl = (Client *)c;
+	return cl->IsConnected();
 }
 
 
@@ -443,9 +447,9 @@ const char *mtk_httpsrv_read_body(mtk_httpsrv_request_t req, mtk_size_t *size) {
 	*size = fsm->bodylen();
 	return fsm->body();	
 }
-void mtk_httpsrv_write_header(mtk_httpsrv_response_t res, int status, mtk_http_header_t *hds, mtk_size_t n_hds) {
+void mtk_httpsrv_write_header(mtk_httpsrv_response_t res, int status, mtk_http_header_t *hcl, mtk_size_t n_hcl) {
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
-	writer->WriteHeader((http_result_code_t)status, (grpc_http_header *)hds, n_hds);
+	writer->WriteHeader((http_result_code_t)status, (grpc_http_header *)hcl, n_hcl);
 }
 void mtk_httpsrv_write_body(mtk_httpsrv_response_t res, const char *buffer, mtk_size_t len) {
 	HttpServer::IResponseWriter *writer = (HttpServer::IResponseWriter *)res;
@@ -467,6 +471,8 @@ mtk_time_t mtk_pause(mtk_time_t d) {
 void mtk_log_init() {
 	logger::Initialize();
 }
+
+mtk_closure_t mtk_closure_nop = { nullptr, { nullptr } };
 
 mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor) {
 	return new Queue(dtor);

@@ -1,4 +1,4 @@
-#include "stream.h"
+#include "rpc.h"
 #include "codec.h"
 #include <grpc++/grpc++.h>
 #include <cmath>
@@ -11,10 +11,10 @@ extern std::string cl_cert;
 Reply *IOThread::DISCONNECT_EVENT = reinterpret_cast<Reply*>(0x0);
 Reply *IOThread::ESTABLISHED_EVENT = reinterpret_cast<Reply*>(0x1);
 Request *IOThread::ESTABLISH_REQUEST = reinterpret_cast<Request*>(0x2);
-Reply *DuplexStream::DISCONNECT_EVENT = IOThread::DISCONNECT_EVENT;
-Reply *DuplexStream::ESTABLISHED_EVENT = IOThread::ESTABLISHED_EVENT;
-Request *DuplexStream::ESTABLISH_REQUEST = IOThread::ESTABLISH_REQUEST;
-Error *DuplexStream::TIMEOUT_ERROR = nullptr;
+Reply *RPCStream::DISCONNECT_EVENT = IOThread::DISCONNECT_EVENT;
+Reply *RPCStream::ESTABLISHED_EVENT = IOThread::ESTABLISHED_EVENT;
+Request *RPCStream::ESTABLISH_REQUEST = IOThread::ESTABLISH_REQUEST;
+Error *RPCStream::TIMEOUT_ERROR = nullptr;
 
 /* IOThread */
 void IOThread::Initialize(const char *addr, CredOptions *options) {
@@ -140,8 +140,8 @@ gpr_timespec IOThread::GRPCTime(uint32_t duration_msec) {
     return ts;
 }
 
-/* DuplexStream */
-int DuplexStream::Initialize(const char *addr, CredOptions *options) {
+/* RPCStream */
+int RPCStream::Initialize(const char *addr, CredOptions *options) {
     iothr_.Initialize(addr, options);
     reqmtx_.lock();
     if (TIMEOUT_ERROR == nullptr) {
@@ -153,20 +153,20 @@ int DuplexStream::Initialize(const char *addr, CredOptions *options) {
     return 0;
 }
 
-void DuplexStream::Release() {
+void RPCStream::Release() {
     restarting_ = true;
     replys_.enqueue(DISCONNECT_EVENT);
 }
 
-void DuplexStream::Finalize() {
+void RPCStream::Finalize() {
     iothr_.Stop();
 }
 
-timespec_t DuplexStream::Tick() {
+timespec_t RPCStream::Tick() {
     return clock::now();
 }
 
-timespec_t DuplexStream::ReconnectWaitUsec() {
+timespec_t RPCStream::ReconnectWaitUsec() {
     timespec_t now = Tick();
     if (reconnect_when_ < now) {
         return 0;
@@ -175,7 +175,7 @@ timespec_t DuplexStream::ReconnectWaitUsec() {
     }
 }
 
-timespec_t DuplexStream::CalcReconnectWaitDuration(int n_attempt) {
+timespec_t RPCStream::CalcReconnectWaitDuration(int n_attempt) {
     timespec_t base;
     if (n_attempt <= 1) {
         base = clock::sec(5);
@@ -185,11 +185,11 @@ timespec_t DuplexStream::CalcReconnectWaitDuration(int n_attempt) {
     }
     return CalcJitter(base);
 }
-timespec_t DuplexStream::CalcJitter(timespec_t base) {
+timespec_t RPCStream::CalcJitter(timespec_t base) {
     return std::ceil(((double)(800 + rand() % 500) * base) / 1000); //0.800 to 1.200 times
 }
 
-void DuplexStream::StartWrite() {
+void RPCStream::StartWrite() {
     SystemPayload::Connect payload;
     delegate_->AddPayload(payload);
     Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
@@ -201,14 +201,14 @@ void DuplexStream::StartWrite() {
     });
 }
 
-void DuplexStream::DrainRequestQueue() {
+void RPCStream::DrainRequestQueue() {
     Request* drain_req;
     while (requests_.try_dequeue(drain_req)) {
         delete drain_req;
     }    
 }
 
-void DuplexStream::DrainQueue() {
+void RPCStream::DrainQueue() {
     //drain queue
     Reply* drain_rep;
     while (replys_.try_dequeue(drain_rep)) {
@@ -226,7 +226,7 @@ void DuplexStream::DrainQueue() {
     reqmtx_.unlock();
 }
 
-void DuplexStream::ProcessReply() {
+void RPCStream::ProcessReply() {
     Reply* rep;
     while (replys_.try_dequeue(rep)) {
         if (rep == DISCONNECT_EVENT || rep == ESTABLISHED_EVENT) {
@@ -277,7 +277,7 @@ void DuplexStream::ProcessReply() {
     }
 }
 
-void DuplexStream::ProcessTimeout(timespec_t now) {
+void RPCStream::ProcessTimeout(timespec_t now) {
     reqmtx_.lock();
     uint32_t erased[reqmap_.size()], n_erased = 0;
     SEntry *entries[reqmap_.size()];
@@ -298,8 +298,8 @@ void DuplexStream::ProcessTimeout(timespec_t now) {
     }
 }
         
-void DuplexStream::Update() {
-    if (!delegate_->Valid()) {
+void RPCStream::Update() {
+    if (!delegate_->Ready()) {
         DrainQueue();
         restarting_ = true;
         status_ = NetworkStatus::DISCONNECT;
@@ -310,7 +310,7 @@ void DuplexStream::Update() {
     switch(status_) {
         case NetworkStatus::DISCONNECT: {
             //due to reconnect_attempt_, sleep for a while
-            if (!delegate_->Valid() || reconnect_when_ > now) {
+            if (!delegate_->Ready() || reconnect_when_ > now) {
                 //TRACE("reconnect wait: {}", ReconnectWaitUsec());
                 return; //skip reconnection until time comes
             } else {
@@ -337,6 +337,6 @@ void DuplexStream::Update() {
     ProcessTimeout(now);
 }
 
-template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req) { req.set_kind(Request::Connect); }
-template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req) { req.set_kind(Request::Ping); }
+template <> void RPCStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req) { req.set_kind(Request::Connect); }
+template <> void RPCStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req) { req.set_kind(Request::Ping); }
 }

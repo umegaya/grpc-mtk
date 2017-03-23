@@ -26,18 +26,9 @@ namespace grpc {
 }
 
 namespace mtk {
-    class IDuplexStreamDelegate {
-    public:
-        virtual mtk_cid_t Id() const = 0;
-        virtual bool Valid() const = 0;
-        virtual bool AddPayload(SystemPayload::Connect &c) = 0;
-        virtual bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len) = 0;
-        virtual mtk_time_t OnCloseStream(int reconnect_attempt) = 0;
-        virtual void Poll() = 0;
-    };
-    class DuplexStream;
+    class RPCStream;
     class IOThread {
-        friend class DuplexStream;
+        friend class RPCStream;
     protected:
         typedef Stream::Stub Stub;
         typedef grpc::SslCredentialsOptions CredOptions;
@@ -45,7 +36,7 @@ namespace mtk {
         static Reply *ESTABLISHED_EVENT;
         static Request *ESTABLISH_REQUEST;
     protected:
-        DuplexStream &owner_;
+        RPCStream &owner_;
         std::thread thr_;
         std::unique_ptr<Stub> stub_;
         std::unique_ptr<ClientAsyncReaderWriter<Request, Reply>> io_;
@@ -56,7 +47,7 @@ namespace mtk {
         uint32_t connect_sequence_num_;
         bool is_sending_, alive_;
     public:
-        IOThread(DuplexStream &s) : owner_(s), thr_(), stub_(), io_(), cq_(), 
+        IOThread(RPCStream &s) : owner_(s), thr_(), stub_(), io_(), cq_(), 
             prev_io_(nullptr), context_(nullptr), reply_work_(nullptr), 
             connect_sequence_num_(0), is_sending_(false), alive_(true) {}
         void Initialize(const char *addr, CredOptions *options);
@@ -102,8 +93,17 @@ namespace mtk {
         static void SetDeadline(ClientContext &ctx, uint32_t duration_msec);
         static gpr_timespec GRPCTime(uint32_t duration_msec);
     };
-    class DuplexStream {
+    class RPCStream {
     public:
+        class IClientDelegate {
+        public:
+            virtual mtk_cid_t Id() const = 0;
+            virtual bool Ready() const = 0; //until this return true, RPCStream does nothing
+            virtual bool AddPayload(SystemPayload::Connect &c) = 0;
+            virtual bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len) = 0;
+            virtual mtk_time_t OnCloseStream(int reconnect_attempt) = 0;
+            virtual void Poll() = 0;
+        };
         enum NetworkStatus {
             DISCONNECT,
             CONNECTING,
@@ -131,8 +131,7 @@ namespace mtk {
             }
         };
     protected:
-        //following will be move to seperate module for reusing on server side.
-        IDuplexStreamDelegate *delegate_;
+        IClientDelegate *delegate_;
         ConcurrentQueue<Reply*> replys_;
         ConcurrentQueue<Request*> requests_;
         std::mutex reqmtx_;
@@ -146,13 +145,13 @@ namespace mtk {
         IOThread iothr_;
         bool dump_;
     public:
-        DuplexStream(IDuplexStreamDelegate *d) : delegate_(d),
+        RPCStream(IClientDelegate *d) : delegate_(d),
             replys_(), requests_(), reqmtx_(), reqmap_(), notifymap_(), 
             restarting_(false), last_checked_(0), reconnect_when_(0), msgid_seed_(0), reconnect_attempt_(0), 
             status_(NetworkStatus::DISCONNECT), iothr_(*this), dump_(false) {
         };
-        virtual ~DuplexStream() {}
-        uint64_t Id() const { return delegate_->Id(); }
+        virtual ~RPCStream() {}
+        mtk_cid_t Id() const { return delegate_->Id(); }
         void SetDump() { dump_ = true; }
     public:
         int Initialize(const char *addr, CredOptions *options);
@@ -238,6 +237,6 @@ namespace mtk {
     protected:
         static void NopInternalCallback(::google::protobuf::Message &);
     };
-    template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req);
-    template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req);
+    template <> void RPCStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req);
+    template <> void RPCStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req);
 }

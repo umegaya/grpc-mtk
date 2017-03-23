@@ -25,6 +25,7 @@ typedef struct {
 } mtk_http_header_t;
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, mtk_size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, mtk_size_t);
+typedef bool (*mtk_validate_cb_t)(void *);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, mtk_size_t);
 typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, mtk_cid_t, 
@@ -37,6 +38,7 @@ typedef struct {
 		mtk_callback_t on_msg;
 		mtk_connect_cb_t on_connect;
 		mtk_close_cb_t on_close;
+		mtk_validate_cb_t on_validate;
 		mtk_server_recv_cb_t on_svmsg;
 		mtk_server_accept_cb_t on_accept;
 		mtk_httpsrv_cb_t on_httpsrv;
@@ -93,8 +95,7 @@ typedef struct {
 	mtk_cid_t id;
 	const char *payload;
 	mtk_size_t payload_len;
-	mtk_closure_t on_connect, on_close;
-	bool (*validate)();
+	mtk_closure_t on_connect, on_close, on_validate;
 } mtk_clconf_t;
 typedef enum {
 	MTK_APPLICATION_ERROR = -1,
@@ -139,6 +140,7 @@ extern bool mtk_conn_connected(mtk_svconn_t conn);
 extern mtk_closure_t mtk_closure_nop;
 #define mtk_closure_valid(__pclsr) ((__pclsr)->check != nullptr)
 #define mtk_closure_call(__pclsr, __type, ...) ((__pclsr)->__type((__pclsr)->arg, __VA_ARGS__))
+#define mtk_closure_call_noarg(__pclsr, __type) ((__pclsr)->__type((__pclsr)->arg))
 
 
 

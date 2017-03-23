@@ -39,7 +39,7 @@ bool test::run(ConnectPayload::LoginMode login_mode, mtk_time_t timeout) {
 		.cert = nullptr,
 	};
 	mtk_clconf_t conf = {
-		.validate = nullptr,
+		.on_validate = mtk_closure_nop,
 		.payload = (char *)buff,
 		.payload_len = static_cast<mtk_size_t>(p.ByteSize()),
 	};
