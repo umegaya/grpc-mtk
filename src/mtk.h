@@ -95,7 +95,7 @@ typedef struct {
 	mtk_cid_t id;
 	const char *payload;
 	mtk_size_t payload_len;
-	mtk_closure_t on_connect, on_close, on_validate;
+	mtk_closure_t on_connect, on_close, on_ready;
 } mtk_clconf_t;
 typedef enum {
 	MTK_APPLICATION_ERROR = -1,

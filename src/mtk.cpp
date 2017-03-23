@@ -178,8 +178,8 @@ public:
 	//implements RPCStream::IClientDelegate
 	uint64_t Id() const { return clconf_.id; }
    	bool Ready() const { 
-   		return mtk_closure_valid(&clconf_.on_validate) ? 
-   			mtk_closure_call_noarg(&clconf_.on_validate, on_validate) : 
+   		return mtk_closure_valid(&clconf_.on_ready) ? 
+   			mtk_closure_call_noarg(&clconf_.on_ready, on_ready) : 
    			true; 
    	}
     bool AddPayload(SystemPayload::Connect &c) {

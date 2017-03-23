@@ -13,7 +13,7 @@ namespace Mtk {
 
     //delegates
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate bool ConnectStartReadyCB();
+    public delegate bool ClientReadyCB(void *arg);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void ClientRecvCB(void *arg, int type_or_error, byte *buf, uint buflen);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -39,6 +39,9 @@ namespace Mtk {
         ClientCloseCB on_close;
 
         [FieldOffset(sizeof(IntPtr))]
+        ClientReadyCB on_ready;
+
+        [FieldOffset(sizeof(IntPtr))]
         ServerReceiveCB on_svmsg;
 
         [FieldOffset(sizeof(IntPtr))]
@@ -47,14 +50,11 @@ namespace Mtk {
     struct Address {
         byte *host, *cert, *key, *ca;
     };
-    struct ThreadConfig {
-        uint n_reader, n_writer;
-    };
     struct ServerConfig {
-        ThreadConfig thread;
+        uint n_worker;
         Closure handler, acceptor;
         bool exclusive; //if true, caller thread of mtk_listen blocks
-
+        bool use_queue;
     };
     struct ClientConfig {
         ulong id;
@@ -80,7 +80,7 @@ namespace Mtk {
 
     //listener
     [DllImport (DllName)]
-    private static extern unsafe void mtk_listen(ref Address listen_at, ref ServerConfig conf ref System.IntPtr sv);
+    private static extern unsafe void mtk_listen(ref Address listen_at, ref ServerConfig conf, ref System.IntPtr sv);
     [DllImport (DllName)]
     private static extern unsafe void mtk_server_stop(void *sv);
     [DllImport (DllName)]
@@ -101,6 +101,10 @@ namespace Mtk {
     private static extern unsafe void mtk_svconn_task(void *conn, uint type, byte *data, uint datalen);
     [DllImport (DllName)]
     private static extern unsafe void mtk_svconn_close(void *conn);
+    [DllImport (DllName)]
+    private static extern unsafe void mtk_svconn_finish_login(ulong login_cid, ulong cid, uint msgid, byte *data, uint datalen);
+    [DllImport (DllName)]
+    private static extern unsafe ulong mtk_svconn_defer_login(void *conn);
 
     //other server conn, using cid 
     [DllImport (DllName)]
@@ -241,14 +245,22 @@ namespace Mtk {
                 queue_ = mtk_server_queue(server_);
             }
         }
-        public bool PopEvent(ref System.IntPtr elem) {
-            unsafe {
-                return mtk_queue_pop(queue_, elem);
-            }
-        }
-        public void FreeEvent(System.IntPtr elem) {
-            unsafe {
-                mtk_queue_elem_free(queue_. elem);
+        public void Process(IServerLogic logic) {
+            System.IntPtr elem;
+            while (sv_.PopEvent(ref elem)) {
+                ServerEvent *ev = (ServerEvent *)elem;
+                if (ev->lcid != 0) {
+                    var ret = new byte[ev->datalen];
+                    Marshal.Copy(((byte *)ev) + sizeof(ServerEvent), ret, 0, ev->datalen);
+                    var rep = logic.OnAccept(ev->cid, ret);
+                    mtk_svconn_finish_login(ev->lcid, rep.cid, ev->msgid, rep.data, rep.data.Length);
+                } else {
+                    var c = new CidConn(ev->cid, ev->msgid);
+                    var ret = new byte[ev->datalen];
+                    Marshal.Copy(((byte *)ev) + sizeof(ServerEvent), ret, 0, ev->datalen);
+                    logic.OnRecv(c, ev->result, ret);
+                }
+                sv_.FreeEvent(elem);
             }
         }
     }
@@ -271,7 +283,7 @@ namespace Mtk {
         ulong id_;
         string payload_;
         Closure on_connect_, on_close_;
-        ConnectStartReadyCB on_validate_;
+        ClientReadyCB on_ready_;
         public ClientBuilder() {}
         public ClientBuilder ListenAt(string at) {
             base.ListenAt(at);
@@ -294,8 +306,8 @@ namespace Mtk {
             on_connect_.arg = arg;
             on_connect_.on_connect = cb;
         }
-        public ClientBuilder OnValidate(ConnectStartReadyCB cb) {
-            on_validate_ = cb;
+        public ClientBuilder OnReady(ClientReadyCB cb) {
+            on_ready_ = cb;
         }
         public Conn Build() {
             var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0"));
@@ -318,7 +330,7 @@ namespace Mtk {
         }
     }
     public class ServerBuilder : Builder {
-        ThreadConfig thread_;
+        uint n_worker_;
         Closure handler_, acceptor_:
         public ServerBuilder() {}
         public ServerBuilder ListenAt(string at) {
@@ -327,20 +339,21 @@ namespace Mtk {
         }
         public ServerBuilder Certs(string cert, string key, string ca) {
             base.Certs(cert, key, ca);
-            return this;            
+            return this;
         }
-        public ServerBuilder Worker(int n_reader, int n_writer) {
-            thread_.n_reader = n_reader;
-            thread_.n_writer = n_writer;
+        public ServerBuilder Worker(int n_worker) {
+            n_worker_ = n_worker;
+            return this;
         }
-        //these function will be called from another thread than Unity's main thread
-        public ServerBuilder OnRecv(ServerReceiveCB cb, System.IntPtr arg = 0) {
-            handler_.arg = arg;
-            handler_.on_svmsg = cb;
+        static public int OnRecv(void *arg, void *svconn, int type, byte *buf, uint buflen) {
+            return 0;
         }
-        public ServerBuilder OnAccept(ServerReceiveCB cb, System.IntPtr arg = 0) {
-            acceptor_.arg = arg;
-            acceptor_.on_accept = cb;
+        static public ulong OnAccept(void *arg, void *svconn, ulong cid, byte *credential, uint credlen, char **pp_reply, uint *p_replen) {
+            return 0;
+        }
+        static Closure Nop() {
+            Closure cl = new Closure();
+            cl.handler_ = 
         }
         public Server Build() {
             var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0"));
@@ -351,9 +364,14 @@ namespace Mtk {
                 fixed (byte* h = b_host, c = b_cert, k = b_key, ca = b_ca) {
                     Address addr = new Address { host = h, cert = c, key = k, ca = b_ca };
                     ServerConfig conf = new ServerConfig { 
-                        thread = thread_, exclusive = false,
-                        acceptor = acceptor_, handler = handler_,
+                        n_worker = n_worker_, exclusive = false,
+                        use_queue = true,
                     };
+                    conf.handler.arg = 0;
+                    conf.handler.on_svmsg = OnRecv;
+                    conf.acceptor.arg = 0;
+                    conf.acceptor.on_svmsg = OnAccept;
+                    
                     System.IntPtr svp;
                     mtk_listen(ref addr, ref conf, ref svp)
                     var s = new Server(svp);
