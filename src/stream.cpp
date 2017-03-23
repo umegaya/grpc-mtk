@@ -2,23 +2,147 @@
 #include "codec.h"
 #include <grpc++/grpc++.h>
 #include <cmath>
+#include <chrono>
 
 namespace mtk {
 extern std::string cl_ca;
 extern std::string cl_key;
 extern std::string cl_cert;
-Reply *DuplexStream::DISCONNECT_EVENT = reinterpret_cast<Reply*>(0x0);
-Reply *DuplexStream::ESTABLISHED_EVENT = reinterpret_cast<Reply*>(0x1);
-Request *DuplexStream::ESTABLISH_REQUEST = reinterpret_cast<Request*>(0x2);
+Reply *IOThread::DISCONNECT_EVENT = reinterpret_cast<Reply*>(0x0);
+Reply *IOThread::ESTABLISHED_EVENT = reinterpret_cast<Reply*>(0x1);
+Request *IOThread::ESTABLISH_REQUEST = reinterpret_cast<Request*>(0x2);
+Reply *DuplexStream::DISCONNECT_EVENT = IOThread::DISCONNECT_EVENT;
+Reply *DuplexStream::ESTABLISHED_EVENT = IOThread::ESTABLISHED_EVENT;
+Request *DuplexStream::ESTABLISH_REQUEST = IOThread::ESTABLISH_REQUEST;
 Error *DuplexStream::TIMEOUT_ERROR = nullptr;
 
-
-int DuplexStream::Initialize(const char *addr, CredOptions *options) {
+/* IOThread */
+void IOThread::Initialize(const char *addr, CredOptions *options) {
     if (options != nullptr) {
         stub_ = std::unique_ptr<Stub>(new Stream::Stub(grpc::CreateChannel(addr, grpc::SslCredentials(*options))));
     } else {
         stub_ = std::unique_ptr<Stub>(new Stream::Stub(grpc::CreateChannel(addr, grpc::InsecureChannelCredentials())));
     }
+}
+void IOThread::Start() {
+    if (!thr_.joinable()) {
+        thr_ = std::thread(std::bind(&IOThread::Run, this));
+    };
+}
+void IOThread::Stop() {
+    if (thr_.joinable()) {
+        alive_ = false;
+        thr_.join();
+    }
+}
+void IOThread::Run() {
+    void *tag;
+    bool ok;
+    gpr_timespec wait = gpr_time_from_millis(50, GPR_TIMESPAN);
+
+    // Block until the next result is available in the completion queue "cq".
+    while (alive_) {
+        switch (cq_.AsyncNext(&tag, &ok, wait)) {
+            case grpc::CompletionQueue::SHUTDOWN:
+                HandleEvent(false, tag);
+                break;
+            case grpc::CompletionQueue::GOT_EVENT:
+                HandleEvent(ok, tag);
+                break;
+            case grpc::CompletionQueue::TIMEOUT:
+                if (!is_sending_) {
+                    Request *req;
+                    if (owner_.PopRequest(req)) {
+                        if (req == ESTABLISH_REQUEST) {
+                            Open();
+                        } else {
+                            io_->Write(*req, GenerateWriteTag(req->msgid()));
+                            delete req;
+                            is_sending_ = true;
+                        }
+                    }
+                }
+                break;
+        }
+    }
+}
+void IOThread::HandleEvent(bool ok, void *tag) {
+    Request *req;
+    if (IsWriteOperation(tag)) {
+        if (!ok) {
+            //connection closed. stop sending
+            return;
+        }
+        //end of write operation
+        if (owner_.PopRequest(req)) {
+            io_->Write(*req, GenerateWriteTag(req->msgid()));
+            //TRACE("Write:{}", req->msgid());
+            delete req;
+        } else {
+            is_sending_ = false;
+        }
+        //TRACE("write for tag {}({}) finished", (void *)tag, sidx);
+        return;
+    } else if (IsReadOperation(tag)) {
+        Reply *r = reply_work_;
+        if (!ok) {
+            uint32_t seq = ConnectSequenceFromReadTag(tag);
+            TRACE("connection closed. seq {} {}", seq, connect_sequence_num_);
+            if (r != nullptr) {
+                delete r;
+                reply_work_ = nullptr;
+            }
+            owner_.DrainRequestQueue();
+            ASSERT(connect_sequence_num_ >= seq);
+            //here, previous connection closed or current connection closed.
+            //anyway we can remove previous one.
+            if (prev_io_ != nullptr) {
+                delete prev_io_;
+                prev_io_ = nullptr;
+            }
+            if (connect_sequence_num_ == seq) {
+                //push event pointer to indicate connection closed
+                owner_.PushReply(DISCONNECT_EVENT);
+            }
+        } else {
+            if (r != nullptr) {
+                //end of read operation. 
+                if (!owner_.PushReply(r)) {
+                    ASSERT(false);
+                }
+                reply_work_ = nullptr;
+            } else {
+                //call establishment
+                if (prev_io_ != nullptr) {
+                    delete prev_io_;
+                    prev_io_ = nullptr;
+                }
+                owner_.PushReply(ESTABLISHED_EVENT);
+            }
+            reply_work_ = new Reply();
+            io_->Read(reply_work_, GenerateReadTag(connect_sequence_num_));
+        }
+    }
+}
+void IOThread::SetDeadline(ClientContext &ctx, uint32_t duration_msec) {
+    if (duration_msec == UINT32_MAX) {
+        ctx.set_deadline(gpr_inf_future(GPR_CLOCK_REALTIME));
+        return;
+    }
+    gpr_timespec ts = GRPCTime(duration_msec);
+    ctx.set_deadline(ts);
+}
+
+gpr_timespec IOThread::GRPCTime(uint32_t duration_msec) {
+    gpr_timespec ts;
+    grpc::Timepoint2Timespec(
+        std::chrono::system_clock::now() + std::chrono::milliseconds(duration_msec), &ts);
+    return ts;
+}
+
+/* DuplexStream */
+int DuplexStream::Initialize(const char *addr, CredOptions *options) {
+    iothr_.Initialize(addr, options);
     reqmtx_.lock();
     if (TIMEOUT_ERROR == nullptr) {
         auto err = new Error();
@@ -30,16 +154,12 @@ int DuplexStream::Initialize(const char *addr, CredOptions *options) {
 }
 
 void DuplexStream::Release() {
-    TRACE("DuplexStream::Release");
     restarting_ = true;
     replys_.enqueue(DISCONNECT_EVENT);
 }
 
 void DuplexStream::Finalize() {
-    alive_ = false;
-    if (thr_.joinable()) {
-        thr_.join();
-    }
+    iothr_.Stop();
 }
 
 timespec_t DuplexStream::Tick() {
@@ -81,6 +201,13 @@ void DuplexStream::StartWrite() {
     });
 }
 
+void DuplexStream::DrainRequestQueue() {
+    Request* drain_req;
+    while (requests_.try_dequeue(drain_req)) {
+        delete drain_req;
+    }    
+}
+
 void DuplexStream::DrainQueue() {
     //drain queue
     Reply* drain_rep;
@@ -90,10 +217,7 @@ void DuplexStream::DrainQueue() {
         }
         if (drain_rep != nullptr) { delete drain_rep; }//ignore following replys, cause already closed.
     }
-    Request* drain_req;
-    while (requests_.try_dequeue(drain_req)) {
-        delete drain_req;
-    }
+    DrainRequestQueue();
     reqmtx_.lock();
     for (auto &p : reqmap_) {
         delete p.second;
@@ -102,91 +226,58 @@ void DuplexStream::DrainQueue() {
     reqmtx_.unlock();
 }
 
-void DuplexStream::Update() {
-    if (!delegate_->Valid()) {
-        DrainQueue();
-        restarting_ = true;
-        status_ = NetworkStatus::DISCONNECT;
-    } else {
-        Reply* rep;
-        while (replys_.try_dequeue(rep)) {
-            if (rep == DISCONNECT_EVENT || rep == ESTABLISHED_EVENT) {
-                DrainQueue();
-                //set state disconnected
-                if (rep == DISCONNECT_EVENT) {
-                    status_ = NetworkStatus::DISCONNECT;
-                    //set reconnect wait 5, 10, 20, .... upto 300 sec
-                    reconnect_when_ = Tick() + delegate_->OnCloseStream(reconnect_attempt_);
-                    TRACE("next reconnect wait: {}", ReconnectWaitUsec());
-                } else if (rep == ESTABLISHED_EVENT) {
-                    reconnect_attempt_ = 0;
-                    reconnect_when_ = 0;
-                    restarting_ = false;
-                    status_ = NetworkStatus::ESTABLISHED;
-                }
-                break;
+void DuplexStream::ProcessReply() {
+    Reply* rep;
+    while (replys_.try_dequeue(rep)) {
+        if (rep == DISCONNECT_EVENT || rep == ESTABLISHED_EVENT) {
+            DrainQueue();
+            //set state disconnected
+            if (rep == DISCONNECT_EVENT) {
+                status_ = NetworkStatus::DISCONNECT;
+                //set reconnect wait 5, 10, 20, .... upto 300 sec
+                reconnect_when_ = Tick() + delegate_->OnCloseStream(reconnect_attempt_);
+                TRACE("next reconnect wait: {}", ReconnectWaitUsec());
+            } else if (rep == ESTABLISHED_EVENT) {
+                reconnect_attempt_ = 0;
+                reconnect_when_ = 0;
+                restarting_ = false;
+                status_ = NetworkStatus::ESTABLISHED;
             }
-            if (restarting_) {
-                TRACE("maybe packet received during restarting ({}/{}}). ignored", rep->msgid(), rep->type());
-            } else if (rep->msgid() == 0) {
-                auto it = notifymap_.find(rep->type());
-                if (it != notifymap_.end()) {
-                    (*it).second(rep->type(), rep->payload().c_str(), rep->payload().length());
-                } else {
-                    TRACE("notify not processed: {}", rep->type());
-                    ASSERT(false);
-                }
-            } else {
-                reqmtx_.lock();
-                auto it = reqmap_.find(rep->msgid());
-                if (it != reqmap_.end()) {
-                    SEntry *ent = (*it).second;
-                    reqmap_.erase(rep->msgid());
-                    reqmtx_.unlock();
-                    if (rep->has_error()) {
-                        (*ent)(nullptr, rep->mutable_error());
-                    } else {
-                        (*ent)(rep, nullptr);
-                    }
-                    delete ent;
-                } else {
-                    reqmtx_.unlock();
-                    TRACE("msgid = {} not found", rep->msgid());
-                }
-            }
-            delete rep;
-        }
-    }
-    timespec_t now = Tick();
-    switch(status_) {
-        case NetworkStatus::DISCONNECT: {
-            //due to reconnect_attempt_, sleep for a while
-            if (!delegate_->Valid() || reconnect_when_ > now) {
-                //TRACE("reconnect wait: {}", ReconnectWaitUsec());
-                return; //skip reconnection until time comes
-            } else {
-                status_ = NetworkStatus::CONNECTING;
-                reconnect_attempt_++;
-                requests_.enqueue(ESTABLISH_REQUEST);
-                if (!thr_.joinable()) {
-                    thr_ = std::thread(std::bind(&DuplexStream::Receive, this));
-                }
-            }
-        } return;
-        case NetworkStatus::CONNECTING: {
-        } return;
-        case NetworkStatus::ESTABLISHED: {
-            status_ = NetworkStatus::INITIALIZING;
-            StartWrite();
-        } break;
-        case NetworkStatus::INITIALIZING: {
-            //TODO: detect timeout and back to DISCONNECT.
             break;
         }
-        case NetworkStatus::CONNECT: {
-            delegate_->Poll();
-        } break;
+        if (restarting_) {
+            TRACE("maybe packet received during restarting ({}/{}}). ignored", rep->msgid(), rep->type());
+        } else if (rep->msgid() == 0) {
+            auto it = notifymap_.find(rep->type());
+            if (it != notifymap_.end()) {
+                (*it).second(rep->type(), rep->payload().c_str(), rep->payload().length());
+            } else {
+                TRACE("notify not processed: {}", rep->type());
+                ASSERT(false);
+            }
+        } else {
+            reqmtx_.lock();
+            auto it = reqmap_.find(rep->msgid());
+            if (it != reqmap_.end()) {
+                SEntry *ent = (*it).second;
+                reqmap_.erase(rep->msgid());
+                reqmtx_.unlock();
+                if (rep->has_error()) {
+                    (*ent)(nullptr, rep->mutable_error());
+                } else {
+                    (*ent)(rep, nullptr);
+                }
+                delete ent;
+            } else {
+                reqmtx_.unlock();
+                TRACE("msgid = {} not found", rep->msgid());
+            }
+        }
+        delete rep;
     }
+}
+
+void DuplexStream::ProcessTimeout(timespec_t now) {
     reqmtx_.lock();
     uint32_t erased[reqmap_.size()], n_erased = 0;
     SEntry *entries[reqmap_.size()];
@@ -206,194 +297,46 @@ void DuplexStream::Update() {
         delete entries[i];
     }
 }
-
-/*
- * this function should be called from worker thread
- */
-void DuplexStream::Receive() {
-    void *tag;
-    bool ok;
-    Request *req;
-    gpr_timespec wait = gpr_time_from_millis(50, GPR_TIMESPAN);
-
-    //TODO: make reconnect_when_ assure thread safe.
-    //conn_ is always accessed after OpenStream set conn_ correctly, so ok.
-    
-    // Block until the next result is available in the completion queue "cq".
-    while (alive_) {
-        switch (cq_.AsyncNext(&tag, &ok, wait)) {
-            case grpc::CompletionQueue::SHUTDOWN:
-                HandleEvent(false, tag);
-                break;
-            case grpc::CompletionQueue::GOT_EVENT:
-                HandleEvent(ok, tag);
-                break;
-            case grpc::CompletionQueue::TIMEOUT:
-                if (!is_sending_) {
-                    if (requests_.try_dequeue(req)) {
-                        if (req == ESTABLISH_REQUEST) {
-                            Open();
-                        } else {
-                            conn_->Write(*req, GenerateWriteTag(req->msgid()));
-                            delete req;
-                            is_sending_ = true;
-                        }
-                    }
-                }
-                break;
-        }
-    }
-}
-void DuplexStream::HandleEvent(bool ok, void *tag) {
-    Request *req;
-    if (IsWriteOperation(tag)) {
-        if (!ok) {
-            //connection closed. stop sending
-            return;
-        }
-        //end of write operation
-        reqmtx_.lock();
-        if (requests_.try_dequeue(req)) {
-            conn_->Write(*req, GenerateWriteTag(req->msgid()));
-            //TRACE("Write:{}", req->msgid());
-            delete req;
-        } else {
-            is_sending_ = false;
-        }
-        reqmtx_.unlock();
-        //TRACE("write for tag {}({}) finished", (void *)tag, sidx);
-        return;
-    } else if (IsReadOperation(tag)) {
-        Reply *r = reply_work_;
-        if (!ok) {
-            uint32_t seq = ConnectSequenceFromReadTag(tag);
-            TRACE("connection closed. seq {} {}", seq, connect_sequence_num_);
-            if (r != nullptr) {
-                delete r;
-                reply_work_ = nullptr;
-            }
-            //drain requests queue
-            while (requests_.try_dequeue(req)) {
-                if (req != nullptr) { delete req; }//ignore following requests, cause already closed.
-            }
-            ASSERT(connect_sequence_num_ >= seq);
-            //here, previous connection closed or current connection closed.
-            //anyway we can remove previous one.
-            if (prev_conn_ != nullptr) {
-                delete prev_conn_;
-                prev_conn_ = nullptr;
-            }
-            if (connect_sequence_num_ == seq) {
-                //push event pointer to indicate connection closed
-                replys_.enqueue(DISCONNECT_EVENT);
-            }
-        } else {
-            if (r != nullptr) {
-                //end of read operation. 
-                if (!replys_.enqueue(r)) {
-                    ASSERT(false);
-                }
-                reply_work_ = nullptr;
-            } else {
-                //call establishment
-                if (prev_conn_ != nullptr) {
-                    delete prev_conn_;
-                    prev_conn_ = nullptr;
-                }
-                replys_.enqueue(ESTABLISHED_EVENT);
-            }
-            reply_work_ = new Reply();
-            conn_->Read(reply_work_, GenerateReadTag(connect_sequence_num_));
-        }
-    }
-    /*
-    if (stream_idx == NUM_STREAM) {
-        if (!ok) {
-            //connection closed. stop sending
-            return;
-        }
-        //end of write operation
-        StreamIndex sidx = StreamFromWriteTag(tag);
-        ASSERT(sidx != NUM_STREAM);
-        reqmtx_.lock();
-        if (requests_[sidx].try_dequeue(req)) {
-            conn_[sidx]->Write(*req, GenerateWriteTag(req->msgid(), sidx));
-            //TRACE("Write:{}", req->msgid());
-            delete req;
-        } else {
-            is_sending_[sidx] = false;
-        }
-        reqmtx_.unlock();
-        //TRACE("write for tag {}({}) finished", (void *)tag, sidx);
-        return;
-    }
-    Reply *r = replys[stream_idx];
-    if (!ok) {
-        uint32_t seq = ConnectSequenceFromReadTag(tag);
-        TRACE("connection closed. seq {} {}", seq, connect_sequence_num_);
-        if (r != nullptr) {
-            delete r;
-            replys[stream_idx] = nullptr;
-        }
-        //drain requests queue
-        while (requests_[stream_idx].try_dequeue(req)) {
-            if (req != nullptr) { delete req; }//ignore following requests, cause already closed.
-        }
-        ASSERT(connect_sequence_num_ >= seq);
-        //here, previous connection closed or current connection closed.
-        //anyway we can remove previous ones.
-        if (prev_conn_[stream_idx] != nullptr) {
-            delete prev_conn_[stream_idx];
-            prev_conn_[stream_idx] = nullptr;
-        }
-        //connection is regarded as "closed" when WRITE stream closed.
-        if (connect_sequence_num_ == seq && stream_idx == WRITE) {
-            //push event pointer to indicate connection closed
-            replys_.enqueue(DISCONNECT_EVENT);
-        }
+        
+void DuplexStream::Update() {
+    if (!delegate_->Valid()) {
+        DrainQueue();
+        restarting_ = true;
+        status_ = NetworkStatus::DISCONNECT;
     } else {
-        //end of read operation or establishment
-        if (r != nullptr) {
-            if (!replys_.enqueue(r)) {
-                ASSERT(false);
-            }
-            replys[stream_idx] = nullptr;
-        } else {
-            if (prev_conn_[stream_idx] != nullptr) {
-                delete prev_conn_[stream_idx];
-                prev_conn_[stream_idx] = nullptr;
-            }
-            if (stream_idx == WRITE) {
-                replys_.enqueue(ESTABLISHED_EVENT);
-            }
-        }
-        r = new Reply();
-        replys[stream_idx] = r;
-        conn_[stream_idx]->Read(r, GenerateReadTag(connect_sequence_num_, (StreamIndex)stream_idx));
+        ProcessReply();
     }
-    */
+    timespec_t now = Tick();
+    switch(status_) {
+        case NetworkStatus::DISCONNECT: {
+            //due to reconnect_attempt_, sleep for a while
+            if (!delegate_->Valid() || reconnect_when_ > now) {
+                //TRACE("reconnect wait: {}", ReconnectWaitUsec());
+                return; //skip reconnection until time comes
+            } else {
+                status_ = NetworkStatus::CONNECTING;
+                reconnect_attempt_++;
+                requests_.enqueue(ESTABLISH_REQUEST);
+                iothr_.Start();
+            }
+        } return;
+        case NetworkStatus::CONNECTING: {
+        } return;
+        case NetworkStatus::ESTABLISHED: {
+            status_ = NetworkStatus::INITIALIZING;
+            StartWrite();
+        } break;
+        case NetworkStatus::INITIALIZING: {
+            //TODO: detect timeout and back to DISCONNECT.
+            break;
+        }
+        case NetworkStatus::CONNECT: {
+            delegate_->Poll();
+        } break;
+    }
+    ProcessTimeout(now);
 }
 
 template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req) { req.set_kind(Request::Connect); }
 template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req) { req.set_kind(Request::Ping); }
-
-
-//2016/08/23 iyatomi: personally I don't like std::chrono and gpr_timespec, these are too complex. but author of grpc++ loves c++11 so much. so I want to limited to use of this only here.
-#include <chrono>
-
-void DuplexStream::SetDeadline(ClientContext &ctx, uint32_t duration_msec) {
-    if (duration_msec == UINT32_MAX) {
-        ctx.set_deadline(gpr_inf_future(GPR_CLOCK_REALTIME));
-        return;
-    }
-    gpr_timespec ts = GRPCTime(duration_msec);
-    ctx.set_deadline(ts);
-}
-
-gpr_timespec DuplexStream::GRPCTime(uint32_t duration_msec) {
-    gpr_timespec ts;
-    grpc::Timepoint2Timespec(
-        std::chrono::system_clock::now() + std::chrono::milliseconds(duration_msec), &ts);
-    return ts;
-}
 }

@@ -61,8 +61,6 @@ public:
 	}
 };
 
-
-
 /* worker handler (queue) */
 class QueueReadHandler : public FunctionHandler {
 protected:
