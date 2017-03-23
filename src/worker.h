@@ -14,23 +14,23 @@ namespace {
 namespace mtk {
     class IHandler;
     //worker base
-    class IWorker {
+    class Worker {
     protected:
         std::thread thr_;
         Service* service_;
         IHandler* handler_;
         std::unique_ptr<ServerCompletionQueue> cq_;
-        std::vector<IConn *> connections_;
+        std::vector<Conn *> connections_;
         bool dying_;
     public:
-        IWorker(Service *service, IHandler *handler, ServerBuilder &builder) :
+        Worker(Service *service, IHandler *handler, ServerBuilder &builder) :
             service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
             connections_(), dying_(false) {}
-        virtual ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
+        virtual ~Worker() { if (thr_.joinable()) { thr_.join(); } }
         void Launch();
-        IConn *New();
+        Conn *New();
         inline void Process(bool ok, void *tag) {
-            IConn *c = (IConn *)(tag);
+            IJob *c = (IJob *)(tag);
             if (mtk_unlikely(!ok)) {
                 c->Destroy();
             } else {
@@ -42,14 +42,12 @@ namespace mtk {
         inline void PrepareShutdown() { dying_ = true; }
     public: //interface
         void Run();
-        void OnRegister(IConn *c);
-        void OnUnregister(IConn *);
-        void OnWaitLogin(IConn *c) { OnRegister(c); }
-        void OnFinishLogin(IConn *c) { OnUnregister(c); }
-        void WaitAccept(ServerContext *ctx, ServerAsyncReaderWriter<Reply, Request> *io, IConn *c) {
+        void OnRegister(Conn *c);
+        void OnUnregister(Conn *);
+        void OnWaitLogin(Conn *c) { OnRegister(c); }
+        void OnFinishLogin(Conn *c) { OnUnregister(c); }
+        void WaitAccept(ServerContext *ctx, ServerAsyncReaderWriter<Reply, Request> *io, Conn *c) {
            service_->RequestWrite(ctx, io, cq_.get(), cq_.get(), c);
         }
     };
-    //default definition
-    typedef IWorker Worker;
 }

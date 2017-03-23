@@ -20,24 +20,22 @@ namespace {
 //#define REFCNT_CHECK 1
 
 namespace mtk {
-    class IWorker;
-    //TODO: separate IReadConn, IWriteConn, because some of interfaces are not necessary for write handler.
-    class IConn {
+    class IJob {
     public:
-        virtual ~IConn() {}
+        virtual ~IJob() {}
         virtual void Step() = 0;
         virtual void Destroy() = 0;
-        virtual void ConsumeTask(int) = 0;
     };
-    //TODO: separate IReadHandler, IWriteHandler, because some of interfaces are not necessary for write handler.
+    class Conn;
+    class Worker;
     class IHandler {
     public:
-        virtual grpc::Status Handle(IConn *c, Request &req) = 0;
-        virtual mtk_cid_t Login(IConn *c, Request &req) = 0;
-        virtual IConn *NewConn(IWorker *worker, IHandler *handler) = 0;
+        virtual grpc::Status Handle(Conn *c, Request &req) = 0;
+        virtual mtk_cid_t Login(Conn *c, Request &req) = 0;
+        virtual Conn *NewConn(Worker *worker, IHandler *handler) = 0;
     };
     typedef uint32_t MessageType;
-    class SVStream : public IConn {
+    class SVStream : public IJob {
     public:
         typedef moodycamel::ConcurrentQueue<Request*> TaskQueue;
     protected:
@@ -78,10 +76,9 @@ namespace mtk {
         #define REF(s) { s->Ref(); }
         #define UNREF(s) { s->Unref(); }
 #endif
-        //implements IConn
+        //implements IJob
         void Step() override;
         void Destroy() override { UNREF(this); }
-        void ConsumeTask(int) override { ASSERT(false); }
     public:
         inline grpc::string RemoteAddress() const { return ctx_.peer(); }
         inline TaskQueue &Tasks() { return tasks_; }
@@ -138,15 +135,15 @@ namespace mtk {
             SysTask(Request::Close, c);
         }
     protected:
-        inline void Finish(IConn *tag) {
+        inline void Finish(IJob *tag) {
             io_.Finish(Status::OK, tag);
         }
         template <class R>
-        inline void Read(R &r, IConn *tag) {
+        inline void Read(R &r, IJob *tag) {
             io_.Read(&r, tag);
         }
         template <class W> 
-        inline void Write(const W &w, IConn *tag) {
+        inline void Write(const W &w, IJob *tag) {
             io_.Write(w, tag);
         }
         template <class W>
@@ -212,7 +209,7 @@ namespace mtk {
     };
     template <> bool SVStream::SetupPayload<std::string>(Reply &rep, const std::string &w);
     template <> bool SVStream::SetupRequest<std::string>(Request &req, MessageType type, const std::string &w);
-    class StreamCloser : public IConn {
+    class StreamCloser : public IJob {
     protected:
         SVStream *stream_;
     public:
@@ -220,9 +217,8 @@ namespace mtk {
         ~StreamCloser() { UNREF(stream_); }
         void Step() override { Destroy(); }
         void Destroy() override { delete this; }
-        void ConsumeTask(int) override { ASSERT(false); }
     };
-    class Conn : public IConn {
+    class Conn : public IJob {
     public:
         typedef std::map<mtk_cid_t, Conn*> Map;
         typedef std::map<mtk_login_cid_t, Conn*> PendingMap;
@@ -255,20 +251,20 @@ namespace mtk {
         static ATOMIC_UINT64 login_cid_seed_;
         static std::mutex cmap_mtx_, pmap_mtx_;
 
-        IWorker *worker_;
+        Worker *worker_;
         IHandler *handler_;
         SVStream *stream_;
         StreamStatus status_;
         Request req_;
         mtk_cid_t cid_, lcid_;
     public:
-        Conn(IWorker *worker, IHandler *handler) :
+        Conn(Worker *worker, IHandler *handler) :
             worker_(worker), handler_(handler), stream_(new SVStream()), 
             status_(INIT), req_(), cid_(0), lcid_(0) { REF(stream_); }
         ~Conn() { UNREF(stream_); }
         void Step() override;
         void Destroy() override;
-        void ConsumeTask(int n_process) override;
+        void ConsumeTask(int n_process);
         inline void Close() { 
             stream_->Close();
         }

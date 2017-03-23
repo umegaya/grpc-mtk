@@ -2,19 +2,19 @@
 #include "worker.h"
 
 namespace mtk {
-void IServerThread::Shutdown() {
+void IServer::Shutdown() {
     //indicate worker to start shutdown
-    for (IWorker *w : workers_) {
+    for (Worker *w : workers_) {
         w->PrepareShutdown();
     }
     //wait until all RPC processed
     server_->Shutdown();
     //shutdown read worker to consume queue
-    for (IWorker *w : workers_) {
+    for (Worker *w : workers_) {
         w->Shutdown();
     }
 }
-void IServerThread::Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options) {
+void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port
@@ -27,13 +27,13 @@ void IServerThread::Kick(const std::string &listen_at, int n_handler, IHandler *
     builder.RegisterService(&service);
     // setup worker thread (need to do before BuildAndStart because completion queue should be created before)
     for (int i = 0; i < n_handler; i++) {
-        IWorker *w = new Worker(&service, h, builder);
+        Worker *w = new Worker(&service, h, builder);
         workers_.push_back(w);
     }
     // create server
     server_ = std::unique_ptr<grpc::Server>(builder.BuildAndStart());
     // start worker thread
-    for (IWorker *w : workers_) {
+    for (Worker *w : workers_) {
         w->Launch();
     }
     // notify this thread ready

@@ -75,9 +75,7 @@ typedef struct {
 	const char *host, *cert, *key, *ca;
 } mtk_addr_t;
 typedef struct {
-	struct {
-		uint32_t n_reader, n_writer;
-	} thread;
+	uint32_t n_worker;
 	mtk_closure_t handler, acceptor;
 	bool exclusive; //if true, caller thread of mtk_listen blocks
 	bool use_queue; //if true, mtk_listen put all callback event data into below queue.

@@ -7,16 +7,16 @@
 #include <condition_variable>
 
 namespace mtk {
-	class IServerThread {
+	class IServer {
 		std::thread thread_;
 		std::mutex mutex_;
 		std::condition_variable cond_;
 		std::unique_ptr<grpc::Server> server_;
-		std::vector<IWorker*> workers_;
+		std::vector<Worker*> workers_;
 	public:
-		IServerThread() : thread_(), mutex_(), server_(), workers_() {}
-		virtual ~IServerThread() {
-			for (IWorker *w : workers_) {
+		IServer() : thread_(), mutex_(), server_(), workers_() {}
+		virtual ~IServer() {
+			for (Worker *w : workers_) {
 				delete w;
 			}
 		}

@@ -73,22 +73,12 @@ void DuplexStream::StartWrite() {
     SystemPayload::Connect payload;
     delegate_->AddPayload(payload, WRITE);
     Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
-        if (r >= 0 && delegate_->OnOpenStream(r, p, len, WRITE)) {
+        if (r >= 0 && delegate_->OnOpenStream(r, p, len)) {
             status_ = NetworkStatus::CONNECT;
         } else {
             replys_.enqueue(DISCONNECT_EVENT);
         }
     }, WRITE);
-}
-void DuplexStream::StartRead() {
-    SystemPayload::Connect payload;
-    delegate_->AddPayload(payload, READ);
-    Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
-        status_ = NetworkStatus::CONNECT;
-        if (r < 0 || !delegate_->OnOpenStream(r, p, len, READ)) {
-            replys_.enqueue(DISCONNECT_EVENT);
-        }
-    }, READ);
 }
 
 void DuplexStream::DrainQueue() {
@@ -191,10 +181,6 @@ void DuplexStream::Update() {
         case NetworkStatus::ESTABLISHED: {
             status_ = NetworkStatus::INITIALIZING;
             StartWrite();
-        } break;
-        case NetworkStatus::REGISTER: {
-            status_ = NetworkStatus::INITIALIZING;
-            StartRead();
         } break;
         case NetworkStatus::INITIALIZING: {
             //TODO: detect timeout and back to DISCONNECT.
