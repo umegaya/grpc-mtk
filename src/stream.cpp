@@ -71,14 +71,14 @@ timespec_t DuplexStream::CalcJitter(timespec_t base) {
 
 void DuplexStream::StartWrite() {
     SystemPayload::Connect payload;
-    delegate_->AddPayload(payload, WRITE);
+    delegate_->AddPayload(payload);
     Call(payload, [this](mtk_result_t r, const char *p, size_t len) {
         if (r >= 0 && delegate_->OnOpenStream(r, p, len)) {
             status_ = NetworkStatus::CONNECT;
         } else {
             replys_.enqueue(DISCONNECT_EVENT);
         }
-    }, WRITE);
+    });
 }
 
 void DuplexStream::DrainQueue() {
@@ -90,12 +90,9 @@ void DuplexStream::DrainQueue() {
         }
         if (drain_rep != nullptr) { delete drain_rep; }//ignore following replys, cause already closed.
     }
-    //for disconnection by GPS lost
-    for (int i = 0; i < NUM_STREAM; i++) {
-        Request* drain_req;
-        while (requests_[i].try_dequeue(drain_req)) {
-            delete drain_req;
-        }
+    Request* drain_req;
+    while (requests_.try_dequeue(drain_req)) {
+        delete drain_req;
     }
     reqmtx_.lock();
     for (auto &p : reqmap_) {
@@ -170,7 +167,7 @@ void DuplexStream::Update() {
             } else {
                 status_ = NetworkStatus::CONNECTING;
                 reconnect_attempt_++;
-                requests_[WRITE].enqueue(ESTABLISH_REQUEST);
+                requests_.enqueue(ESTABLISH_REQUEST);
                 if (!thr_.joinable()) {
                     thr_ = std::thread(std::bind(&DuplexStream::Receive, this));
                 }
@@ -232,17 +229,14 @@ void DuplexStream::Receive() {
                 HandleEvent(ok, tag);
                 break;
             case grpc::CompletionQueue::TIMEOUT:
-                int sidx = 0;
-                for (sidx = 0; sidx < NUM_STREAM; sidx++) {
-                    if (!is_sending_[sidx]) {
-                        if (requests_[sidx].try_dequeue(req)) {
-                            if (req == ESTABLISH_REQUEST) {
-                                Open();
-                            } else {
-                                conn_[sidx]->Write(*req, GenerateWriteTag(req->msgid(), (StreamIndex)sidx));
-                                delete req;
-                                is_sending_[sidx] = true;
-                            }
+                if (!is_sending_) {
+                    if (requests_.try_dequeue(req)) {
+                        if (req == ESTABLISH_REQUEST) {
+                            Open();
+                        } else {
+                            conn_->Write(*req, GenerateWriteTag(req->msgid()));
+                            delete req;
+                            is_sending_ = true;
                         }
                     }
                 }
@@ -251,14 +245,68 @@ void DuplexStream::Receive() {
     }
 }
 void DuplexStream::HandleEvent(bool ok, void *tag) {
-    Reply **replys = reply_work_;
     Request *req;
-    int stream_idx = 0;
-    for (stream_idx = 0; stream_idx < NUM_STREAM; stream_idx++) {
-        if ((StreamIndex)stream_idx == StreamFromReadTag(tag)) {
-            break;
+    if (IsWriteOperation(tag)) {
+        if (!ok) {
+            //connection closed. stop sending
+            return;
+        }
+        //end of write operation
+        reqmtx_.lock();
+        if (requests_.try_dequeue(req)) {
+            conn_->Write(*req, GenerateWriteTag(req->msgid()));
+            //TRACE("Write:{}", req->msgid());
+            delete req;
+        } else {
+            is_sending_ = false;
+        }
+        reqmtx_.unlock();
+        //TRACE("write for tag {}({}) finished", (void *)tag, sidx);
+        return;
+    } else if (IsReadOperation(tag)) {
+        Reply *r = reply_work_;
+        if (!ok) {
+            uint32_t seq = ConnectSequenceFromReadTag(tag);
+            TRACE("connection closed. seq {} {}", seq, connect_sequence_num_);
+            if (r != nullptr) {
+                delete r;
+                reply_work_ = nullptr;
+            }
+            //drain requests queue
+            while (requests_.try_dequeue(req)) {
+                if (req != nullptr) { delete req; }//ignore following requests, cause already closed.
+            }
+            ASSERT(connect_sequence_num_ >= seq);
+            //here, previous connection closed or current connection closed.
+            //anyway we can remove previous one.
+            if (prev_conn_ != nullptr) {
+                delete prev_conn_;
+                prev_conn_ = nullptr;
+            }
+            if (connect_sequence_num_ == seq) {
+                //push event pointer to indicate connection closed
+                replys_.enqueue(DISCONNECT_EVENT);
+            }
+        } else {
+            if (r != nullptr) {
+                //end of read operation. 
+                if (!replys_.enqueue(r)) {
+                    ASSERT(false);
+                }
+                reply_work_ = nullptr;
+            } else {
+                //call establishment
+                if (prev_conn_ != nullptr) {
+                    delete prev_conn_;
+                    prev_conn_ = nullptr;
+                }
+                replys_.enqueue(ESTABLISHED_EVENT);
+            }
+            reply_work_ = new Reply();
+            conn_->Read(reply_work_, GenerateReadTag(connect_sequence_num_));
         }
     }
+    /*
     if (stream_idx == NUM_STREAM) {
         if (!ok) {
             //connection closed. stop sending
@@ -323,6 +371,7 @@ void DuplexStream::HandleEvent(bool ok, void *tag) {
         replys[stream_idx] = r;
         conn_[stream_idx]->Read(r, GenerateReadTag(connect_sequence_num_, (StreamIndex)stream_idx));
     }
+    */
 }
 
 template <> void DuplexStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req) { req.set_kind(Request::Connect); }

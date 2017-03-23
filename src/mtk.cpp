@@ -179,7 +179,7 @@ public:
 	StreamDelegate(mtk_clconf_t *clconf) : DuplexStream(this), clconf_(*clconf) {}
 	uint64_t Id() const { return clconf_.id; }
    	bool Valid() const { return clconf_.validate == nullptr ? true : clconf_.validate(); }
-    bool AddPayload(SystemPayload::Connect &c, int stream_idx) {
+    bool AddPayload(SystemPayload::Connect &c) {
     	c.set_id(clconf_.id);
     	c.set_payload(clconf_.payload, clconf_.payload_len);
     	return true;

@@ -30,7 +30,7 @@ namespace mtk {
     public:
         virtual mtk_cid_t Id() const = 0;
         virtual bool Valid() const = 0;
-        virtual bool AddPayload(SystemPayload::Connect &c, int stream_idx) = 0;
+        virtual bool AddPayload(SystemPayload::Connect &c) = 0;
         virtual bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len) = 0;
         virtual mtk_time_t OnCloseStream(int reconnect_attempt) = 0;
         virtual void Poll() = 0;
@@ -43,11 +43,6 @@ namespace mtk {
             ESTABLISHED,
             INITIALIZING,
             CONNECT,
-        };
-        enum StreamIndex {
-            WRITE,
-            READ,
-            NUM_STREAM,
         };
         static Reply *DISCONNECT_EVENT;
         static Reply *ESTABLISHED_EVENT;
@@ -74,16 +69,16 @@ namespace mtk {
         IDuplexStreamDelegate *delegate_;
         std::unique_ptr<Stub> stub_;
         ConcurrentQueue<Reply*> replys_;
-        ConcurrentQueue<Request*> requests_[NUM_STREAM];
+        ConcurrentQueue<Request*> requests_;
         std::mutex reqmtx_;
-        bool is_sending_[NUM_STREAM];
+        bool is_sending_;
         bool alive_, restarting_;
-        std::unique_ptr<ClientAsyncReaderWriter<Request, Reply>> conn_[NUM_STREAM];
-        ClientAsyncReaderWriter<Request, Reply> *prev_conn_[NUM_STREAM];
+        std::unique_ptr<ClientAsyncReaderWriter<Request, Reply>> conn_;
+        ClientAsyncReaderWriter<Request, Reply> *prev_conn_;
         std::map<mtk_msgid_t, SEntry*> reqmap_;
         std::map<uint32_t, SEntry::Callback> notifymap_;
-        ClientContext *context_[NUM_STREAM];
-        Reply *reply_work_[NUM_STREAM];
+        ClientContext *context_;
+        Reply *reply_work_;
         CompletionQueue cq_;
         std::thread thr_;
         timespec_t last_checked_, reconnect_when_;
@@ -97,10 +92,10 @@ namespace mtk {
             stub_(), replys_(), reqmtx_(), alive_(true), restarting_(false), reqmap_(), notifymap_(), cq_(), thr_(),
             last_checked_(0), reconnect_when_(0), msgid_seed_(0), reconnect_attempt_(0), connect_sequence_num_(0),
             status_(NetworkStatus::DISCONNECT), dump_(false) {
-            memset(is_sending_, 0, sizeof(is_sending_));
-            memset(context_, 0, sizeof(context_));
-            memset(reply_work_, 0, sizeof(reply_work_));
-            memset(prev_conn_, 0, sizeof(prev_conn_));
+            is_sending_ = false;
+            context_ = nullptr;
+            reply_work_ = nullptr;
+            prev_conn_ = nullptr;
         };
         virtual ~DuplexStream() {}
         uint64_t Id() const { return delegate_->Id(); }
@@ -144,41 +139,34 @@ namespace mtk {
         void DrainQueue();
         //stream open/close
         void Close() {
-            for (int i = 0; i < NUM_STREAM; i++) {
-                if (conn_[i] != nullptr) {
-                    ASSERT(prev_conn_[i] == nullptr);
-                    prev_conn_[i] = conn_[i].release();
-                }
-                if (context_[i] != nullptr) {
-                    delete context_[i];
-                }
+            if (conn_ != nullptr) {
+                ASSERT(prev_conn_ == nullptr);
+                prev_conn_ = conn_.release();
+            }
+            if (context_ != nullptr) {
+                delete context_;
             }
         }
         void Open() {
             Close();
             connect_sequence_num_++;
-            context_[WRITE] = new ClientContext();
-            context_[READ] = new ClientContext();
-            SetDeadline(*context_[WRITE], UINT32_MAX);
-            SetDeadline(*context_[READ], UINT32_MAX);
-            conn_[WRITE] = stub_->AsyncWrite(context_[WRITE], &cq_, GenerateReadTag(connect_sequence_num_, WRITE));
-            conn_[READ] = stub_->AsyncRead(context_[READ], &cq_, GenerateReadTag(connect_sequence_num_, READ));
+            context_ = new ClientContext();
+            SetDeadline(*context_, UINT32_MAX);
+            conn_ = stub_->AsyncWrite(context_, &cq_, GenerateReadTag(connect_sequence_num_));
         }
         //call rpc via stream. not thread safe
         inline void Call(uint32_t type,
                   const char *buff, size_t len,
                   SEntry::Callback cb,
-                  timespec_t timeout_msec = TIMEOUT_DURATION,
-                  StreamIndex sidx = WRITE) {
+                  timespec_t timeout_msec = TIMEOUT_DURATION) {
             Request *msg = new Request();
             msg->set_type(type);
             msg->set_payload(buff, len);
-            Call(msg, cb, timeout_msec, sidx);
+            Call(msg, cb, timeout_msec);
         }
         inline void Call(Request *msg,
                   SEntry::Callback cb,
-                  timespec_t timeout_msec,
-                  StreamIndex sidx) {
+                  timespec_t timeout_msec) {
             if (status_ < NetworkStatus::ESTABLISHED) {
                 ASSERT(false);
                 return;
@@ -186,13 +174,13 @@ namespace mtk {
             mtk_msgid_t msgid = NewMsgId();
             SEntry *ent = new SEntry(cb);
             msg->set_msgid(msgid);
-            requests_[sidx].enqueue(msg);
+            requests_.enqueue(msg);
             reqmtx_.lock();
             reqmap_[msgid] = ent;
             reqmtx_.unlock();
         }
         template <class SYSTEM_PAYLOAD>
-        void Call(const SYSTEM_PAYLOAD &spl, SEntry::Callback cb, StreamIndex sidx) {
+        void Call(const SYSTEM_PAYLOAD &spl, SEntry::Callback cb) {
             char buffer[spl.ByteSize()];
             if (Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize()) < 0) {
                 ASSERT(false);
@@ -201,26 +189,22 @@ namespace mtk {
             Request *msg = new Request();
             msg->set_payload(buffer, spl.ByteSize());
             SetSystemPayloadKind<SYSTEM_PAYLOAD>(*msg);
-            Call(msg, cb, TIMEOUT_DURATION, sidx);
+            Call(msg, cb, TIMEOUT_DURATION);
         }
         template <class SYSTEM_PAYLOAD>
         void SetSystemPayloadKind(Request &req) { ASSERT(false); }
     protected:
-        static inline void *GenerateWriteTag(mtk_msgid_t msgid, StreamIndex idx) {
-            return reinterpret_cast<void *>((msgid << 8) + (uint8_t)(idx << 1) + 1);
+        static inline void *GenerateWriteTag(mtk_msgid_t msgid) {
+            return reinterpret_cast<void *>((msgid << 8) + 1);
         }
-        static inline void *GenerateReadTag(uint32_t connect_sequence_num, StreamIndex idx) {
-            return reinterpret_cast<void *>((connect_sequence_num << 8) + (uint8_t)(idx << 1) + 0);
+        static inline void *GenerateReadTag(uint32_t connect_sequence_num) {
+            return reinterpret_cast<void *>((connect_sequence_num << 8) + 0);
         }
-        static inline StreamIndex StreamFromWriteTag(void *tag) {
-            uintptr_t tmp = (((uintptr_t)tag) & 0xFF);
-            if ((tmp & 1) == 1) { return (StreamIndex)(tmp >> 1); }
-            return NUM_STREAM;
+        static inline bool IsWriteOperation(void *tag) {
+            return (((uintptr_t)tag) & 0x1) != 0;
         }
-        static inline StreamIndex StreamFromReadTag(void *tag) {
-            uintptr_t tmp = (((uintptr_t)tag) & 0xFF);
-            if ((tmp & 1) == 0) { return (StreamIndex)(tmp >> 1); }
-            return NUM_STREAM;
+        static inline bool IsReadOperation(void *tag) {
+            return (((uintptr_t)tag) & 0x1) == 0;
         }
         static inline uint32_t ConnectSequenceFromReadTag(void *tag) {
             return (uint32_t)(((uintptr_t)tag) >> 8);
