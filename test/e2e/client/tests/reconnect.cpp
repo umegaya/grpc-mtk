@@ -7,6 +7,7 @@ void test_reconnect(mtk_conn_t c, test &t, test::testconn &conn) {
 	std::condition_variable cond;
 	auto lock = std::unique_lock<std::mutex>(conn.mtx);
 	for (int i = 0; i < count; i++) {
+		TRACE("test reconnect start {}", i);
 		CloseRequest req;
 		RPC(c, Close, req, ([&count](CloseReply *req, Error *err) {
 			if (err != nullptr) {

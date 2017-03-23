@@ -14,23 +14,24 @@ namespace {
 namespace mtk {
     class IHandler;
     //worker base
-    class IWorker {
+    class Worker {
     protected:
         std::thread thr_;
         Service* service_;
         IHandler* handler_;
         std::unique_ptr<ServerCompletionQueue> cq_;
+        std::vector<Conn *> connections_;
         bool dying_;
     public:
-        IWorker(Service *service, IHandler *handler, ServerBuilder &builder) :
+        Worker(Service *service, IHandler *handler, ServerBuilder &builder) :
             service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
-            dying_(false) {}
-        virtual ~IWorker() { if (thr_.joinable()) { thr_.join(); } }
+            connections_(), dying_(false) {}
+        virtual ~Worker() { if (thr_.joinable()) { thr_.join(); } }
         void Launch();
-        IConn *New();
+        Conn *New();
         inline void Process(bool ok, void *tag) {
-            IConn *c = static_cast<IConn*>(tag);
-            if (!ok) {
+            IJob *c = (IJob *)(tag);
+            if (mtk_unlikely(!ok)) {
                 c->Destroy();
             } else {
                 c->Step();
@@ -40,27 +41,13 @@ namespace mtk {
         inline void Shutdown() { cq_->Shutdown(); }
         inline void PrepareShutdown() { dying_ = true; }
     public: //interface
-        virtual void Run();
-        virtual void OnRegister(IConn *) {}
-        virtual void OnUnregister(IConn *) {}
-        //these are called when login postponed (eg. calling external API)
-        virtual void OnWaitLogin(IConn *) {}
-        virtual void OnFinishLogin(IConn *) {}
+        void Run();
+        void OnRegister(Conn *c);
+        void OnUnregister(Conn *);
+        void OnWaitLogin(Conn *c) { OnRegister(c); }
+        void OnFinishLogin(Conn *c) { OnUnregister(c); }
+        void WaitAccept(ServerContext *ctx, ServerAsyncReaderWriter<Reply, Request> *io, Conn *c) {
+           service_->RequestWrite(ctx, io, cq_.get(), cq_.get(), c);
+        }
     };
-    //worker which does IO and periodically call ConsumeTask for each connection
-    class TaskConsumableWorker : public IWorker {
-    protected:
-        std::vector<IConn *> connections_;
-    public:
-        TaskConsumableWorker(Service *service, IHandler *handler, ServerBuilder &builder) : 
-            IWorker(service, handler, builder), connections_() {}
-        void Run() override;
-        void OnRegister(IConn *c) override { connections_.push_back(c); }
-        void OnUnregister(IConn *) override;
-        void OnWaitLogin(IConn *c) override { OnRegister(c); }
-        void OnFinishLogin(IConn *c) override { OnUnregister(c); }
-    };
-    //default definition
-    typedef IWorker WriteWorker;
-    typedef TaskConsumableWorker ReadWorker;
 }

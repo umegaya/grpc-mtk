@@ -25,6 +25,7 @@ typedef struct {
 } mtk_http_header_t;
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, mtk_size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, mtk_size_t);
+typedef bool (*mtk_validate_cb_t)(void *);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, mtk_size_t);
 typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, mtk_cid_t, 
@@ -37,6 +38,7 @@ typedef struct {
 		mtk_callback_t on_msg;
 		mtk_connect_cb_t on_connect;
 		mtk_close_cb_t on_close;
+		mtk_validate_cb_t on_validate;
 		mtk_server_recv_cb_t on_svmsg;
 		mtk_server_accept_cb_t on_accept;
 		mtk_httpsrv_cb_t on_httpsrv;
@@ -75,9 +77,7 @@ typedef struct {
 	const char *host, *cert, *key, *ca;
 } mtk_addr_t;
 typedef struct {
-	struct {
-		uint32_t n_reader, n_writer;
-	} thread;
+	uint32_t n_worker;
 	mtk_closure_t handler, acceptor;
 	bool exclusive; //if true, caller thread of mtk_listen blocks
 	bool use_queue; //if true, mtk_listen put all callback event data into below queue.
@@ -95,8 +95,7 @@ typedef struct {
 	mtk_cid_t id;
 	const char *payload;
 	mtk_size_t payload_len;
-	mtk_closure_t on_connect, on_close;
-	bool (*validate)();
+	mtk_closure_t on_connect, on_close, on_validate;
 } mtk_clconf_t;
 typedef enum {
 	MTK_APPLICATION_ERROR = -1,
@@ -113,11 +112,13 @@ extern void mtk_svconn_finish_login(mtk_login_cid_t login_cid,
 									mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn);
 extern mtk_msgid_t mtk_svconn_msgid(mtk_svconn_t conn);
+//mtk_svconn_* is callable only when it called inside function which is provided as mtk_svconf_t::handler. 
 extern void mtk_svconn_send(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_close(mtk_svconn_t conn);
+//mtk_cid_* is callable anywhere. but you need cid which obtained by mtk_svconn_cid.
 extern void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
@@ -139,6 +140,7 @@ extern bool mtk_conn_connected(mtk_svconn_t conn);
 extern mtk_closure_t mtk_closure_nop;
 #define mtk_closure_valid(__pclsr) ((__pclsr)->check != nullptr)
 #define mtk_closure_call(__pclsr, __type, ...) ((__pclsr)->__type((__pclsr)->arg, __VA_ARGS__))
+#define mtk_closure_call_noarg(__pclsr, __type) ((__pclsr)->__type((__pclsr)->arg))
 
 
 

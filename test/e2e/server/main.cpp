@@ -47,6 +47,7 @@ static inline mtk_result_t handler_common(void *, mtk_svconn_t c, reply_dest *ds
 	});
 	default:
 		TRACE("unknown message: {}", r);
+		ASSERT(false);
 		exit(-1);
 		break;
 	}
@@ -104,18 +105,12 @@ int main(int argc, char *argv[]) {
 	mtk_svconf_t conf[] = {
 		{
 			.exclusive = true,
-			.thread = {
-				.n_reader = 4,
-				.n_writer = 1,
-			}
+			.n_worker = 4,
 		},
 		{
 			.exclusive = false,
 			.use_queue = true,
-			.thread = {	
-				.n_reader = 1,
-				.n_writer = 1,
-			}
+			.n_worker = 1,
 		},
 	};
 	mtk_closure_init(&(conf[0].handler), on_svmsg, handler, nullptr);

@@ -14,13 +14,13 @@ void testsuites(const char *addr, bool skip = true) {
 		test t(addr, test_reconnect, 32);
 		if (!t.run()) { ALERT_AND_EXIT("test_reconnect fails"); }
 	}//*/
-	if (skip) {
+	{
 		test t(addr, test_reconnect, 4);
 		if (!t.run(ConnectPayload::Pending)) { ALERT_AND_EXIT("test_reconnect pending fails"); }
 	}//*/
-	if (skip) {
+	{
 		test t(addr, test_reconnect, 1);
-		if (!t.run(ConnectPayload::Failure, mtk_sec(3))) { ALERT_AND_EXIT("test_reconnect failure fails"); }
+		if (!t.run(ConnectPayload::Failure, mtk_sec(7))) { ALERT_AND_EXIT("test_reconnect failure fails"); }
 	}//*/
 	if (skip) {
 		test t(addr, test_bench, 256);
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	TRACE("============== test with normal mode ==============");
 	testsuites("localhost:50051");
 	TRACE("============== test with queue mode ==============");
-	//testsuites("localhost:50052", false);
+	testsuites("localhost:50052", false);
 	return 0;
 }
 

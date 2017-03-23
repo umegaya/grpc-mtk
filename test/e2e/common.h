@@ -24,6 +24,7 @@ public:
 		std::thread th;
 		std::mutex mtx;
 		std::condition_variable cond;
+		bool should_signal;
 		void notify_cond() {
 			std::unique_lock<std::mutex> lock(mtx);
 			cond.notify_one();
@@ -58,7 +59,7 @@ public:
             }
         }
 	}
-	bool success() const { return result_.load() == 1; }
+	bool is_success() const { return result_.load() == 1; }
 	bool finished() const { return test_start_.load() > 0 && thread_start_ == concurrency_ && running_.load() == 0; }
 	notifier latch() {
 		start();
