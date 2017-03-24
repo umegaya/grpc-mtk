@@ -23,11 +23,12 @@ namespace logger {
     void configure(writer_cb_t cb, const std::string &name);
     const std::string &svname();
     void write(const std::string &body, const std::string &footer);
+    void write(const std::string &body);
 
     template <typename... Args> inline void log(level::def lv, const char *fmt, fmt::ArgList args) {
     	if (lv == level::trace) {
 	        std::string body = fmt::format(fmt, args);
-	        write(body + "\n", "");
+	        write(body + "\n");
 			return;    		
     	}
         long sec, nsec;

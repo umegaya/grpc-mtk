@@ -331,14 +331,16 @@ void mtk_cid_close(mtk_cid_t cid) {
 
 
 mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
+	TRACE("mtk_connect called");
 	Client *cl = new Client(clconf);
+	TRACE("mtk_connect called2 {}", (void *)cl);
 	Client::CredOptions opts;
 	cl->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
 	return (void *)cl;
 }
 mtk_cid_t mtk_conn_cid(mtk_conn_t c) {
 	Client *cl = (Client *)c;
-	return cl->Id();
+	return cl->Id();	
 }
 void mtk_conn_poll(mtk_conn_t c) {
 	Client *cl = (Client *)c;

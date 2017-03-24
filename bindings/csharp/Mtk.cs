@@ -6,7 +6,7 @@ namespace Mtk {
     public class Core {
         //dllname
     #if UNITY_EDITOR || UNITY_ANDROID
-        const string DllName = "shutup";
+        const string DllName = "mtk";
     #elif UNITY_IPHONE
         const string DllName = "__Internal";
     #else
@@ -33,7 +33,7 @@ namespace Mtk {
         
         //structs
         public struct Closure {
-            [System.Runtime.InteropServices.StructLayout(LayoutKind.Explicit)]
+            /*[System.Runtime.InteropServices.StructLayout(LayoutKind.Explicit)]
             public struct UCallback {
                 //union fields
                 [FieldOffset(0)]
@@ -56,10 +56,11 @@ namespace Mtk {
 
                 [FieldOffset(0)]
                 public ServerCloseCB on_svclose;
-            };
+            };*/
 
             public System.IntPtr arg;
-            public UCallback cb;
+            //TODO: add type check. only above unmanaged function pointers are allowed.
+            public System.IntPtr cb;
         };
         public struct Address {
             public System.IntPtr host, cert, key, ca;
@@ -304,7 +305,7 @@ namespace Mtk {
             string payload_;
             Closure on_connect_, on_close_, on_ready_;
             public ClientBuilder() {}
-            public ClientBuilder ListenAt(string at) {
+            public ClientBuilder ConnectTo(string at) {
                 base.ListenAt(at);
                 return this;
             }
@@ -318,19 +319,19 @@ namespace Mtk {
                 return this;
             }
             //these function will be called from same thread as Unity's main thread
-            public ClientBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
-                on_close_.arg = arg;
-                on_close_.cb.on_close = cb;
+            public ClientBuilder OnClose(ClientCloseCB cb) {
+                on_close_.arg = new System.IntPtr(0);
+                on_close_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnConnect(ClientConnectCB cb, System.IntPtr arg) {
-                on_connect_.arg = arg;
-                on_connect_.cb.on_connect = cb;
+            public ClientBuilder OnConnect(ClientConnectCB cb) {
+                on_connect_.arg = new System.IntPtr(0);
+                on_connect_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnReady(ClientReadyCB cb, System.IntPtr arg) {
-                on_ready_.arg = arg;
-                on_ready_.cb.on_ready = cb;
+            public ClientBuilder OnReady(ClientReadyCB cb) {
+                on_ready_.arg = new System.IntPtr(0);
+                on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
             public Conn Build() {
@@ -369,15 +370,6 @@ namespace Mtk {
                 n_worker_ = n_worker;
                 return this;
             }
-            static unsafe public int OnRecv(System.IntPtr arg, System.IntPtr svconn, int type, byte *buf, uint buflen) {
-                return 0;
-            }
-            static unsafe public ulong OnAccept(System.IntPtr arg, System.IntPtr svconn, ulong cid, byte *credential, uint credlen, char **pp_reply, uint *p_replen) {
-                return 0;
-            }
-            static unsafe public void OnClose(System.IntPtr arg, ulong cid) {
-                return;
-            }
             public Server Build() {
                 var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
                 var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
@@ -391,11 +383,11 @@ namespace Mtk {
                             use_queue = true,
                         };
                         conf.handler.arg = new System.IntPtr(0);
-                        conf.handler.cb.on_svmsg = OnRecv;
+                        conf.handler.cb = new System.IntPtr(0);
                         conf.acceptor.arg = new System.IntPtr(0);
-                        conf.acceptor.cb.on_accept = OnAccept;
+                        conf.acceptor.cb = new System.IntPtr(0);
                         conf.closer.arg = new System.IntPtr(0);
-                        conf.closer.cb.on_svclose = OnClose;
+                        conf.closer.cb = new System.IntPtr(0);
                         
                         System.IntPtr svp = new System.IntPtr();
                         mtk_listen(ref addr, ref conf, ref svp);
@@ -416,11 +408,8 @@ namespace Mtk {
             }
             return instance_;
         }
-        static void Logger(string str, System.IntPtr len) {
-            //Debug.Log("mtklib: " + str);
-        }
-        public static void InitLogger() {
-            mtk_log_config("UnitySrv", Logger);
+        public static void InitLogger(string name, LogWriteCB writer) {
+            mtk_log_config(name, writer);
         }
         Core() {
             ConnMap = new Dictionary<ulong, Conn>();

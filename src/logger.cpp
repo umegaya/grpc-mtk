@@ -38,5 +38,14 @@ namespace logger {
 #endif
 		mtx_.unlock();
     }
+	void write(const std::string &body) {
+		mtx_.lock();
+#if defined(NO_LOG_WRITE_CALLBACK)
+		fwrite(body.c_str(), 1, body.length(), stdout);
+#else
+		writer_(body.c_str(), body.length());
+#endif
+		mtx_.unlock();
+    }
 }
 }
