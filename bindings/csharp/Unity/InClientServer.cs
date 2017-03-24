@@ -8,7 +8,7 @@ namespace Mtk {
 		public int worker_ = 1;
 		void Start() {
 			logic_ = ServerLogic();
-			if (logic_ == nullptr) {
+			if (logic_ == null) {
 				UnityEngine.Debug.Assert(False);
 			}
 			sv_ = (new ServerBuilder())
@@ -17,7 +17,9 @@ namespace Mtk {
 				.Build();
 		}
 		void FixedUpdate() {
-			sv_.Process(logic_);
+			unsafe {
+				sv_.Process(logic_);
+			}
 		}
 		virtual IServerLogic ServerLogic() { return null; }
 	}

@@ -32,6 +32,7 @@ namespace mtk {
     public:
         virtual grpc::Status Handle(Conn *c, Request &req) = 0;
         virtual mtk_cid_t Login(Conn *c, Request &req) = 0;
+        virtual void Close(Conn *c) = 0;
         virtual Conn *NewConn(Worker *worker, IHandler *handler) = 0;
     };
     typedef uint32_t MessageType;

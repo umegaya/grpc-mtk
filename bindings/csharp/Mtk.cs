@@ -233,10 +233,6 @@ namespace Mtk {
         }
     }
     public class Server {
-        public struct AcceptReply {
-            public ulong cid;
-            public byte[] data;
-        }
         System.IntPtr server_;
         System.IntPtr queue_;
         public Server(System.IntPtr s) {
@@ -245,20 +241,23 @@ namespace Mtk {
                 queue_ = mtk_server_queue(server_);
             }
         }
-        public void Process(IServerLogic logic) {
+        public unsafe void Process(IServerLogic logic) {
             System.IntPtr elem;
             while (sv_.PopEvent(ref elem)) {
                 ServerEvent *ev = (ServerEvent *)elem;
                 if (ev->lcid != 0) {
                     var ret = new byte[ev->datalen];
+                    byte[] rep;
                     Marshal.Copy(((byte *)ev) + sizeof(ServerEvent), ret, 0, ev->datalen);
-                    var rep = logic.OnAccept(ev->cid, ret);
-                    mtk_svconn_finish_login(ev->lcid, rep.cid, ev->msgid, rep.data, rep.data.Length);
-                } else {
+                    var cid = logic.OnAccept(ev->cid, ret, out rep);
+                    mtk_svconn_finish_login(ev->lcid, cid, ev->msgid, rep, rep.Length);
+                } else if (ev->msgid != 0) {
                     var c = new CidConn(ev->cid, ev->msgid);
                     var ret = new byte[ev->datalen];
                     Marshal.Copy(((byte *)ev) + sizeof(ServerEvent), ret, 0, ev->datalen);
                     logic.OnRecv(c, ev->result, ret);
+                } else {
+                    logic.OnClose(ev->cid);
                 }
                 sv_.FreeEvent(elem);
             }

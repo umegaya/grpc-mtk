@@ -27,6 +27,7 @@ typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, mtk_size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, mtk_size_t);
 typedef bool (*mtk_validate_cb_t)(void *);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
+typedef void (*mtk_server_close_cb_t)(void *, mtk_svconn_t);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, mtk_size_t);
 typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, mtk_cid_t, 
 											const char *, mtk_size_t, char **, mtk_size_t*);
@@ -38,9 +39,10 @@ typedef struct {
 		mtk_callback_t on_msg;
 		mtk_connect_cb_t on_connect;
 		mtk_close_cb_t on_close;
-		mtk_validate_cb_t on_validate;
+		mtk_validate_cb_t on_ready;
 		mtk_server_recv_cb_t on_svmsg;
 		mtk_server_accept_cb_t on_accept;
+		mtk_server_close_cb_t on_svclose;
 		mtk_httpsrv_cb_t on_httpsrv;
 		mtk_httpcli_cb_t on_httpcli;
 		void *check;
@@ -78,7 +80,7 @@ typedef struct {
 } mtk_addr_t;
 typedef struct {
 	uint32_t n_worker;
-	mtk_closure_t handler, acceptor;
+	mtk_closure_t handler, acceptor, closer;
 	bool exclusive; //if true, caller thread of mtk_listen blocks
 	bool use_queue; //if true, mtk_listen put all callback event data into below queue.
 	mtk_queue_t queue; //if use_queue is true, mtk_listen initializes it with created queue.
