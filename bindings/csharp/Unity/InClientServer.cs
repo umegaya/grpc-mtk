@@ -1,17 +1,18 @@
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace Mtk {
-	public class InClientServer : MonoBehavior {
-		Server sv_;
-		IServerLogic logic_;
+	public class InClientServer : MonoBehaviour {
+		Core.Server sv_;
+		Core.IServerLogic logic_;
 		public string listenAt_ = "0.0.0.0:50051";
-		public int worker_ = 1;
+		public uint worker_ = 1;
 		void Start() {
 			logic_ = ServerLogic();
 			if (logic_ == null) {
-				UnityEngine.Debug.Assert(False);
+				UnityEngine.Debug.Assert(false);
 			}
-			sv_ = (new ServerBuilder())
+			sv_ = (new Core.ServerBuilder())
 				.ListenAt(listenAt_)
 				.Worker(worker_)
 				.Build();
@@ -21,6 +22,6 @@ namespace Mtk {
 				sv_.Process(logic_);
 			}
 		}
-		virtual IServerLogic ServerLogic() { return null; }
+		Core.IServerLogic ServerLogic() { return null; }
 	}
 }
