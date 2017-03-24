@@ -16,6 +16,7 @@ extern "C" {
 
 #include <thread>
 
+#include "logger.h"
 #include "debug.h"
 
 static gpr_mu *g_polling_mu;

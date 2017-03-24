@@ -90,8 +90,12 @@ void closer(void *arg, mtk_svconn_t c) {
 	TRACE("conn closed {}", (void *)c);
 }
 
+void logger(const char *p, size_t l) {
+	fwrite(p, 1, l, stderr);
+}
+
 int main(int argc, char *argv[]) {
-	mtk_log_init();
+	mtk_log_config("testsv", logger);
 
 	ATOMIC_UINT64 id_seed;
 	bool alive = true;

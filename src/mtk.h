@@ -33,6 +33,7 @@ typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, m
 											const char *, mtk_size_t, char **, mtk_size_t*);
 typedef void (*mtk_httpsrv_cb_t)(void *, mtk_httpsrv_request_t, mtk_httpsrv_response_t);
 typedef void (*mtk_httpcli_cb_t)(void *, int, mtk_http_header_t*, mtk_size_t, const char*, mtk_size_t);
+typedef void (*mtk_logger_cb_t)(const char *, size_t);
 typedef struct {
 	void *arg;
 	union {
@@ -64,7 +65,7 @@ extern mtk_time_t mtk_time();
 extern mtk_time_t mtk_sleep(mtk_time_t d); //ignore EINTR
 extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
 /* log */
-extern void mtk_log_init();
+extern void mtk_log_config(const char *svname, mtk_logger_cb_t cb);
 /* event queue */
 extern mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor);
 extern void mtk_queue_destroy(mtk_queue_t q);

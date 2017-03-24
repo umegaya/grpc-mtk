@@ -8,8 +8,7 @@
 #endif
 
 #if defined(DEBUG)
-#include "logger.h"
-#define TRACE(...) LOG(info, __VA_ARGS__)
+#define TRACE(...) LOG(trace, __VA_ARGS__)
 #else
 #define TRACE(...)
 #endif

@@ -485,8 +485,9 @@ mtk_time_t mtk_sleep(mtk_time_t d) {
 mtk_time_t mtk_pause(mtk_time_t d) {
 	return clock::pause(d);
 }
-void mtk_log_init() {
-	logger::Initialize();
+
+void mtk_log_config(const char *svname, mtk_logger_cb_t cb) {
+	logger::configure(cb, svname);
 }
 
 mtk_closure_t mtk_closure_nop = { nullptr, { nullptr } };

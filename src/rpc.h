@@ -9,6 +9,7 @@
 #include <mutex>
 #include <functional>
 #include "defs.h"
+#include "logger.h"
 #include "debug.h"
 
 namespace {

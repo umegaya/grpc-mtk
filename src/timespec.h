@@ -6,6 +6,7 @@ namespace mtk {
 	typedef uint64_t timespec_t;
 	namespace clock {
 		timespec_t now();
+		void now(long &sec, long &nsec);
 		timespec_t sleep(timespec_t dur);
 		timespec_t pause(timespec_t dur);
 		static inline constexpr timespec_t sec(uint64_t sec) { return sec * 1000 * 1000 * 1000; }

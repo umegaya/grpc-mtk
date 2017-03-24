@@ -28,8 +28,14 @@ namespace mtk {
 		}
 		timespec_t now() {
 			struct timespec ts;
-			clock_gettime(CLOCK_MONOTONIC, &ts);
+			clock_gettime(CLOCK_REALTIME, &ts);
 			return to_timespec(ts);
+		}
+		void now(long &sec, long &nsec) {
+			struct timespec ts;
+			clock_gettime(CLOCK_REALTIME, &ts);
+			sec = ts.tv_sec;
+			nsec = ts.tv_nsec;			
 		}
 		timespec_t sleep(timespec_t dur) {
 			return rawsleep(dur, true);
