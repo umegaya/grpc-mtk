@@ -134,7 +134,7 @@ extern void mtk_conn_poll(mtk_conn_t conn);
 extern void mtk_conn_close(mtk_conn_t conn);
 extern void mtk_conn_reset(mtk_conn_t conn); //this just restart connection, never destroy. 
 extern void mtk_conn_send(mtk_conn_t conn, uint32_t type, const char *data, mtk_size_t datalen, mtk_closure_t clsr);
-extern void mtk_conn_watch(mtk_conn_t conn, uint32_t type, mtk_closure_t clsr);
+extern void mtk_conn_watch(mtk_conn_t conn, mtk_closure_t clsr);
 extern bool mtk_conn_connected(mtk_svconn_t conn);
 #define mtk_closure_init(__pclsr, __type, __cb, __arg) { \
 	(__pclsr)->arg = (void *)(__arg); \

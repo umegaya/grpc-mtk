@@ -39,9 +39,9 @@ static void test_task(mtk_conn_t conn, test::notifier done) {
 static void test_notify(mtk_conn_t conn, test::notifier done) {
 	const std::string text = "notify this plz";
 	notify_closure_caller<TextNotify> *ppcc = nullptr;
-	WATCH_NOTIFY(conn, Text, ([done, text, ppcc](TextNotify &n) {
+	WATCH_NOTIFY(conn, Text, Notify_Text, ([done, text, ppcc](MessageTypes t, TextNotify &n) {
 		TRACE("test_notify: notified");		
-		done(n.text() == text);
+		done(n.text() == text && t == MessageTypes::Notify_Text);
 		delete ppcc;
 	}), &ppcc);
 	NotifyRequest req;

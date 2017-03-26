@@ -137,7 +137,7 @@ namespace mtk {
         ConcurrentQueue<Request*> requests_;
         std::mutex reqmtx_;
         std::map<mtk_msgid_t, SEntry*> reqmap_;
-        std::map<uint32_t, SEntry::Callback> notifymap_;
+        SEntry::Callback notifier_;
         bool restarting_;
         timespec_t last_checked_, reconnect_when_;
         ATOMIC_INT msgid_seed_;
@@ -147,7 +147,7 @@ namespace mtk {
         bool dump_;
     public:
         RPCStream(IClientDelegate *d) : delegate_(d),
-            replys_(), requests_(), reqmtx_(), reqmap_(), notifymap_(), 
+            replys_(), requests_(), reqmtx_(), reqmap_(), notifier_(), 
             restarting_(false), last_checked_(0), reconnect_when_(0), msgid_seed_(0), reconnect_attempt_(0), 
             status_(NetworkStatus::DISCONNECT), iothr_(*this), dump_(false) {
         };
@@ -161,7 +161,7 @@ namespace mtk {
         void Update();
         void Receive();
         void HandleEvent(bool ok, void *tag);
-        void RegisterNotifyCB(uint32_t type, SEntry::Callback cb) { notifymap_[type] = cb; }
+        void RegisterNotifyCB(SEntry::Callback cb) { notifier_ = cb; }
         //handshakers
         void StartWrite();
         void StartRead();

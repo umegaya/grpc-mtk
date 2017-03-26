@@ -359,9 +359,9 @@ void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, mtk_size_t plen, 
 	Client *cl = (Client *)c;
 	cl->Call(type, p, plen, *(Closure*)&clsr);
 }
-void mtk_conn_watch(mtk_conn_t c, uint32_t type, mtk_closure_t clsr) {
+void mtk_conn_watch(mtk_conn_t c, mtk_closure_t clsr) {
 	Client *cl = (Client *)c;
-	cl->RegisterNotifyCB(type, *(Closure*)&clsr);
+	cl->RegisterNotifyCB(*(Closure*)&clsr);
 }
 bool mtk_conn_connected(mtk_svconn_t c) {
 	Client *cl = (Client *)c;

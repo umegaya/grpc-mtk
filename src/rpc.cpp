@@ -248,13 +248,7 @@ void RPCStream::ProcessReply() {
         if (restarting_) {
             TRACE("maybe packet received during restarting ({}/{}}). ignored", rep->msgid(), rep->type());
         } else if (rep->msgid() == 0) {
-            auto it = notifymap_.find(rep->type());
-            if (it != notifymap_.end()) {
-                (*it).second(rep->type(), rep->payload().c_str(), rep->payload().length());
-            } else {
-                TRACE("notify not processed: {}", rep->type());
-                ASSERT(false);
-            }
+            notifier_(rep->type(), rep->payload().c_str(), rep->payload().length());
         } else {
             reqmtx_.lock();
             auto it = reqmap_.find(rep->msgid());

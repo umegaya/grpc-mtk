@@ -148,7 +148,7 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_conn_send(System.IntPtr conn, uint type, byte *data, uint datalen, Closure clsr);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_conn_watch(System.IntPtr conn, uint type, Closure clsr);
+        private static extern unsafe void mtk_conn_watch(System.IntPtr conn, Closure clsr);
         [DllImport (DllName)]
         private static extern unsafe bool mtk_conn_connected(System.IntPtr conn);
 
@@ -184,8 +184,8 @@ namespace Mtk {
             public void Send(uint type, byte[] data, Closure clsr) {
                 unsafe { fixed (byte* d = data) { mtk_conn_send(conn_, type, d, (uint)data.Length, clsr); } }
             }
-            public void Watch(uint type, Closure clsr) {
-                unsafe { mtk_conn_watch(conn_, type, clsr); }
+            public void Watch(Closure clsr) {
+                unsafe { mtk_conn_watch(conn_, clsr); }
             }
             public void Poll() {
                 unsafe { mtk_conn_poll(conn_); }
@@ -304,6 +304,7 @@ namespace Mtk {
             ulong id_;
             string payload_;
             Closure on_connect_, on_close_, on_ready_;
+            Closure on_notify_;
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at) {
                 base.ListenAt(at);
@@ -334,6 +335,10 @@ namespace Mtk {
                 on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
+            public ClientBuilder OnNotify(ClientRecvCB cb) {
+                on_notify_.arg = new System.IntPtr(0);
+                on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
+            }
             public Conn Build() {
                 var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
                 var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
@@ -349,6 +354,7 @@ namespace Mtk {
                         };
                         var conn = new Conn(mtk_connect(ref addr, ref conf));
                         Core.Instance().ConnMap[id_] = conn;
+                        conn.Watch(on_notify_);
                         return conn;
                     }
                 }

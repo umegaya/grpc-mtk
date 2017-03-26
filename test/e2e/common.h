@@ -102,9 +102,10 @@ public:
 template <class NOTIFY>
 class notify_closure_caller {
 public:
-	std::function<void (NOTIFY &)> cb;
+	std::function<void (MessageTypes t, NOTIFY &)> cb;
+	MessageTypes type_id;
 public:
-	notify_closure_caller() : cb() {}
+	notify_closure_caller(MessageTypes t) : cb(), type_id(t) {}
 	mtk_closure_t closure() {
 		mtk_closure_t clsr;
 		mtk_closure_init(&clsr, on_msg, notify_closure_caller::call, this);
@@ -114,7 +115,7 @@ public:
 		auto pcc = (notify_closure_caller *)arg;
 		NOTIFY n;
 		mtk::Codec::Unpack((const uint8_t *)p, l, n);
-		pcc->cb(n);
+		pcc->cb(pcc->type_id, n);
 	}
 };
 
@@ -202,11 +203,11 @@ void notify_sender(mtk_svconn_t conn, reply_dest *dst, uint32_t type, NOTIFY &n)
 	mtk_conn_send(conn, type, buff, req.ByteSize(), pcc->closure()); \
 }
 
-#define WATCH_NOTIFY(conn, type, callback, ppcc) { \
-	auto *pcc = new mtktest::notify_closure_caller<type##Notify>(); \
+#define WATCH_NOTIFY(conn, type, type_id, callback, ppcc) { \
+	auto *pcc = new mtktest::notify_closure_caller<type##Notify>(MessageTypes::type_id); \
 	pcc->cb = callback; \
 	*ppcc = pcc; \
-	mtk_conn_watch(conn, MessageTypes::Notify_##type, pcc->closure()); \
+	mtk_conn_watch(conn, pcc->closure()); \
 }
 
 
