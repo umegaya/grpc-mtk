@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Mtk {
+namespace Mtk.Unity {
 	public class InClientServer : MonoBehaviour {
 		Core.Server sv_;
 		Core.IServerLogic logic_;
