@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "mtk.grpc.pb.h"
 #include <MoodyCamel/concurrentqueue.h>
+#include "logger.h"
 #include "debug.h"
 
 namespace {
@@ -32,6 +33,7 @@ namespace mtk {
     public:
         virtual grpc::Status Handle(Conn *c, Request &req) = 0;
         virtual mtk_cid_t Login(Conn *c, Request &req) = 0;
+        virtual void Close(Conn *c) = 0;
         virtual Conn *NewConn(Worker *worker, IHandler *handler) = 0;
     };
     typedef uint32_t MessageType;
@@ -311,14 +313,14 @@ namespace mtk {
     public:
         template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
 #if defined(DEBUG)
-            LOG(info, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Formatter(fmt, args...));
+            LOG(info, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Format(fmt, args...));
 #endif
         }
         template <typename... Args> void LogInfo(const char* fmt, const Args&... args) {
-            LOG(info, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Formatter(fmt, args...));
+            LOG(info, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Format(fmt, args...));
         }
         template <typename... Args> void LogError(const char* fmt, const Args&... args) {
-            LOG(error, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Formatter(fmt, args...));
+            LOG(error, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Format(fmt, args...));
         }        
     public: //following no need to use from user code
         void AcceptLogin(SystemPayload::Login &a) {

@@ -7,6 +7,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <codec.h>
+#include <logger.h>
 #include <debug.h>
 #include <defs.h>
 #if defined(CHECK)

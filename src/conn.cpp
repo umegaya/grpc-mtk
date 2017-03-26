@@ -52,6 +52,7 @@ namespace mtk {
     std::mutex Conn::cmap_mtx_, Conn::pmap_mtx_;
     void Conn::Destroy() {
         ConsumeTask(-1); //process all task
+        handler_->Close(this);
         Unregister();
         delete this;
     }

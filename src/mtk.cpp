@@ -17,13 +17,20 @@ static_assert(offsetof(mtk_svevent_t, data) == 28, "mtk_svevent_t offset illegal
 /* worker handler (callback) */
 class FunctionHandler : public IHandler {
 protected:
-	mtk_closure_t handler_, acceptor_;
+	mtk_closure_t handler_, acceptor_, closer_;
 public:
-	FunctionHandler(mtk_closure_t handler, mtk_closure_t acceptor) : handler_(handler), acceptor_(acceptor) {}
+	FunctionHandler() : handler_(mtk_closure_nop), acceptor_(mtk_closure_nop), closer_(mtk_closure_nop) {}
+	FunctionHandler(mtk_closure_t handler, mtk_closure_t acceptor, mtk_closure_t closer) : 
+		handler_(handler), acceptor_(acceptor), closer_(closer) {}
 	//implements IHandler
 	grpc::Status Handle(Conn *c, Request &req) {
 		return mtk_closure_call(&handler_, on_svmsg, c, req.type(), req.payload().c_str(), req.payload().length()) >= 0 ? 
 			grpc::Status::OK : grpc::Status::CANCELLED;
+	}
+	void Close(Conn *c) {
+    	if (mtk_closure_valid(&closer_)) {
+    		mtk_closure_call(&closer_, on_svclose, c);
+    	}		
 	}
 	mtk_cid_t Login(Conn *c, Request &req) {
 		SystemPayload::Connect creq;
@@ -64,16 +71,16 @@ public:
 /* worker handler (queue) */
 class QueueReadHandler : public FunctionHandler {
 protected:
-	static mtk_closure_t dummy_;
 	mtk_queue_t queue_;
 public:
-	QueueReadHandler() : FunctionHandler(dummy_, dummy_) {
+	QueueReadHandler() : FunctionHandler() {
 		queue_ = mtk_queue_create(_DestroyEvent);
 		mtk_closure_init(&handler_, on_svmsg, &_OnRecv, queue_);
 		mtk_closure_init(&acceptor_, on_accept, &_OnAccept, queue_);
+		mtk_closure_init(&closer_, on_svclose, &_OnClose, queue_);
 	}
 	mtk_queue_t Queue() { return queue_; }
-protected://tranpoline
+protected:
 	static mtk_result_t _OnRecv(void *arg, mtk_svconn_t c, mtk_result_t r, const char *p, mtk_size_t l) {
 		mtk_queue_t q = ((mtk_queue_t)arg);
 		//receiver send reply by using mtk_cid_send
@@ -86,6 +93,17 @@ protected://tranpoline
 		std::memcpy(ev->data, p, l);
 		mtk_queue_push(q, ev);
 		return 0;
+	}
+	static void _OnClose(void *arg, mtk_svconn_t c) {
+		mtk_queue_t q = ((mtk_queue_t)arg);
+		//receiver send reply by using mtk_cid_send
+		mtk_svevent_t *ev = (mtk_svevent_t *)std::malloc(sizeof(mtk_svevent_t));
+		ev->lcid = 0;
+		ev->cid = mtk_svconn_cid(c);
+		ev->msgid = 0;
+		ev->result = 0;
+		ev->datalen = 0;
+		mtk_queue_push(q, ev);
 	}
 	static mtk_cid_t _OnAccept(void *arg, mtk_svconn_t c, mtk_msgid_t msgid, mtk_cid_t cid, 
 											const char *p, mtk_size_t l, char **, mtk_size_t *) {
@@ -102,10 +120,9 @@ protected://tranpoline
 		return 0;
 	}
 	static void _DestroyEvent(void *p) {
-		delete (mtk_svevent_t *)p;
+		std::free(p);
 	}
 };
-mtk_closure_t QueueReadHandler::dummy_;
 
 /* credentical generation */
 static bool CreateCred(const mtk_addr_t &settings, RPCStream::CredOptions &options) {
@@ -147,7 +164,7 @@ public:
 	        queue_ = r->Queue();
 	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
 	    } else {
-	        auto r = std::unique_ptr<FunctionHandler>(new FunctionHandler(conf_.handler, conf_.acceptor));
+	        auto r = std::unique_ptr<FunctionHandler>(new FunctionHandler(conf_.handler, conf_.acceptor, conf_.closer));
 	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
 	    }
 	}
@@ -178,8 +195,8 @@ public:
 	//implements RPCStream::IClientDelegate
 	uint64_t Id() const { return clconf_.id; }
    	bool Ready() const { 
-   		return mtk_closure_valid(&clconf_.on_validate) ? 
-   			mtk_closure_call_noarg(&clconf_.on_validate, on_validate) : 
+   		return mtk_closure_valid(&clconf_.on_ready) ? 
+   			mtk_closure_call_noarg(&clconf_.on_ready, on_ready) : 
    			true; 
    	}
     bool AddPayload(SystemPayload::Connect &c) {
@@ -314,14 +331,16 @@ void mtk_cid_close(mtk_cid_t cid) {
 
 
 mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
+	TRACE("mtk_connect called");
 	Client *cl = new Client(clconf);
+	TRACE("mtk_connect called2 {}", (void *)cl);
 	Client::CredOptions opts;
 	cl->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
 	return (void *)cl;
 }
 mtk_cid_t mtk_conn_cid(mtk_conn_t c) {
 	Client *cl = (Client *)c;
-	return cl->Id();
+	return cl->Id();	
 }
 void mtk_conn_poll(mtk_conn_t c) {
 	Client *cl = (Client *)c;
@@ -468,8 +487,9 @@ mtk_time_t mtk_sleep(mtk_time_t d) {
 mtk_time_t mtk_pause(mtk_time_t d) {
 	return clock::pause(d);
 }
-void mtk_log_init() {
-	logger::Initialize();
+
+void mtk_log_config(const char *svname, mtk_logger_cb_t cb) {
+	logger::configure(cb, svname);
 }
 
 mtk_closure_t mtk_closure_nop = { nullptr, { nullptr } };
@@ -486,7 +506,7 @@ void mtk_queue_push(mtk_queue_t q, void *elem) {
 bool mtk_queue_pop(mtk_queue_t q, void **elem) {
 	return ((Queue *)q)->try_dequeue(*elem);
 }
-void mtk_queue_free_elem(mtk_queue_t q, void *elem) {
+void mtk_queue_elem_free(mtk_queue_t q, void *elem) {
 	((Queue *)q)->FreeElement(elem);
 }
 

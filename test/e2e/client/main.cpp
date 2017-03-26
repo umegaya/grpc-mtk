@@ -29,7 +29,6 @@ void testsuites(const char *addr, bool skip = true) {
 }
 
 int main(int argc, char *argv[]) {
-	mtk_log_init();
 	TRACE("============== test with normal mode ==============");
 	testsuites("localhost:50051");
 	TRACE("============== test with queue mode ==============");

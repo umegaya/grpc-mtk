@@ -86,8 +86,16 @@ mtk_cid_t acceptor(void *arg, mtk_svconn_t c, mtk_msgid_t msgid, mtk_cid_t cid,
 	}
 }
 
+void closer(void *arg, mtk_svconn_t c) {
+	TRACE("conn closed {}", (void *)c);
+}
+
+void logger(const char *p, size_t l) {
+	fwrite(p, 1, l, stderr);
+}
+
 int main(int argc, char *argv[]) {
-	mtk_log_init();
+	mtk_log_config("testsv", logger);
 
 	ATOMIC_UINT64 id_seed;
 	bool alive = true;
@@ -115,8 +123,10 @@ int main(int argc, char *argv[]) {
 	};
 	mtk_closure_init(&(conf[0].handler), on_svmsg, handler, nullptr);
 	mtk_closure_init(&(conf[0].acceptor), on_accept, acceptor, &id_seed);
+	mtk_closure_init(&(conf[0].closer), on_svclose, closer, nullptr);
 	mtk_closure_init(&(conf[1].handler), on_svmsg, handler, nullptr);
 	mtk_closure_init(&(conf[1].acceptor), on_accept, acceptor, &id_seed);
+	mtk_closure_init(&(conf[1].closer), on_svclose, closer, nullptr);
 
 	mtk_listen(&addr[1], &conf[1], &sv[1]);	
 
@@ -128,10 +138,13 @@ int main(int argc, char *argv[]) {
 			while (mtk_queue_pop(q, (void **)&t)) {
 				if (t->lcid != 0) {	
 					mtk_svconn_finish_login(t->lcid, t->cid != 0 ? t->cid : ++id_seed, t->msgid, t->data, t->datalen);
-				} else {
+				} else if (t->msgid != 0) {
 					reply_dest rd = { t->cid, t->msgid };
 					queue_handler(&rd, t->result, t->data, t->datalen);
+				} else {
+					//TRACE("conn close {}", t->cid);
 				}
+				mtk_queue_elem_free(q, (void *)t);
 			}
 			mtk_sleep(mtk_msec(10));
 		}		
