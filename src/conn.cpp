@@ -11,6 +11,7 @@ namespace mtk {
         while (Tasks().try_dequeue(t)) {
             delete t;            
         }
+        DestroyUserCtx();
 #if defined(REFCNT_CHECK)
         TRACE("SVStream delete {} {}", (void *)this, --stream_cnt_);
 #endif

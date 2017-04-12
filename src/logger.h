@@ -26,7 +26,7 @@ namespace logger {
     void write(const std::string &body);
 
     template <typename... Args> inline void log(level::def lv, const char *fmt, fmt::ArgList args) {
-    	if (lv == level::trace) {
+    	if (lv <= level::debug) {
 	        std::string body = fmt::format(fmt, args);
 	        write(body + "\n");
 			return;    		
@@ -36,6 +36,16 @@ namespace logger {
         std::string footer = fmt::format(",sv_:{},ts_:{}.{},lv_:{}\n", svname(),sec,nsec,log_level_[lv]);
         std::string body = fmt::format(fmt, args);
         write(body, footer);
+    }
+    inline void log(level::def lv, const std::string &body) {
+        if (lv <= level::debug) {
+            write(body + "\n");
+            return;         
+        }
+        long sec, nsec;
+        clock::now(sec, nsec);
+        std::string footer = fmt::format(",sv_:{},ts_:{}.{},lv_:{}\n", svname(),sec,nsec,log_level_[lv]);
+        write(body, footer);        
     }
 	FMT_VARIADIC(void, log, level::def, const char *);	
     template <typename... Args> inline void trace(const char *fmt, const Args&... args) { log(level::trace, fmt, args...); }

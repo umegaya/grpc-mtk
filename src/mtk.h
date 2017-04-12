@@ -49,6 +49,17 @@ typedef struct {
 		void *check;
 	};
 } mtk_closure_t;
+typedef enum {
+    trace,
+    debug,
+    info,
+    warn,
+    error,
+    fatal,            
+    report,
+    max,
+} mtk_loglevel_t;
+
 
 
 
@@ -66,6 +77,7 @@ extern mtk_time_t mtk_sleep(mtk_time_t d); //ignore EINTR
 extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
 /* log */
 extern void mtk_log_config(const char *svname, mtk_logger_cb_t cb);
+extern void mtk_log(mtk_loglevel_t lv, const char *str);
 /* event queue */
 extern mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor);
 extern void mtk_queue_destroy(mtk_queue_t q);
@@ -105,12 +117,14 @@ typedef enum {
 	MTK_TIMEOUT = -2,
 	MTK_ACCEPT_DENY = -3,
 } mtk_error_t;
+typedef void (*mtk_ctx_free_t)(void *);
 
 /* server */
 extern void mtk_listen(mtk_addr_t *listen_at, mtk_svconf_t *conf, mtk_server_t *sv);
 extern void mtk_server_join(mtk_server_t sv);
 extern mtk_queue_t mtk_server_queue(mtk_server_t sv);
 extern mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn);
+extern mtk_svconn_t mtk_svconn_find_deferred(mtk_login_cid_t lcid);
 extern void mtk_svconn_finish_login(mtk_login_cid_t login_cid, 
 									mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern mtk_cid_t mtk_svconn_cid(mtk_svconn_t conn);
@@ -121,12 +135,15 @@ extern void mtk_svconn_notify(mtk_svconn_t conn, uint32_t type, const char *data
 extern void mtk_svconn_error(mtk_svconn_t conn, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_svconn_close(mtk_svconn_t conn);
+extern void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor);
+extern void *mtk_svconn_getctx(mtk_svconn_t conn);
 //mtk_cid_* is callable anywhere. but you need cid which obtained by mtk_svconn_cid.
 extern void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
 extern void mtk_cid_close(mtk_cid_t cid);
+extern void *mtk_cid_getctx(mtk_cid_t conn);
 /* client */
 extern mtk_conn_t mtk_connect(mtk_addr_t *connect_to, mtk_clconf_t *conf);
 extern mtk_cid_t mtk_conn_cid(mtk_conn_t conn);
@@ -134,6 +151,7 @@ extern void mtk_conn_poll(mtk_conn_t conn);
 extern void mtk_conn_close(mtk_conn_t conn);
 extern void mtk_conn_reset(mtk_conn_t conn); //this just restart connection, never destroy. 
 extern void mtk_conn_send(mtk_conn_t conn, uint32_t type, const char *data, mtk_size_t datalen, mtk_closure_t clsr);
+extern void mtk_conn_timeout(mtk_conn_t conn, mtk_time_t duration);
 extern void mtk_conn_watch(mtk_conn_t conn, mtk_closure_t clsr);
 extern bool mtk_conn_connected(mtk_svconn_t conn);
 #define mtk_closure_init(__pclsr, __type, __cb, __arg) { \

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Mtk {
-    public class Core {
+    public partial class Core {
         //dllname
     #if UNITY_EDITOR || UNITY_ANDROID
         const string DllName = "mtk";
@@ -30,6 +30,8 @@ namespace Mtk {
         public delegate void ServerCloseCB(System.IntPtr arg, ulong cid);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void LogWriteCB(string buf, System.IntPtr len);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void DestroyPointerCB(System.IntPtr ptr);
         
         //structs
         public struct Closure {
@@ -84,7 +86,15 @@ namespace Mtk {
             public int result;
             public uint datalen;
         };
-
+        public enum LogLevel {
+            Trace,
+            Debug,
+            Info,
+            Warn,
+            Error,
+            Fatal,            
+            Report,
+        };
 
         //util
         [DllImport (DllName)]
@@ -93,6 +103,10 @@ namespace Mtk {
         private static extern unsafe void mtk_queue_elem_free(System.IntPtr q, System.IntPtr elem);
         [DllImport (DllName)]
         private static extern unsafe void mtk_log_config(string name, LogWriteCB writer);
+        [DllImport (DllName)]
+        private static extern unsafe ulong mtk_time();
+        [DllImport (DllName)]
+        private static extern unsafe ulong mtk_log(int lv, string str);
 
         //listener
         [DllImport (DllName)]
@@ -118,9 +132,16 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_svconn_close(System.IntPtr conn);
         [DllImport (DllName)]
+        private static extern unsafe void mtk_svconn_putctx(System.IntPtr conn, System.IntPtr ctx, DestroyPointerCB dtor);
+        [DllImport (DllName)]
+        private static extern unsafe System.IntPtr mtk_svconn_getctx(System.IntPtr conn);
+        [DllImport (DllName)]
         private static extern unsafe void mtk_svconn_finish_login(ulong login_cid, ulong cid, uint msgid, byte *data, uint datalen);
         [DllImport (DllName)]
         private static extern unsafe ulong mtk_svconn_defer_login(System.IntPtr conn);
+        [DllImport (DllName)]
+        private static extern unsafe System.IntPtr mtk_svconn_find_deferred(ulong lcid);
+
 
         //other server conn, using cid 
         [DllImport (DllName)]
@@ -133,6 +154,8 @@ namespace Mtk {
         private static extern unsafe void mtk_cid_task(ulong cid, uint type, byte *data, uint datalen);
         [DllImport (DllName)]
         private static extern unsafe void mtk_cid_close(ulong cid);
+        [DllImport (DllName)]
+        private static extern unsafe System.IntPtr mtk_cid_getctx(ulong cid);
 
         //client conn
         [DllImport (DllName)]
@@ -148,6 +171,8 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_conn_send(System.IntPtr conn, uint type, byte *data, uint datalen, Closure clsr);
         [DllImport (DllName)]
+        private static extern unsafe void mtk_conn_timeout(System.IntPtr conn, ulong duration);
+        [DllImport (DllName)]
         private static extern unsafe void mtk_conn_watch(System.IntPtr conn, Closure clsr);
         [DllImport (DllName)]
         private static extern unsafe bool mtk_conn_connected(System.IntPtr conn);
@@ -157,20 +182,24 @@ namespace Mtk {
             ulong Id { get; }
             void Close();
         }
+        public interface IContextSetter {
+            T SetContext<T>(T obj);
+        }
         public interface ISVConn : IConn {
             uint MsgId { get; }
             void Reply(uint msgid, byte[] data);
             void Task(uint type, byte[] data);
-            void Error(uint msgid, byte[] data);
+            void Throw(uint msgid, byte[] data);
             void Notify(uint type, byte[] data);
-            void Close();     
+            void Close();
+            T Context<T>();
         }
         public interface IServerLogic {
-            ulong OnAccept(ulong cid, byte[] data, out byte[] rep);
+            ulong OnAccept(ulong cid, IContextSetter setter, byte[] data, out byte[] rep);
             int OnRecv(ISVConn c, int type, byte[] data);
             void OnClose(ulong cid);
         }
-        public class Conn : IConn {
+        public partial class Conn : IConn {
             System.IntPtr conn_;
             public Conn(System.IntPtr c) {
                 conn_ = c;
@@ -181,8 +210,15 @@ namespace Mtk {
             public bool IsConnected {
                 get { unsafe { return mtk_conn_connected(conn_); } }
             }
-            public void Send(uint type, byte[] data, Closure clsr) {
-                unsafe { fixed (byte* d = data) { mtk_conn_send(conn_, type, d, (uint)data.Length, clsr); } }
+            public void Send(uint type, byte[] data, Closure clsr, ulong timeout_duration = 0) {
+                unsafe { 
+                    fixed (byte* d = data) { mtk_conn_send(conn_, type, d, (uint)data.Length, clsr); } 
+                }
+            }
+            public void Timeout(ulong duration) {
+                unsafe { 
+                    mtk_conn_timeout(conn_, duration);
+                }
             }
             public void Watch(Closure clsr) {
                 unsafe { mtk_conn_watch(conn_, clsr); }
@@ -197,7 +233,7 @@ namespace Mtk {
                 unsafe { mtk_conn_close(conn_); }
             }
         }
-        public class SVConn : ISVConn {
+        public partial class SVConn : ISVConn, IContextSetter {
             System.IntPtr conn_;
             public SVConn(System.IntPtr c) {
                 conn_ = c;
@@ -214,7 +250,7 @@ namespace Mtk {
             public void Task(uint type, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_svconn_task(conn_, type, d, (uint)data.Length); } }
             }
-            public void Error(uint msgid, byte[] data) {
+            public void Throw(uint msgid, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_svconn_error(conn_, msgid, d, (uint)data.Length); } }
             }
             public void Notify(uint type, byte[] data) {
@@ -223,8 +259,38 @@ namespace Mtk {
             public void Close() {
                 unsafe { mtk_svconn_close(conn_); }
             }
+            static void DestroyContext(System.IntPtr ptr) {
+                GCHandle.FromIntPtr(ptr).Free();
+            }
+            public T SetContext<T>(T obj) {
+                var ptr = GCHandle.Alloc(obj, GCHandleType.Pinned);
+                unsafe {
+                    mtk_svconn_putctx(conn_, GCHandle.ToIntPtr(ptr), DestroyContext);
+                }
+                return (T)ptr.Target;                
+            }
+            public T Context<T>() {
+                unsafe {
+                    System.IntPtr ptr = mtk_svconn_getctx(conn_);
+                    if (ptr == System.IntPtr.Zero) {
+                        return default(T);
+                    } else {
+                        return (T)GCHandle.FromIntPtr(ptr).Target;
+                    }
+                }
+            }
+            static public void Reply(ulong cid, uint msgid, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
+            }
+            static public void Throw(ulong cid, uint msgid, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
+            }
+            static public void Notify(ulong cid, uint type, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
+            }
+
         }
-        public class CidConn : ISVConn {
+        public partial class CidConn : ISVConn {
             ulong cid_;
             uint msgid_;
             public CidConn(ulong cid, uint msgid) {
@@ -243,7 +309,7 @@ namespace Mtk {
             public void Task(uint type, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_cid_task(cid_, type, d, (uint)data.Length); } }
             }
-            public void Error(uint msgid, byte[] data) {
+            public void Throw(uint msgid, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_cid_error(cid_, msgid, d, (uint)data.Length); } }
             }
             public void Notify(uint type, byte[] data) {
@@ -251,6 +317,16 @@ namespace Mtk {
             }
             public void Close() {
                 unsafe { mtk_cid_close(cid_); }
+            }
+            public T Context<T>() {
+                unsafe {
+                    System.IntPtr ptr = mtk_cid_getctx(cid_);
+                    if (ptr == System.IntPtr.Zero) {
+                        return default(T);
+                    } else {
+                        return (T)GCHandle.FromIntPtr(ptr).Target;
+                    }
+                }
             }
         }
         public class Server {
@@ -267,12 +343,15 @@ namespace Mtk {
                 while (mtk_queue_pop(queue_, ref elem)) {
                     ServerEvent *ev = (ServerEvent *)elem;
                     if (ev->lcid != 0) {
-                        var ret = new byte[ev->datalen];
-                        byte[] rep;
-                        Marshal.Copy((System.IntPtr)(((byte *)ev) + sizeof(ServerEvent)), ret, 0, (int)ev->datalen);
-                        var cid = logic.OnAccept(ev->cid, ret, out rep);
-                        fixed (byte *pb = rep) {
-                            mtk_svconn_finish_login(ev->lcid, cid, ev->msgid, pb, (uint)rep.Length);
+                        System.IntPtr dc = mtk_svconn_find_deferred(ev->lcid);
+                        if (dc != System.IntPtr.Zero) {
+                            var ret = new byte[ev->datalen];
+                            byte[] rep;
+                            Marshal.Copy((System.IntPtr)(((byte *)ev) + sizeof(ServerEvent)), ret, 0, (int)ev->datalen);
+                            var cid = logic.OnAccept(ev->cid, new SVConn(dc), ret, out rep);
+                            fixed (byte *pb = rep) {
+                                mtk_svconn_finish_login(ev->lcid, cid, ev->msgid, pb, (uint)rep.Length);
+                            }
                         }
                     } else if (ev->msgid != 0) {
                         var c = new CidConn(ev->cid, ev->msgid);
@@ -321,23 +400,24 @@ namespace Mtk {
             }
             //these function will be called from same thread as Unity's main thread
             public ClientBuilder OnClose(ClientCloseCB cb) {
-                on_close_.arg = new System.IntPtr(0);
+                on_close_.arg = System.IntPtr.Zero;
                 on_close_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
             public ClientBuilder OnConnect(ClientConnectCB cb) {
-                on_connect_.arg = new System.IntPtr(0);
+                on_connect_.arg = System.IntPtr.Zero;
                 on_connect_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
             public ClientBuilder OnReady(ClientReadyCB cb) {
-                on_ready_.arg = new System.IntPtr(0);
+                on_ready_.arg = System.IntPtr.Zero;
                 on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
             public ClientBuilder OnNotify(ClientRecvCB cb) {
-                on_notify_.arg = new System.IntPtr(0);
+                on_notify_.arg = System.IntPtr.Zero;
                 on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
+                return this;
             }
             public Conn Build() {
                 var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
@@ -362,8 +442,10 @@ namespace Mtk {
         }
         public class ServerBuilder : Builder {
             uint n_worker_;
-            Closure handler_, acceptor_;
-            public ServerBuilder() {}
+            bool use_queue_ = true;
+            Closure handler_, acceptor_, closer_;
+            public ServerBuilder() {
+            }
             public ServerBuilder ListenAt(string at) {
                 base.ListenAt(at);
                 return this;
@@ -376,6 +458,11 @@ namespace Mtk {
                 n_worker_ = n_worker;
                 return this;
             }
+            public ServerBuilder UseQueue(bool b) {
+                use_queue_ = b;
+                return this;
+            }
+            //TODO: allow non use queue mode
             public Server Build() {
                 var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
                 var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
@@ -386,15 +473,9 @@ namespace Mtk {
                         Address addr = new Address { host = (System.IntPtr)h, cert = (System.IntPtr)c, key = (System.IntPtr)k, ca = (System.IntPtr)a };
                         ServerConfig conf = new ServerConfig { 
                             n_worker = n_worker_, exclusive = false,
-                            use_queue = true,
+                            use_queue = use_queue_,
+                            handler = handler_, acceptor = acceptor_, closer = closer_, 
                         };
-                        conf.handler.arg = new System.IntPtr(0);
-                        conf.handler.cb = new System.IntPtr(0);
-                        conf.acceptor.arg = new System.IntPtr(0);
-                        conf.acceptor.cb = new System.IntPtr(0);
-                        conf.closer.arg = new System.IntPtr(0);
-                        conf.closer.cb = new System.IntPtr(0);
-                        
                         System.IntPtr svp = new System.IntPtr();
                         mtk_listen(ref addr, ref conf, ref svp);
                         var s = new Server(svp);
@@ -408,6 +489,14 @@ namespace Mtk {
         static Core instance_ = null;
         public Dictionary<ulong, Conn> ConnMap { get; set; }
         public Dictionary<string, Server> ServerMap { get; set; }
+        static public ulong Tick { 
+            get { return mtk_time(); } 
+        }
+        static public ulong Sec2Tick(uint sec) { return ((ulong)sec) * 1000 * 1000 * 1000; }
+        static public ulong MSec2Tick(uint msec) { return ((ulong)msec) * 1000 * 1000; }
+        static public ulong USec2Tick(uint usec) { return ((ulong)usec) * 1000; }
+        static public ulong NSec2Tick(uint nsec) { return ((ulong)nsec); }
+        static public float Tick2Sec(ulong tick) { return ((float)tick)/(1000 * 1000 * 1000);}
         static public Core Instance() {
             if (instance_ == null) {
                 instance_ = new Core();
@@ -417,9 +506,41 @@ namespace Mtk {
         public static void InitLogger(string name, LogWriteCB writer) {
             mtk_log_config(name, writer);
         }
+        public static void Log(LogLevel lv, string str) {
+            unsafe {
+                mtk_log((int)lv, str);
+            }
+        }
+        public static void Assert(bool expr) {
+            if (!expr) {
+                var st = new  System.Diagnostics.StackTrace(1, true);
+                Log(LogLevel.Fatal, "assertion fails at " + st.ToString());
+                //TODO: real abortion
+            }
+        }
         Core() {
             ConnMap = new Dictionary<ulong, Conn>();
             ServerMap = new Dictionary<string, Server>();
+        }
+    }
+    public class Log {
+        public static void Write(Core.LogLevel lv, string str) {
+            Core.Log(lv, str);
+        }
+        public static void Info(string str) {
+            Write(Core.LogLevel.Info, str);
+        }
+        public static void Error(string str) {
+            Write(Core.LogLevel.Error, str);
+        }
+        public static void Debug(string str) {
+            Write(Core.LogLevel.Debug, str);
+        }
+        public static void Fatal(string str) {
+            Write(Core.LogLevel.Fatal, str);
+        }
+        public static void Report(string str) {
+            Write(Core.LogLevel.Report, str);
         }
     }
 }

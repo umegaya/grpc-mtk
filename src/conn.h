@@ -49,13 +49,14 @@ namespace mtk {
         moodycamel::ConcurrentQueue<Request*> tasks_;
         bool is_sending_;
         void *user_ctx_;
+        void (*user_ctx_dtor_)(void *);
         ATOMIC_INT refc_;
 #if defined(REFCNT_CHECK)
     public:
         static ATOMIC_INT stream_cnt_;
 #endif
     public:
-        SVStream() : ctx_(), io_(&ctx_), mtx_(), queue_(), tasks_(), is_sending_(false), user_ctx_(nullptr), refc_(0) {
+        SVStream() : ctx_(), io_(&ctx_), mtx_(), queue_(), tasks_(), is_sending_(false), user_ctx_(nullptr), user_ctx_dtor_(nullptr), refc_(0) {
 #if defined(REFCNT_CHECK)
             TRACE("SVStream new {} {}", (void *)this, ++stream_cnt_);
 #endif
@@ -86,7 +87,11 @@ namespace mtk {
         inline TaskQueue &Tasks() { return tasks_; }
         template <class CTX> inline CTX &UserCtx() { return *(CTX *)user_ctx_; }
         template <class CTX> inline const CTX &UserCtx() const { return *(const CTX *)user_ctx_; }
-        inline void SetUserCtx(void *ud) { user_ctx_ = ud; }
+        inline void *UserCtxPtr() { return user_ctx_; }
+        inline void SetUserCtx(void *ud, void (*dtor)(void *) = nullptr) { 
+            user_ctx_ = ud; 
+            user_ctx_dtor_ = dtor;
+        }
         template <class W> 
         inline void Rep(mtk_msgid_t msgid, const W &w) {
             Reply *r = new Reply();
@@ -137,6 +142,13 @@ namespace mtk {
             SysTask(Request::Close, c);
         }
     protected:
+        inline void DestroyUserCtx() {
+            if (user_ctx_ != nullptr) {
+                if (user_ctx_dtor_ != nullptr) {
+                    user_ctx_dtor_(user_ctx_);
+                }
+            }
+        }
         inline void Finish(IJob *tag) {
             io_.Finish(Status::OK, tag);
         }
@@ -273,6 +285,8 @@ namespace mtk {
         inline void InternalClose() {
             status_ = CLOSE;
         }
+        inline void *UserCtxPtr() { return stream_->UserCtxPtr(); }
+        inline void SetUserCtx(void *ud, void (*dtor)(void *) = nullptr) { stream_->SetUserCtx(ud, dtor); }
         template <class W> inline void Rep(mtk_msgid_t msgid, const W &w) {
             stream_->Rep(msgid, w); 
         }
@@ -360,6 +374,17 @@ namespace mtk {
             a.set_msgid(msgid);
             a.set_payload(data, datalen);
             mc->SysTask(Request::Login, a);
+        }
+        static Conn *FindDeferred(mtk_login_cid_t lcid) {
+            pmap_mtx_.lock();
+            auto it = pmap_.find(lcid);
+            if (it == pmap_.end()) {
+                pmap_mtx_.unlock();
+                return nullptr;
+            }
+            auto mc = it->second;
+            pmap_mtx_.unlock();
+            return mc;
         }
     protected:
         inline void Recv() {

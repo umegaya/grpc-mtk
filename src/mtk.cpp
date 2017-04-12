@@ -266,6 +266,9 @@ mtk_queue_t mtk_server_queue(mtk_server_t sv) {
 mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn) {
 	return Conn::DeferLogin(conn);
 }
+mtk_svconn_t mtk_svconn_find_deferred(mtk_login_cid_t lcid) {
+	return Conn::FindDeferred(lcid);
+}
 void mtk_svconn_finish_login(mtk_login_cid_t login_cid, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	Conn::FinishLogin(login_cid, cid, msgid, data, datalen);
 }
@@ -295,6 +298,12 @@ void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, mtk_siz
 }
 void mtk_svconn_close(mtk_svconn_t conn) {
 	((Conn *)conn)->InternalClose();
+}
+void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor) {
+	((Conn *)conn)->SetUserCtx(ctx, dtor);
+}
+void *mtk_svconn_getctx(mtk_svconn_t conn) {
+	return ((Conn *)conn)->UserCtxPtr();
 }
 void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
 	Conn::Stream s = Conn::Get(cid);
@@ -327,13 +336,16 @@ void mtk_cid_close(mtk_cid_t cid) {
 	if (s == nullptr) { return; }
 	s->Close();
 }
+void *mtk_cid_getctx(mtk_cid_t cid) {
+	Conn::Stream s = Conn::Get(cid);
+	if (s == nullptr) { return nullptr; }
+	return s->UserCtxPtr();
+}
 
 
 
 mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
-	TRACE("mtk_connect called");
 	Client *cl = new Client(clconf);
-	TRACE("mtk_connect called2 {}", (void *)cl);
 	Client::CredOptions opts;
 	cl->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
 	return (void *)cl;
@@ -359,11 +371,15 @@ void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, mtk_size_t plen, 
 	Client *cl = (Client *)c;
 	cl->Call(type, p, plen, *(Closure*)&clsr);
 }
+void mtk_conn_timeout(mtk_conn_t c, mtk_time_t duration) {
+	Client *cl = (Client *)c;
+	cl->SetDefaultTimeout(duration);
+}
 void mtk_conn_watch(mtk_conn_t c, mtk_closure_t clsr) {
 	Client *cl = (Client *)c;
 	cl->RegisterNotifyCB(*(Closure*)&clsr);
 }
-bool mtk_conn_connected(mtk_svconn_t c) {
+bool mtk_conn_connected(mtk_conn_t c) {
 	Client *cl = (Client *)c;
 	return cl->IsConnected();
 }
@@ -490,6 +506,9 @@ mtk_time_t mtk_pause(mtk_time_t d) {
 
 void mtk_log_config(const char *svname, mtk_logger_cb_t cb) {
 	logger::configure(cb, svname);
+}
+void mtk_log(mtk_loglevel_t lv, const char *str) {
+	logger::log((logger::level::def)lv, str);
 }
 
 mtk_closure_t mtk_closure_nop = { nullptr, { nullptr } };

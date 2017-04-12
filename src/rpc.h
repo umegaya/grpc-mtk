@@ -116,6 +116,7 @@ namespace mtk {
         static Reply *ESTABLISHED_EVENT;
         static Request *ESTABLISH_REQUEST;
         static constexpr timespec_t TIMEOUT_DURATION = clock::sec(30); //30sec
+        static constexpr timespec_t USE_DEFAULT = clock::sec(0);
         static Error *TIMEOUT_ERROR;
         typedef grpc::SslCredentialsOptions CredOptions;
         struct SEntry {
@@ -139,7 +140,7 @@ namespace mtk {
         std::map<mtk_msgid_t, SEntry*> reqmap_;
         SEntry::Callback notifier_;
         bool restarting_;
-        timespec_t last_checked_, reconnect_when_;
+        timespec_t last_checked_, reconnect_when_, default_timeout_;
         ATOMIC_INT msgid_seed_;
         int reconnect_attempt_;
         NetworkStatus status_;
@@ -148,7 +149,8 @@ namespace mtk {
     public:
         RPCStream(IClientDelegate *d) : delegate_(d),
             replys_(), requests_(), reqmtx_(), reqmap_(), notifier_(), 
-            restarting_(false), last_checked_(0), reconnect_when_(0), msgid_seed_(0), reconnect_attempt_(0), 
+            restarting_(false), last_checked_(0), reconnect_when_(0), default_timeout_(TIMEOUT_DURATION), 
+            msgid_seed_(0), reconnect_attempt_(0), 
             status_(NetworkStatus::DISCONNECT), iothr_(*this), dump_(false) {
         };
         virtual ~RPCStream() {}
@@ -196,15 +198,15 @@ namespace mtk {
         void ProcessTimeout(timespec_t now);
         inline bool PushReply(Reply *rep) { return replys_.enqueue(rep); }
         inline bool PopRequest(Request* &req) { return requests_.try_dequeue(req); }
-        //call rpc via stream. not thread safe
+        inline void SetDefaultTimeout(timespec_t to) { default_timeout_ = to; }
         inline void Call(uint32_t type,
                   const char *buff, size_t len,
                   SEntry::Callback cb,
-                  timespec_t timeout_msec = TIMEOUT_DURATION) {
+                  timespec_t timeout_msec = USE_DEFAULT) {
             Request *msg = new Request();
             msg->set_type(type);
             msg->set_payload(buff, len);
-            Call(msg, cb, timeout_msec);
+            Call(msg, cb, timeout_msec == USE_DEFAULT ? default_timeout_ : timeout_msec);
         }
         inline void Call(Request *msg,
                   SEntry::Callback cb,
