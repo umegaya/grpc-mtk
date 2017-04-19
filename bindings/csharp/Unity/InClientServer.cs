@@ -7,7 +7,7 @@ namespace Mtk.Unity {
 		Core.IServerLogic logic_;
 		public string listenAt_ = "0.0.0.0:50051";
 		public uint worker_ = 1;
-		void Start() {
+		protected void Start() {
 			logic_ = ServerLogic();
 			if (logic_ == null) {
 				UnityEngine.Debug.Assert(false);
@@ -17,11 +17,11 @@ namespace Mtk.Unity {
 				.Worker(worker_)
 				.Build();
 		}
-		void FixedUpdate() {
+		protected void FixedUpdate() {
 			unsafe {
 				sv_.Process(logic_);
 			}
 		}
-		Core.IServerLogic ServerLogic() { return null; }
+		protected virtual Core.IServerLogic ServerLogic() { return null; }
 	}
 }

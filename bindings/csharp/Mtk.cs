@@ -185,8 +185,8 @@ namespace Mtk {
         public interface IContextSetter {
             T SetContext<T>(T obj);
         }
-        public interface ISVConn : IConn {
-            uint MsgId { get; }
+        public partial interface ISVConn : IConn {
+            uint Msgid { get; }
             void Reply(uint msgid, byte[] data);
             void Task(uint type, byte[] data);
             void Throw(uint msgid, byte[] data);
@@ -215,6 +215,17 @@ namespace Mtk {
                     fixed (byte* d = data) { mtk_conn_send(conn_, type, d, (uint)data.Length, clsr); } 
                 }
             }
+            public void Send(uint type, byte[] data, ClientRecvCB on_recv, ulong timeout_duration = 0) {
+                unsafe {
+                    fixed (byte* d = data) { 
+                        mtk_conn_send(conn_, type, d, (uint)data.Length, new Closure {
+                            arg = System.IntPtr.Zero,
+                            cb = Marshal.GetFunctionPointerForDelegate(on_recv),
+                        }); 
+                    }
+
+                }
+            }
             public void Timeout(ulong duration) {
                 unsafe { 
                     mtk_conn_timeout(conn_, duration);
@@ -241,7 +252,7 @@ namespace Mtk {
             public ulong Id {
                 get { unsafe { return mtk_svconn_cid(conn_); } }
             }
-            public uint MsgId {
+            public uint Msgid {
                 get { unsafe { return mtk_svconn_msgid(conn_); } }
             }
             public void Reply(uint msgid, byte[] data) {
@@ -300,7 +311,7 @@ namespace Mtk {
             public ulong Id {
                 get { unsafe { return cid_; } }
             }
-            public uint MsgId {
+            public uint Msgid {
                 get { unsafe { return msgid_; } }
             }
             public void Reply(uint msgid, byte[] data) {
@@ -491,6 +502,9 @@ namespace Mtk {
         public Dictionary<string, Server> ServerMap { get; set; }
         static public ulong Tick { 
             get { return mtk_time(); } 
+        }
+        static public uint Time {
+            get { return (uint)(mtk_time() / (1000 * 1000 * 1000)); }
         }
         static public ulong Sec2Tick(uint sec) { return ((ulong)sec) * 1000 * 1000 * 1000; }
         static public ulong MSec2Tick(uint msec) { return ((ulong)msec) * 1000 * 1000; }

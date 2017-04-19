@@ -341,5 +341,12 @@ namespace Google.Protobuf
         {
             outputStream.Write(bytes, 0, bytes.Length);
         }
+
+        public byte[] UnsafeBuffer {
+            get { return bytes; }
+        }
+        static public ByteString UnsafeFromBytes(byte[] bytes) {
+            return Unsafe.FromBytes(bytes);
+        }
     }
 }

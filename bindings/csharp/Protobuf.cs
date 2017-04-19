@@ -17,7 +17,7 @@ namespace Mtk {
     		}
     		return (int)ous.Position;
     	}
-    	static public int Unpack(byte[] bytes, ref IMessage m) {
+    	static public int Unpack<T>(byte[] bytes, ref T m) where T : IMessage {
     		var ins = new CodedInputStream(bytes, 0, bytes.Length);
     		try {
 	    		m.MergeFrom(ins);
@@ -26,13 +26,19 @@ namespace Mtk {
     		}
     		return (int)ins.Position;
     	}
-    	static unsafe public int Unpack(byte* bytes, uint len, ref IMessage m) {
+    	static unsafe public int Unpack<T>(byte* bytes, uint len, ref T m) where T : IMessage {
     		byte[] arr = new byte[len];
 			Marshal.Copy((System.IntPtr)bytes, arr, 0, (int)len);
 			return Unpack(arr, ref m);
     	}
 	}
     public partial class Core {
+        public partial interface ISVConn {
+            bool Reply(uint msgid, IMessage m);
+            bool Task(uint type, IMessage m);
+            bool Throw(uint msgid, IMessage m);
+            bool Notify(uint type, IMessage m);            
+        }
         public partial class SVConn {
             public bool Reply(uint msgid, IMessage m) {
                 byte[] data;
@@ -75,6 +81,15 @@ namespace Mtk {
                 if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
                 Notify(cid, type, payload);
                 return true;
+            }
+            static public void Reply(ulong cid, uint msgid, ByteString data) {
+                unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
+            }
+            static public void Throw(ulong cid, uint msgid, ByteString data) {
+                unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
+            }
+            static public void Notify(ulong cid, uint type, ByteString data) {
+                unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
             }
         }
         public partial class CidConn {
