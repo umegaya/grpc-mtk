@@ -90,7 +90,7 @@ void closer(void *arg, mtk_svconn_t c) {
 	TRACE("conn closed {}", (void *)c);
 }
 
-void logger(const char *p, size_t l) {
+void logger(const char *p, size_t l, bool) {
 	fwrite(p, 1, l, stderr);
 }
 

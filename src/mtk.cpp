@@ -508,7 +508,7 @@ void mtk_log_config(const char *svname, mtk_logger_cb_t cb) {
 	logger::configure(cb, svname);
 }
 void mtk_log(mtk_loglevel_t lv, const char *str) {
-	logger::log((logger::level::def)lv, str);
+	logger::log_no_arg((logger::level::def)lv, str);
 }
 
 mtk_closure_t mtk_closure_nop = { nullptr, { nullptr } };

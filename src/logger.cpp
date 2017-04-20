@@ -12,7 +12,7 @@ namespace logger {
 	    "fatal",
 	    "report",
 	};
-	static void default_writer(const char *buf, size_t len) {
+	static void default_writer(const char *buf, size_t len, bool) {
 		fwrite(buf, 1, len, stdout);
 	}
 	static writer_cb_t writer_ = default_writer;
@@ -33,8 +33,8 @@ namespace logger {
 		fwrite(body.c_str(), 1, body.length(), stdout);
 		fwrite(footer.c_str(), 1, footer.length(), stdout);
 #else
-		writer_(body.c_str(), body.length());
-		writer_(footer.c_str(), footer.length());
+		writer_(body.c_str(), body.length(), false);
+		writer_(footer.c_str(), footer.length(), true);
 #endif
 		mtx_.unlock();
     }
@@ -43,7 +43,7 @@ namespace logger {
 #if defined(NO_LOG_WRITE_CALLBACK)
 		fwrite(body.c_str(), 1, body.length(), stdout);
 #else
-		writer_(body.c_str(), body.length());
+		writer_(body.c_str(), body.length(), true);
 #endif
 		mtx_.unlock();
     }

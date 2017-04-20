@@ -19,7 +19,7 @@ namespace logger {
 	    };
 	};
     extern const std::string log_level_[level::max];
-    typedef void (*writer_cb_t)(const char *, size_t);
+    typedef void (*writer_cb_t)(const char *, size_t, bool);
     void configure(writer_cb_t cb, const std::string &name);
     const std::string &svname();
     void write(const std::string &body, const std::string &footer);
@@ -37,7 +37,7 @@ namespace logger {
         std::string body = fmt::format(fmt, args);
         write(body, footer);
     }
-    inline void log(level::def lv, const std::string &body) {
+    inline void log_no_arg(level::def lv, const std::string &body) {
         if (lv <= level::debug) {
             write(body + "\n");
             return;         

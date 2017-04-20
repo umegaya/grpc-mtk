@@ -27,6 +27,7 @@ namespace mtk {
 		}
 		inline void Join() { 
 			if (thread_.joinable()) {
+				Shutdown();
 				thread_.join();
 			}
 			delete this;

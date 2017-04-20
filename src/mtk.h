@@ -33,7 +33,7 @@ typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, m
 											const char *, mtk_size_t, char **, mtk_size_t*);
 typedef void (*mtk_httpsrv_cb_t)(void *, mtk_httpsrv_request_t, mtk_httpsrv_response_t);
 typedef void (*mtk_httpcli_cb_t)(void *, int, mtk_http_header_t*, mtk_size_t, const char*, mtk_size_t);
-typedef void (*mtk_logger_cb_t)(const char *, size_t);
+typedef void (*mtk_logger_cb_t)(const char *, size_t, bool);
 typedef struct {
 	void *arg;
 	union {

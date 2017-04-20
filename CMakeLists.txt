@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 set(DEBUG false CACHE BOOL "do debug build")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DHAVE_PTHREAD")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -DOPENSSL_NO_ASM")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -DOPENSSL_NO_ASM -DPB_NO_PACKED_STRUCTS")
 include_directories(src src/proto/src ext/grpc ext/grpc/third_party/zlib)
 include_directories(SYSTEM ext ext/spdlog/include ext/grpc/include ext/grpc/third_party/boringssl/include ext/grpc/third_party/protobuf/src)
 if (DEBUG)

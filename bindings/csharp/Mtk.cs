@@ -29,7 +29,7 @@ namespace Mtk {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void ServerCloseCB(System.IntPtr arg, ulong cid);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void LogWriteCB(string buf, System.IntPtr len);
+        public delegate void LogWriteCB(string buf, System.IntPtr len, bool need_flush);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void DestroyPointerCB(System.IntPtr ptr);
         
@@ -102,11 +102,11 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_queue_elem_free(System.IntPtr q, System.IntPtr elem);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_log_config(string name, LogWriteCB writer);
+        private static extern unsafe void mtk_log_config([MarshalAs(UnmanagedType.LPStr)]string name, LogWriteCB writer);
         [DllImport (DllName)]
         private static extern unsafe ulong mtk_time();
         [DllImport (DllName)]
-        private static extern unsafe ulong mtk_log(int lv, string str);
+        private static extern unsafe ulong mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
 
         //listener
         [DllImport (DllName)]
@@ -115,6 +115,8 @@ namespace Mtk {
         private static extern unsafe void mtk_server_stop(System.IntPtr sv);
         [DllImport (DllName)]
         private static extern unsafe System.IntPtr mtk_server_queue(System.IntPtr sv);
+        [DllImport (DllName)]
+        private static extern unsafe void mtk_server_join(System.IntPtr sv);
 
         //server conn operation
         [DllImport (DllName)]
@@ -198,11 +200,20 @@ namespace Mtk {
             ulong OnAccept(ulong cid, IContextSetter setter, byte[] data, out byte[] rep);
             int OnRecv(ISVConn c, int type, byte[] data);
             void OnClose(ulong cid);
+            void Poll();
+            void Shutdown();
         }
         public partial class Conn : IConn {
             System.IntPtr conn_;
             public Conn(System.IntPtr c) {
                 conn_ = c;
+            }
+            public void Finalize() {
+                unsafe {
+                    if (conn_ != System.IntPtr.Zero) {
+                        mtk_conn_close(conn_);
+                    }
+                }
             }
             public ulong Id { 
                 get { unsafe { return mtk_conn_cid(conn_); } } 
@@ -349,7 +360,18 @@ namespace Mtk {
                     queue_ = mtk_server_queue(server_);
                 }
             }
+            public bool Initialized {
+                get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
+            }
+            public void Finalize() {
+                unsafe {
+                    if (server_ != System.IntPtr.Zero) {
+                        mtk_server_join(server_);
+                    }
+                }
+            }
             public unsafe void Process(IServerLogic logic) {
+                logic.Poll();
                 System.IntPtr elem = new System.IntPtr();
                 while (mtk_queue_pop(queue_, ref elem)) {
                     ServerEvent *ev = (ServerEvent *)elem;
@@ -487,11 +509,15 @@ namespace Mtk {
                             use_queue = use_queue_,
                             handler = handler_, acceptor = acceptor_, closer = closer_, 
                         };
-                        System.IntPtr svp = new System.IntPtr();
+                        System.IntPtr svp = System.IntPtr.Zero;
                         mtk_listen(ref addr, ref conf, ref svp);
                         var s = new Server(svp);
-                        Core.Instance().ServerMap[host_] = s;
-                        return s;
+                        if (s.Initialized) {
+                            Core.Instance().ServerMap[host_] = s;
+                            return s;
+                        } else {
+                            return null;
+                        }
                     }
                 }
             }
