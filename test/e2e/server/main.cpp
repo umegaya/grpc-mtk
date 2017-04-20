@@ -63,11 +63,12 @@ mtk_result_t queue_handler(reply_dest *dst, mtk_result_t r, const char *p, mtk_s
 }
 
 mtk_cid_t acceptor(void *arg, mtk_svconn_t c, mtk_msgid_t msgid, mtk_cid_t cid, 
-					const char *p, mtk_size_t pl, char **rep, mtk_size_t *rep_len) {
+					const char *p, mtk_size_t pl, mtk_slice_t slice) {
 	auto &seed = *(ATOMIC_UINT64 *)arg;
 	ConnectPayload cp;
 	mtk::Codec::Unpack((const uint8_t *)p, pl, cp);
-	*rep_len = 0;
+	//nothing put to slice
+	//mtk_slice_put(slice, ***, +++);
 	if (cid != 0) {
 		return cid;
 	} else if (cp.login_mode() == ConnectPayload::Pending) {

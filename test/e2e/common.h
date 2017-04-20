@@ -69,6 +69,7 @@ public:
 	bool run(ConnectPayload::LoginMode login_mode = ConnectPayload::Invalid, mtk_time_t timeout = 0);
 	static bool launch(void *, mtk_cid_t, const char *, mtk_size_t);
 	static mtk_time_t closed(void *arg, mtk_cid_t cid, long attempt);
+	static mtk_cid_t on_payload(void *arg, mtk_slice_t s);
 };
 
 

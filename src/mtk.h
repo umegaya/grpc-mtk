@@ -19,6 +19,7 @@ typedef uint64_t mtk_time_t;
 typedef uint32_t mtk_size_t;
 typedef void *mtk_httpsrv_request_t;
 typedef void *mtk_httpsrv_response_t;
+typedef void *mtk_slice_t;
 typedef struct {
 	char *key;
 	char *value;
@@ -26,11 +27,12 @@ typedef struct {
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, mtk_size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, mtk_size_t);
 typedef bool (*mtk_validate_cb_t)(void *);
+typedef mtk_cid_t (*mtk_connect_payload_cb_t)(void *, mtk_slice_t);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
 typedef void (*mtk_server_close_cb_t)(void *, mtk_svconn_t);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, mtk_size_t);
 typedef mtk_cid_t (*mtk_server_accept_cb_t)(void *, mtk_svconn_t, mtk_msgid_t, mtk_cid_t, 
-											const char *, mtk_size_t, char **, mtk_size_t*);
+											const char *, mtk_size_t, mtk_slice_t);
 typedef void (*mtk_httpsrv_cb_t)(void *, mtk_httpsrv_request_t, mtk_httpsrv_response_t);
 typedef void (*mtk_httpcli_cb_t)(void *, int, mtk_http_header_t*, mtk_size_t, const char*, mtk_size_t);
 typedef void (*mtk_logger_cb_t)(const char *, size_t, bool);
@@ -41,6 +43,7 @@ typedef struct {
 		mtk_connect_cb_t on_connect;
 		mtk_close_cb_t on_close;
 		mtk_validate_cb_t on_ready;
+		mtk_connect_payload_cb_t on_payload;
 		mtk_server_recv_cb_t on_svmsg;
 		mtk_server_accept_cb_t on_accept;
 		mtk_server_close_cb_t on_svclose;
@@ -84,6 +87,10 @@ extern void mtk_queue_destroy(mtk_queue_t q);
 extern void mtk_queue_push(mtk_queue_t q, void *elem);
 extern bool mtk_queue_pop(mtk_queue_t q, void **elem);
 extern void mtk_queue_elem_free(mtk_queue_t q, void *elem);
+/* slice */
+extern mtk_slice_t mtk_slice_create();
+extern void mtk_slice_put(mtk_slice_t s, const void *p, mtk_size_t len);
+extern void mtk_slice_destroy(mtk_slice_t s);
 
 
 
@@ -107,10 +114,7 @@ typedef struct {
 	char data[0];
 } mtk_svevent_t;
 typedef struct {
-	mtk_cid_t id;
-	const char *payload;
-	mtk_size_t payload_len;
-	mtk_closure_t on_connect, on_close, on_ready;
+	mtk_closure_t on_connect, on_close, on_ready, on_payload;
 } mtk_clconf_t;
 typedef enum {
 	MTK_APPLICATION_ERROR = -1,

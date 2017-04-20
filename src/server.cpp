@@ -52,8 +52,8 @@ void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, Cre
         cond_.notify_one();
     }
     // Wait for the server to shutdown. 
-    mtk_log(mtk_loglevel_t::info, "server thread wait shutdown");
+    logger::info("server thread wait shutdown {}", (void *)server_.get());
     server_->Wait();
-    mtk_log(mtk_loglevel_t::info, "server thread shutdown done");
+    logger::info("server thread shutdown done");
 }
 }

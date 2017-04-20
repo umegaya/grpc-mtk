@@ -23,9 +23,11 @@ namespace Mtk {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate ulong ClientCloseCB(System.IntPtr arg, ulong cid, int connect_attempts);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate ulong ClientPayloadCB(System.IntPtr arg, System.IntPtr slice);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public unsafe delegate int ServerReceiveCB(System.IntPtr arg, System.IntPtr svconn, int type, byte *buf, uint buflen);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public unsafe delegate ulong ServerAcceptCB(System.IntPtr arg, System.IntPtr svconn, ulong cid, byte *credential, uint credlen, char **pp_reply, uint *p_replen);
+        public unsafe delegate ulong ServerAcceptCB(System.IntPtr arg, System.IntPtr svconn, ulong cid, byte *credential, uint credlen, System.IntPtr slice);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void ServerCloseCB(System.IntPtr arg, ulong cid);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -70,14 +72,12 @@ namespace Mtk {
         struct ServerConfig {
             public uint n_worker;
             public Closure handler, acceptor, closer;
-            public bool exclusive; //if true, caller thread of mtk_listen blocks
-            public bool use_queue;
+            [MarshalAs(UnmanagedType.I1)] public bool exclusive; //if true, caller thread of mtk_listen blocks
+            [MarshalAs(UnmanagedType.I1)] public bool use_queue;
         };
         struct ClientConfig {
             public ulong id;
-            public System.IntPtr payload;
-            public uint payload_len;
-            public Closure on_connect, on_close, on_ready;
+            public Closure on_connect, on_close, on_ready, on_payload;
         };
         struct ServerEvent {
             public ulong lcid; // != 0 for accept event, 0 for recv event
@@ -98,6 +98,7 @@ namespace Mtk {
 
         //util
         [DllImport (DllName)]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern unsafe bool mtk_queue_pop(System.IntPtr q, ref System.IntPtr elem);
         [DllImport (DllName)]
         private static extern unsafe void mtk_queue_elem_free(System.IntPtr q, System.IntPtr elem);
@@ -107,6 +108,8 @@ namespace Mtk {
         private static extern unsafe ulong mtk_time();
         [DllImport (DllName)]
         private static extern unsafe ulong mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
+        [DllImport (DllName)]
+        private static extern unsafe ulong mtk_slice_put(System.IntPtr slice, byte *data, uint datalen);
 
         //listener
         [DllImport (DllName)]
@@ -177,6 +180,7 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_conn_watch(System.IntPtr conn, Closure clsr);
         [DllImport (DllName)]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern unsafe bool mtk_conn_connected(System.IntPtr conn);
 
         //wrapper
@@ -411,11 +415,18 @@ namespace Mtk {
                 ca_ = ca;
                 return this;            
             }
+            static unsafe public Address MakeAddress(byte* host, byte* cert, byte* key, byte* ca) {
+                return new Address { 
+                    host = host[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)host, 
+                    cert = cert[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)cert, 
+                    key = key[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)key, 
+                    ca = ca[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)ca };
+            }
         }
         public class ClientBuilder : Builder {
             ulong id_;
-            string payload_;
-            Closure on_connect_, on_close_, on_ready_;
+            byte[] payload_;
+            Closure on_connect_, on_close_, on_ready_, on_payload_;
             Closure on_notify_;
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at) {
@@ -426,7 +437,7 @@ namespace Mtk {
                 base.Certs(cert, key, ca);
                 return this;            
             }
-            public ClientBuilder Credential(ulong id, string data) {
+            public ClientBuilder Credential(ulong id, byte[] data) {
                 id_ = id;
                 payload_ = data;
                 return this;
@@ -452,18 +463,21 @@ namespace Mtk {
                 on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
+            public ClientBuilder OnPayload(ClientPayloadCB cb) {
+                on_payload_.arg = System.IntPtr.Zero;
+                on_payload_.cb = Marshal.GetFunctionPointerForDelegate(cb);
+                return this;                
+            }
             public Conn Build() {
                 var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
                 var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
                 var b_key = System.Text.Encoding.UTF8.GetBytes(key_ + "\0");
                 var b_ca = System.Text.Encoding.UTF8.GetBytes(ca_ + "\0");
-                var b_payload = System.Text.Encoding.UTF8.GetBytes(payload_ + "\0");
                 unsafe {
-                    fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca, p = b_payload) {
-                        Address addr = new Address { host = (System.IntPtr)h, cert = (System.IntPtr)c, key = (System.IntPtr)k, ca = (System.IntPtr)a };
+                    fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca, p = payload_) {
+                        Address addr = MakeAddress(h, c, k, a);
                         ClientConfig conf = new ClientConfig { 
-                            id = id_, payload = (System.IntPtr)p, payload_len = (uint)payload_.Length,
-                            on_connect = on_connect_, on_close = on_close_,
+                            id = id_, on_connect = on_connect_, on_close = on_close_, on_payload_, 
                         };
                         var conn = new Conn(mtk_connect(ref addr, ref conf));
                         Core.Instance().ConnMap[id_] = conn;
@@ -503,12 +517,13 @@ namespace Mtk {
                 var b_ca = System.Text.Encoding.UTF8.GetBytes(ca_ + "\0");
                 unsafe {
                     fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca) {
-                        Address addr = new Address { host = (System.IntPtr)h, cert = (System.IntPtr)c, key = (System.IntPtr)k, ca = (System.IntPtr)a };
+                        Address addr = MakeAddress(h, c, k, a);
                         ServerConfig conf = new ServerConfig { 
                             n_worker = n_worker_, exclusive = false,
                             use_queue = use_queue_,
                             handler = handler_, acceptor = acceptor_, closer = closer_, 
                         };
+                        Mtk.Log.Info("use_queue = " + conf.use_queue);
                         System.IntPtr svp = System.IntPtr.Zero;
                         mtk_listen(ref addr, ref conf, ref svp);
                         var s = new Server(svp);
@@ -556,6 +571,13 @@ namespace Mtk {
                 var st = new  System.Diagnostics.StackTrace(1, true);
                 Log(LogLevel.Fatal, "assertion fails at " + st.ToString());
                 //TODO: real abortion
+            }
+        }
+        public static void PutSlice(System.IntPtr slice, byte[] bytes) {
+            unsafe {
+                fixed(byte *b = bytes) {
+                    mtk_slice_put(slice, b, bytes.Length);
+                }
             }
         }
         Core() {

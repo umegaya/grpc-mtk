@@ -14,6 +14,22 @@ using namespace mtk;
 static_assert(offsetof(mtk_svevent_t, data) == 28, "mtk_svevent_t offset illegal");
 
 /******* internal bridge *******/
+/* slice to get memory block from host language */
+struct MemSlice {
+	void *ptr_;
+	mtk_size_t len_;
+	MemSlice() : ptr_(nullptr), len_(0) {}
+	inline ~MemSlice() {
+		if (ptr_ != nullptr) {
+			free(ptr_);
+		}
+	}
+	inline void Put(const void *p, mtk_size_t l) {
+		ptr_ = malloc(l);
+		memcpy(ptr_, p, l);
+		len_ = l;
+	}
+};
 /* worker handler (callback) */
 class FunctionHandler : public IHandler {
 protected:
@@ -37,27 +53,25 @@ public:
 		if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq) < 0) {
 			return 0;
 		}
-		char *rep; mtk_size_t rlen = 0;
+		MemSlice s;
 		mtk_cid_t cid = mtk_closure_call(&acceptor_, on_accept, c, req.msgid(), 
-										creq.id(), creq.payload().c_str(), creq.payload().length(), &rep, &rlen);
+										creq.id(), creq.payload().c_str(), creq.payload().length(), &s);
 		if (c->WaitLoginAccept()) {
 			return cid;
 		} else if (cid != 0) {
 			SystemPayload::Connect sysrep;
 			sysrep.set_id(cid);
-			if (rlen > 0) {
-				ASSERT(rep != nullptr);
-				sysrep.set_payload(rep, rlen);
-				free(rep);
+			if (s.len_ > 0) {
+				ASSERT(s.ptr_ != nullptr);
+				sysrep.set_payload(s.ptr_, s.len_);
 			}
 			c->SysRep(req.msgid(), sysrep);
 		} else {
 			Error *e = new Error();
 			e->set_error_code(MTK_ACCEPT_DENY);
-			if (rlen > 0) {
-				ASSERT(rep != nullptr);
-				e->set_payload(rep, rlen);
-				free(rep);
+			if (s.len_ > 0) {
+				ASSERT(s.ptr_ != nullptr);
+				e->set_payload(s.ptr_, s.len_);
 			}
 			c->Throw(req.msgid(), e);
 		}
@@ -106,7 +120,7 @@ protected:
 		mtk_queue_push(q, ev);
 	}
 	static mtk_cid_t _OnAccept(void *arg, mtk_svconn_t c, mtk_msgid_t msgid, mtk_cid_t cid, 
-											const char *p, mtk_size_t l, char **, mtk_size_t *) {
+											const char *p, mtk_size_t l, mtk_slice_t s) {
 		mtk_queue_t q = ((mtk_queue_t)arg);
 		mtk_login_cid_t lcid = mtk_svconn_defer_login(c);
 		//receiver send reply by using mtk_svconn_finish_login
@@ -160,10 +174,12 @@ public:
 	    CredOptions opts;
 	    bool has_cred = CreateCred(opts);
 	    if (conf_.use_queue) {
+	    	TRACE("run server in queue mode");
 	        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
 	        queue_ = r->Queue();
 	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
 	    } else {
+	    	TRACE("run server in normal mode");
 	        auto r = std::unique_ptr<FunctionHandler>(new FunctionHandler(conf_.handler, conf_.acceptor, conf_.closer));
 	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
 	    }
@@ -188,20 +204,25 @@ public:
 /* client */
 class Client : public RPCStream, RPCStream::IClientDelegate {
 protected:
+	uint64_t cid_;
 	mtk_clconf_t clconf_;
 	SystemPayload::Connect crep_;
 public:
-	Client(mtk_clconf_t *clconf) : RPCStream(this), clconf_(*clconf) {}
+	Client(mtk_clconf_t *clconf) : RPCStream(this), cid_(0), clconf_(*clconf) {}
 	//implements RPCStream::IClientDelegate
-	uint64_t Id() const { return clconf_.id; }
+	uint64_t Id() const { return cid_; }
    	bool Ready() const { 
    		return mtk_closure_valid(&clconf_.on_ready) ? 
    			mtk_closure_call_noarg(&clconf_.on_ready, on_ready) : 
    			true; 
    	}
     bool AddPayload(SystemPayload::Connect &c) {
-    	c.set_id(clconf_.id);
-    	c.set_payload(clconf_.payload, clconf_.payload_len);
+    	MemSlice s;
+    	uint64_t cid = mtk_closure_call(&clconf_.on_payload, on_payload, &s);
+    	c.set_id(cid);
+    	if (s.len_ > 0) {
+	    	c.set_payload(s.ptr_, s.len_);
+	    }
     	return true;
     }
     bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len) {
@@ -211,13 +232,13 @@ public:
     	if (Codec::Unpack((const uint8_t *)p, len, crep_) < 0) {
 			return false;
 		}
-		clconf_.id = crep_.id();
-		return mtk_closure_call(&clconf_.on_connect, on_connect, crep_.id(), crep_.payload().c_str(), crep_.payload().length());;
+		cid_ = crep_.id();
+		return mtk_closure_call(&clconf_.on_connect, on_connect, cid_, crep_.payload().c_str(), crep_.payload().length());;
     }
     mtk_time_t OnCloseStream(int reconnect_attempt) {
     	mtk_time_t dur = 0;
     	if (mtk_closure_valid(&clconf_.on_close)) {
-    		dur = mtk_closure_call(&clconf_.on_close, on_close, clconf_.id, reconnect_attempt);
+    		dur = mtk_closure_call(&clconf_.on_close, on_close, cid_, reconnect_attempt);
     	}
     	return dur != 0 ? dur : CalcReconnectWaitDuration(reconnect_attempt);
     }
@@ -246,6 +267,7 @@ public:
 
 /******* grpc client/server API *******/
 void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf, mtk_server_t *psv) {
+	logger::info("mtk_listen:uq={}", svconf->use_queue);
 	Server *sv = new Server(*addr, *svconf);
 	*psv = sv;
 	if (svconf->exclusive) {
@@ -527,5 +549,16 @@ bool mtk_queue_pop(mtk_queue_t q, void **elem) {
 }
 void mtk_queue_elem_free(mtk_queue_t q, void *elem) {
 	((Queue *)q)->FreeElement(elem);
+}
+
+/* slice */
+mtk_slice_t mtk_slice_create() {
+	return (mtk_slice_t)new MemSlice();
+}
+void mtk_slice_put(mtk_slice_t s, const void *p, mtk_size_t l) {
+	((MemSlice *)s)->Put(p, l);
+}
+void mtk_slice_destroy(mtk_slice_t s) {
+	delete (MemSlice *)s;
 }
 
