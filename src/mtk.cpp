@@ -24,7 +24,7 @@ struct MemSlice {
 			free(ptr_);
 		}
 	}
-	inline void Put(const void *p, mtk_size_t l) {
+	inline void Put(const char *p, mtk_size_t l) {
 		ptr_ = malloc(l);
 		memcpy(ptr_, p, l);
 		len_ = l;
@@ -174,12 +174,10 @@ public:
 	    CredOptions opts;
 	    bool has_cred = CreateCred(opts);
 	    if (conf_.use_queue) {
-	    	TRACE("run server in queue mode");
 	        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
 	        queue_ = r->Queue();
 	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
 	    } else {
-	    	TRACE("run server in normal mode");
 	        auto r = std::unique_ptr<FunctionHandler>(new FunctionHandler(conf_.handler, conf_.acceptor, conf_.closer));
 	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
 	    }
@@ -267,7 +265,6 @@ public:
 
 /******* grpc client/server API *******/
 void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf, mtk_server_t *psv) {
-	logger::info("mtk_listen:uq={}", svconf->use_queue);
 	Server *sv = new Server(*addr, *svconf);
 	*psv = sv;
 	if (svconf->exclusive) {
@@ -555,7 +552,7 @@ void mtk_queue_elem_free(mtk_queue_t q, void *elem) {
 mtk_slice_t mtk_slice_create() {
 	return (mtk_slice_t)new MemSlice();
 }
-void mtk_slice_put(mtk_slice_t s, const void *p, mtk_size_t l) {
+void mtk_slice_put(mtk_slice_t s, const char *p, mtk_size_t l) {
 	((MemSlice *)s)->Put(p, l);
 }
 void mtk_slice_destroy(mtk_slice_t s) {

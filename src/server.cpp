@@ -4,20 +4,25 @@
 namespace mtk {
 void IServer::Shutdown() {
     //indicate worker to start shutdown
+    logger::info("sv shutdown1");
     for (Worker *w : workers_) {
         w->PrepareShutdown();
     }
     //wait until all RPC processed
+    logger::info("sv shutdown2");
     if (server_ != nullptr) {
+    logger::info("sv shutdown3");
         server_->Shutdown();
+    logger::info("sv shutdown4");
     }
     //shutdown read worker to consume queue
     for (Worker *w : workers_) {
         w->Shutdown();
     }
+    logger::info("sv shutdown5");
+
 }
 void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options) {
-    mtk_log(mtk_loglevel_t::info, "server kick start");
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port
@@ -52,8 +57,8 @@ void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, Cre
         cond_.notify_one();
     }
     // Wait for the server to shutdown. 
-    logger::info("server thread wait shutdown {}", (void *)server_.get());
+    logger::info("sv launch thread wait shutdown {}", (void *)server_.get());
     server_->Wait();
-    logger::info("server thread shutdown done");
+    logger::info("sv launch thread shutdown done");
 }
 }

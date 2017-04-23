@@ -76,7 +76,6 @@ namespace Mtk {
             [MarshalAs(UnmanagedType.I1)] public bool use_queue;
         };
         struct ClientConfig {
-            public ulong id;
             public Closure on_connect, on_close, on_ready, on_payload;
         };
         struct ServerEvent {
@@ -109,7 +108,7 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe ulong mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
         [DllImport (DllName)]
-        private static extern unsafe ulong mtk_slice_put(System.IntPtr slice, byte *data, uint datalen);
+        private static extern unsafe void mtk_slice_put(System.IntPtr slice, byte *data, uint datalen);
 
         //listener
         [DllImport (DllName)]
@@ -426,8 +425,7 @@ namespace Mtk {
         public class ClientBuilder : Builder {
             ulong id_;
             byte[] payload_;
-            Closure on_connect_, on_close_, on_ready_, on_payload_;
-            Closure on_notify_;
+            Closure on_connect_, on_close_, on_ready_, on_payload_, on_notify_;
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at) {
                 base.ListenAt(at);
@@ -443,27 +441,32 @@ namespace Mtk {
                 return this;
             }
             //these function will be called from same thread as Unity's main thread
-            public ClientBuilder OnClose(ClientCloseCB cb) {
+            public ClientBuilder OnClose(ClientCloseCB cb, List<GCHandle> mems) {
+                mems.Add(GCHandle.Alloc(cb));
                 on_close_.arg = System.IntPtr.Zero;
                 on_close_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnConnect(ClientConnectCB cb) {
+            public ClientBuilder OnConnect(ClientConnectCB cb, List<GCHandle> mems) {
+                mems.Add(GCHandle.Alloc(cb));
                 on_connect_.arg = System.IntPtr.Zero;
                 on_connect_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnReady(ClientReadyCB cb) {
+            public ClientBuilder OnReady(ClientReadyCB cb, List<GCHandle> mems) {
+                mems.Add(GCHandle.Alloc(cb));
                 on_ready_.arg = System.IntPtr.Zero;
                 on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnNotify(ClientRecvCB cb) {
+            public ClientBuilder OnNotify(ClientRecvCB cb, List<GCHandle> mems) {
+                mems.Add(GCHandle.Alloc(cb));
                 on_notify_.arg = System.IntPtr.Zero;
                 on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnPayload(ClientPayloadCB cb) {
+            public ClientBuilder OnPayload(ClientPayloadCB cb, List<GCHandle> mems) {
+                mems.Add(GCHandle.Alloc(cb));
                 on_payload_.arg = System.IntPtr.Zero;
                 on_payload_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;                
@@ -477,7 +480,8 @@ namespace Mtk {
                     fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca, p = payload_) {
                         Address addr = MakeAddress(h, c, k, a);
                         ClientConfig conf = new ClientConfig { 
-                            id = id_, on_connect = on_connect_, on_close = on_close_, on_payload_, 
+                            on_connect = on_connect_, on_close = on_close_, 
+                            on_payload = on_payload_, on_ready = on_ready_,
                         };
                         var conn = new Conn(mtk_connect(ref addr, ref conf));
                         Core.Instance().ConnMap[id_] = conn;
@@ -523,7 +527,6 @@ namespace Mtk {
                             use_queue = use_queue_,
                             handler = handler_, acceptor = acceptor_, closer = closer_, 
                         };
-                        Mtk.Log.Info("use_queue = " + conf.use_queue);
                         System.IntPtr svp = System.IntPtr.Zero;
                         mtk_listen(ref addr, ref conf, ref svp);
                         var s = new Server(svp);
@@ -576,7 +579,7 @@ namespace Mtk {
         public static void PutSlice(System.IntPtr slice, byte[] bytes) {
             unsafe {
                 fixed(byte *b = bytes) {
-                    mtk_slice_put(slice, b, bytes.Length);
+                    mtk_slice_put(slice, b, (uint)bytes.Length);
                 }
             }
         }

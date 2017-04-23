@@ -17,8 +17,9 @@ bool test::launch(void *arg, mtk_cid_t cid, const char *p, mtk_size_t l) {
 		if (cid != 0) {
 			t->testfunc_(c, *t, *tc);
 		} else {
+			//run as immediate failure
 			t->start();
-			t->end(false); //failure			
+			t->end(false); 			
 		}
 	});
 	tc->t->thread_start();
@@ -36,7 +37,7 @@ mtk_cid_t test::on_payload(void *arg, mtk_slice_t s) {
 	if (mtk::Codec::Pack(p, (uint8_t *)buff, p.ByteSize()) < 0) {
 		return 0;
 	}
-	mtk_slice_put(s, (const void *)buff, (mtk_size_t)p.ByteSize());
+	mtk_slice_put(s, buff, (mtk_size_t)p.ByteSize());
 	return 0;
 }
 

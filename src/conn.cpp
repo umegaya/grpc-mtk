@@ -59,6 +59,10 @@ namespace mtk {
     }
     void Conn::ConsumeTask(int n_process) {
         Request *t;
+        if (worker_->Dying()) {
+            Finish(true);
+            return;
+        }
         while (n_process != 0 && stream_->Tasks().try_dequeue(t)) {
             if (mtk_unlikely(t->kind() != Request::Normal)) {
                 switch(t->kind()) {
@@ -68,14 +72,16 @@ namespace mtk {
                         AcceptLogin(lreq);
                     } else {
                         ASSERT(false);
+                        LogInfo("ev:app closed by Defered Login failure");
                         Finish(true);
                     }
                 } break;
                 case Request::Close: {
+                    LogInfo("ev:app closed by Server operation");
                     Finish(true);
                 } break;
                 default:
-                    TRACE("invalid system payload kind: {}", t->kind());
+                    TRACE("invalid system payload kind: {}", t->kind())
                     ASSERT(false);
                     break;
                 }
@@ -100,25 +106,35 @@ namespace mtk {
                 Recv();
                 break;
             case LOGIN: {
+                if (mtk_unlikely(req_.kind() == Request::Close)) {
+                    LogInfo("ev:app closed by Client shutdown");
+                    Finish();
+                    break;
+                }
                 mtk_cid_t cid = handler_->Login(this, req_);
                 if (mtk_unlikely(status_ == CLOSE || worker_->Dying())) {
-                    this->LogInfo("ev:app closed by {}", worker_->Dying() ? "Shutdown starts" : "Login failure");
+                    LogInfo("ev:app closed by {}", worker_->Dying() ? "Shutdown starts" : "Login failure");
                     Finish();
                 } else if (status_ == WAIT_LOGIN) {
                     //skip processing and wait 
                 } else {
-                    this->Register(cid);
-                    this->LogInfo("ev:accept");
+                    Register(cid);
+                    LogInfo("ev:accept");
                     status_ = READ;
                     Recv();
                 }
             } break;
             case READ: {
+                if (mtk_unlikely(req_.kind() == Request::Close)) {
+                    LogInfo("ev:app closed by Client shutdown");
+                    Finish();
+                    break;
+                }
                 Status st = handler_->Handle(this, req_);
                 if (mtk_likely(st.ok() && (status_ != CLOSE && !worker_->Dying()))) {
                     Recv();
                 } else {
-                    this->LogInfo("ev:app closed by {}", st.ok() ? "Close called" : (worker_->Dying() ? "Shutdown starts" : "RPC error"));
+                    LogInfo("ev:app closed by {}", st.ok() ? "Close called" : (worker_->Dying() ? "Shutdown starts" : "RPC error"));
                     Finish();
                 }
             } break;
@@ -132,7 +148,7 @@ namespace mtk {
             } break;
             default:
                 ASSERT(false);
-                this->LogDebug("ev:unknown step,step:{}", status_);
+                LogDebug("ev:unknown step,step:{}", status_);
                 status_ = CLOSE;
                 Finish();
                 break;

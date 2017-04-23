@@ -89,7 +89,7 @@ extern bool mtk_queue_pop(mtk_queue_t q, void **elem);
 extern void mtk_queue_elem_free(mtk_queue_t q, void *elem);
 /* slice */
 extern mtk_slice_t mtk_slice_create();
-extern void mtk_slice_put(mtk_slice_t s, const void *p, mtk_size_t len);
+extern void mtk_slice_put(mtk_slice_t s, const char *p, mtk_size_t len);
 extern void mtk_slice_destroy(mtk_slice_t s);
 
 
@@ -120,6 +120,7 @@ typedef enum {
 	MTK_APPLICATION_ERROR = -1,
 	MTK_TIMEOUT = -2,
 	MTK_ACCEPT_DENY = -3,
+	MTK_FIN = -4,
 } mtk_error_t;
 typedef void (*mtk_ctx_free_t)(void *);
 

@@ -6,8 +6,10 @@ include_directories(src src/proto/src ext/grpc ext/grpc/third_party/zlib)
 include_directories(SYSTEM ext ext/spdlog/include ext/grpc/include ext/grpc/third_party/boringssl/include ext/grpc/third_party/protobuf/src)
 if (DEBUG)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -DDEBUG")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -DDEBUG")
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2")
 endif()	
 file(GLOB_RECURSE libsrc [
 	# lib source

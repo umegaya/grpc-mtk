@@ -18,6 +18,7 @@ namespace {
     using grpc::ClientContext;
     using grpc::CompletionQueue;
     using grpc::Status;
+    using grpc::GrpcLibraryCodegen;
     using moodycamel::ConcurrentQueue;
 }
 
@@ -44,14 +45,16 @@ namespace mtk {
         CompletionQueue cq_;
         ClientAsyncReaderWriter<Request, Reply> *prev_io_;
         ClientContext *context_;
-        Reply *reply_work_;
+        std::unique_ptr<Reply> reply_work_;
+        Status last_status_;
         uint32_t connect_sequence_num_;
-        bool is_sending_, alive_;
+        bool is_sending_, alive_, sending_shutdown_;
     public:
         IOThread(RPCStream &s) : owner_(s), thr_(), stub_(), io_(), cq_(), 
-            prev_io_(nullptr), context_(nullptr), reply_work_(nullptr), 
-            connect_sequence_num_(0), is_sending_(false), alive_(true) {}
+            prev_io_(nullptr), context_(nullptr), reply_work_(), last_status_(), 
+            connect_sequence_num_(0), is_sending_(false), alive_(true), sending_shutdown_(false) {}
         void Initialize(const char *addr, CredOptions *options);
+        void Finalize();
         void Start();
         void Stop();
         void Run();
@@ -62,20 +65,31 @@ namespace mtk {
         static inline void *GenerateReadTag(uint32_t connect_sequence_num) {
             return reinterpret_cast<void *>((connect_sequence_num << 8) + 0);
         }
+        static inline void *GenerateCloseTag(uint32_t connect_sequence_num) {
+            return reinterpret_cast<void *>((connect_sequence_num << 8) + 2);
+        }
         static inline bool IsWriteOperation(void *tag) {
-            return (((uintptr_t)tag) & 0x1) != 0;
+            return (((uintptr_t)tag) & 0xFF) == 1;
         }
         static inline bool IsReadOperation(void *tag) {
-            return (((uintptr_t)tag) & 0x1) == 0;
+            return (((uintptr_t)tag) & 0xFF) == 0;
+        }
+        static inline bool IsCloseOperation(void *tag) {
+            return (((uintptr_t)tag) & 0xFF) == 2;
         }
         static inline uint32_t ConnectSequenceFromReadTag(void *tag) {
             return (uint32_t)(((uintptr_t)tag) >> 8);
+        }
+        static inline uint32_t ConnectSequenceFromCloseTag(void *tag) {
+            return ConnectSequenceFromReadTag(tag);
         }
     protected:
         //stream open/close
         void Close() {
             if (io_ != nullptr) {
                 ASSERT(prev_io_ == nullptr);
+                //here, still old rpc result that not appeared in completion queue, may exist. 
+                //so delete io here may cause crash. after new connection established, prev_io_ will be removed.
                 prev_io_ = io_.release();
             }
             if (context_ != nullptr) {
@@ -89,7 +103,10 @@ namespace mtk {
             SetDeadline(*context_, UINT32_MAX);
             io_ = stub_->AsyncWrite(context_, &cq_, GenerateReadTag(connect_sequence_num_));
         }
+
+        //handling completion queue event
         void HandleEvent(bool ok, void *tag);
+
         //about gpr_timespec
         static void SetDeadline(ClientContext &ctx, uint32_t duration_msec);
         static gpr_timespec GRPCTime(uint32_t duration_msec);
@@ -144,14 +161,14 @@ namespace mtk {
         ATOMIC_INT msgid_seed_;
         int reconnect_attempt_;
         NetworkStatus status_;
-        IOThread iothr_;
+        IOThread *iothr_;
         bool dump_;
     public:
         RPCStream(IClientDelegate *d) : delegate_(d),
             replys_(), requests_(), reqmtx_(), reqmap_(), notifier_(), 
             restarting_(false), last_checked_(0), reconnect_when_(0), default_timeout_(TIMEOUT_DURATION), 
             msgid_seed_(0), reconnect_attempt_(0), 
-            status_(NetworkStatus::DISCONNECT), iothr_(*this), dump_(false) {
+            status_(NetworkStatus::DISCONNECT), iothr_(new IOThread(*this)), dump_(false) {
         };
         virtual ~RPCStream() {}
         mtk_cid_t Id() const { return delegate_->Id(); }
@@ -168,6 +185,7 @@ namespace mtk {
         void StartWrite();
         void StartRead();
         inline bool IsConnected() const { return status_ == CONNECT; }
+        inline bool IsConnecting() const { return status_ >= CONNECTING && status_ <= INITIALIZING; }
         inline mtk_msgid_t NewMsgId() {
             while (true) {
                 int32_t expect = msgid_seed_.load();
@@ -187,7 +205,6 @@ namespace mtk {
             ASSERT(false);
             return 0;
         }
-        inline bool IsConnecting() const { return status_ >= CONNECTING && status_ <= INITIALIZING; }
         timespec_t ReconnectWaitUsec();
         static timespec_t CalcReconnectWaitDuration(int n_attempt);
         static timespec_t CalcJitter(timespec_t base);
@@ -198,6 +215,11 @@ namespace mtk {
         void ProcessTimeout(timespec_t now);
         inline bool PushReply(Reply *rep) { return replys_.enqueue(rep); }
         inline bool PopRequest(Request* &req) { return requests_.try_dequeue(req); }
+        inline bool SendShutdownRequest() {
+            auto *req = new Request();
+            req->set_kind(Request::Close); 
+            return requests_.enqueue(req); 
+        }
         inline void SetDefaultTimeout(timespec_t to) { default_timeout_ = to; }
         inline void Call(uint32_t type,
                   const char *buff, size_t len,

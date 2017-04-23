@@ -3,6 +3,7 @@
 #include <grpc++/grpc++.h>
 #include <cmath>
 #include <chrono>
+#include <grpc++/impl/grpc_library.h>
 
 namespace mtk {
 extern std::string cl_ca;
@@ -16,12 +17,25 @@ Reply *RPCStream::ESTABLISHED_EVENT = IOThread::ESTABLISHED_EVENT;
 Request *RPCStream::ESTABLISH_REQUEST = IOThread::ESTABLISH_REQUEST;
 Error *RPCStream::TIMEOUT_ERROR = nullptr;
 
+/* holding reference to grpc library, to prevent repeated grpc_init/shutdown on the fly */
+static grpc::internal::GrpcLibraryInitializer g_gli_initializer;
+static GrpcLibraryCodegen s_lib;
+
 /* IOThread */
 void IOThread::Initialize(const char *addr, CredOptions *options) {
+    g_gli_initializer.summon();
     if (options != nullptr) {
         stub_ = std::unique_ptr<Stub>(new Stream::Stub(grpc::CreateChannel(addr, grpc::SslCredentials(*options))));
     } else {
         stub_ = std::unique_ptr<Stub>(new Stream::Stub(grpc::CreateChannel(addr, grpc::InsecureChannelCredentials())));
+    }
+}
+void IOThread::Finalize() {
+    if (context_ != nullptr) {
+        delete context_;
+    }
+    if (prev_io_ != nullptr) {
+        delete prev_io_;
     }
 }
 void IOThread::Start() {
@@ -31,9 +45,18 @@ void IOThread::Start() {
 }
 void IOThread::Stop() {
     if (thr_.joinable()) {
-        alive_ = false;
+        sending_shutdown_ = true;
+        if (owner_.IsConnecting() || owner_.IsConnected()) {
+            //TRACE("Stop: do graceful shutdown");
+            owner_.SendShutdownRequest();
+        } else {
+            //TRACE("Stop: shutdown immediately");
+            cq_.Shutdown();
+        }
         thr_.join();
     }
+    Finalize();
+    delete this;
 }
 void IOThread::Run() {
     void *tag;
@@ -44,7 +67,7 @@ void IOThread::Run() {
     while (alive_) {
         switch (cq_.AsyncNext(&tag, &ok, wait)) {
             case grpc::CompletionQueue::SHUTDOWN:
-                HandleEvent(false, tag);
+                alive_ = false;
                 break;
             case grpc::CompletionQueue::GOT_EVENT:
                 HandleEvent(ok, tag);
@@ -84,13 +107,17 @@ void IOThread::HandleEvent(bool ok, void *tag) {
         //TRACE("write for tag {}({}) finished", (void *)tag, sidx);
         return;
     } else if (IsReadOperation(tag)) {
-        Reply *r = reply_work_;
+        Reply *r = reply_work_.release();
         if (!ok) {
+            if (sending_shutdown_) {
+                TRACE("connection shutdown. seq {}", connect_sequence_num_);
+                cq_.Shutdown();
+                return;
+            }
             uint32_t seq = ConnectSequenceFromReadTag(tag);
             TRACE("connection closed. seq {} {}", seq, connect_sequence_num_);
             if (r != nullptr) {
                 delete r;
-                reply_work_ = nullptr;
             }
             owner_.DrainRequestQueue();
             ASSERT(connect_sequence_num_ >= seq);
@@ -110,7 +137,6 @@ void IOThread::HandleEvent(bool ok, void *tag) {
                 if (!owner_.PushReply(r)) {
                     ASSERT(false);
                 }
-                reply_work_ = nullptr;
             } else {
                 //call establishment
                 if (prev_io_ != nullptr) {
@@ -119,9 +145,14 @@ void IOThread::HandleEvent(bool ok, void *tag) {
                 }
                 owner_.PushReply(ESTABLISHED_EVENT);
             }
-            reply_work_ = new Reply();
-            io_->Read(reply_work_, GenerateReadTag(connect_sequence_num_));
+            reply_work_.reset(new Reply());
+            io_->Read(reply_work_.get(), GenerateReadTag(connect_sequence_num_));
         }
+    } else if (IsCloseOperation(tag)) {
+        TRACE("stream close done");
+        alive_ = false;
+    } else {
+        ASSERT(false);
     }
 }
 void IOThread::SetDeadline(ClientContext &ctx, uint32_t duration_msec) {
@@ -142,7 +173,7 @@ gpr_timespec IOThread::GRPCTime(uint32_t duration_msec) {
 
 /* RPCStream */
 int RPCStream::Initialize(const char *addr, CredOptions *options) {
-    iothr_.Initialize(addr, options);
+    iothr_->Initialize(addr, options);
     reqmtx_.lock();
     if (TIMEOUT_ERROR == nullptr) {
         auto err = new Error();
@@ -159,7 +190,7 @@ void RPCStream::Release() {
 }
 
 void RPCStream::Finalize() {
-    iothr_.Stop();
+    iothr_->Stop();
 }
 
 timespec_t RPCStream::Tick() {
@@ -311,7 +342,7 @@ void RPCStream::Update() {
                 status_ = NetworkStatus::CONNECTING;
                 reconnect_attempt_++;
                 requests_.enqueue(ESTABLISH_REQUEST);
-                iothr_.Start();
+                iothr_->Start();
             }
         } return;
         case NetworkStatus::CONNECTING: {

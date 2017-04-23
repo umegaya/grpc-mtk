@@ -150,7 +150,7 @@ namespace mtk {
             }
         }
         inline void Finish(IJob *tag) {
-            io_.Finish(Status::OK, tag);
+            io_.Finish(Status::CANCELLED, tag);
         }
         template <class R>
         inline void Read(R &r, IJob *tag) {
