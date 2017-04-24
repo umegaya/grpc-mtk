@@ -60,10 +60,8 @@ void IOThread::Stop() {
     if (thr_.joinable()) {
         sending_shutdown_ = true;
         if (owner_.IsConnecting() || owner_.IsConnected()) {
-            TRACE("graceful shutdown");
             owner_.SendShutdownRequest();
         } else {
-            TRACE("immediate shutdown");
             cq_.Shutdown();
         }
         thr_.join();

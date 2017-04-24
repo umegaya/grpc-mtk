@@ -52,7 +52,7 @@ namespace mtk {
     ATOMIC_UINT64 Conn::login_cid_seed_;
     std::mutex Conn::cmap_mtx_, Conn::pmap_mtx_;
     void Conn::Destroy() {
-        TRACE("ev:conn destroy,ptr:{},has_peer:{}", (void *)this, HasPeer());
+        LogInfo("ev:conn destroy,ptr:{},has_peer:{}", (void *)this, HasPeer());
         if (HasPeer()) {
             ConsumeTask(-1); //process all task
             handler_->Close(this);
