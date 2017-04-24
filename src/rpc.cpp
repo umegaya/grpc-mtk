@@ -23,7 +23,16 @@ Error *RPCStream::TIMEOUT_ERROR = nullptr;
 
 /* holding reference to grpc library, to prevent repeated grpc_init/shutdown on the fly */
 static grpc::internal::GrpcLibraryInitializer g_gli_initializer;
-static GrpcLibraryCodegen s_lib;
+static GrpcLibraryCodegen *g_libpin = nullptr;
+void PinLibrary() {
+    g_libpin = new GrpcLibraryCodegen();
+}
+void UnpinLibrary() {
+    if (g_libpin != nullptr) {
+        delete g_libpin;
+        g_libpin = nullptr;
+    }
+}
 
 /* IOThread */
 void IOThread::Initialize(const char *addr, CredOptions *options) {
@@ -51,8 +60,10 @@ void IOThread::Stop() {
     if (thr_.joinable()) {
         sending_shutdown_ = true;
         if (owner_.IsConnecting() || owner_.IsConnected()) {
+            TRACE("graceful shutdown");
             owner_.SendShutdownRequest();
         } else {
+            TRACE("immediate shutdown");
             cq_.Shutdown();
         }
         thr_.join();

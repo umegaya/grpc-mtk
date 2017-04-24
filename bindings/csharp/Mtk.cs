@@ -109,6 +109,10 @@ namespace Mtk {
         private static extern unsafe ulong mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
         [DllImport (DllName)]
         private static extern unsafe void mtk_slice_put(System.IntPtr slice, byte *data, uint datalen);
+        [DllImport (DllName)]
+        private static extern unsafe void mtk_lib_ref();
+        [DllImport (DllName)]
+        private static extern unsafe void mtk_lib_unref();
 
         //listener
         [DllImport (DllName)]
@@ -587,7 +591,10 @@ namespace Mtk {
         Core() {
             ConnMap = new Dictionary<ulong, Conn>();
             ServerMap = new Dictionary<string, Server>();
+            System.Environment.SetEnvironmentVariable("GRPC_TRACE", "all");
         }
+        public void Ref() { unsafe { mtk_lib_ref(); } }
+        public void Unref() { unsafe { mtk_lib_unref(); } }
     }
     public class Log {
         public static void Write(Core.LogLevel lv, string str) {

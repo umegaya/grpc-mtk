@@ -397,10 +397,17 @@ namespace mtk {
             stream_->Read(req_, this);
         }
         inline void Finish(bool by_task = false) {
+            StreamStatus prev_st = status_;
             status_ = CLOSE;
             if (by_task) {
                 auto sc = new StreamCloser(stream_);
                 stream_->Finish(sc);
+                if (prev_st == WAIT_LOGIN) {
+                    //because in wait_login status, this Conn should not register to completion queue, 
+                    //so never Destroy()'ed by Conn::Step()
+                    TRACE("removed as its in wait login mode {}", (void *)this);
+                    Destroy();
+                }
             } else {
                 stream_->Finish(this);
             }

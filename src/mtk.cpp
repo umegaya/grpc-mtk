@@ -559,3 +559,10 @@ void mtk_slice_destroy(mtk_slice_t s) {
 	delete (MemSlice *)s;
 }
 
+/* lib ref/unref */
+void mtk_lib_ref() {
+	PinLibrary();
+}
+void mtk_lib_unref() {
+	UnpinLibrary();
+}

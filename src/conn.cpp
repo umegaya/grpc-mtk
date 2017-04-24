@@ -75,8 +75,11 @@ namespace mtk {
                     //LogInfo("ev:deferred login reply,blen:{}",t->payload().length());
                     if (Codec::Unpack((const uint8_t *)t->payload().c_str(), t->payload().length(), lreq) >= 0) {
                         if (!AcceptLogin(lreq)) {
+                            ASSERT(status_ == WAIT_LOGIN);
                             LogInfo("ev:app closed by Deferred Login failure");
                             Finish(true);
+                            delete t;
+                            return; //this object died. break immediately
                         }
                     } else {
                         ASSERT(false);
@@ -153,11 +156,12 @@ namespace mtk {
             } break;
             case WAIT_LOGIN: {
                 ASSERT(false);
-                Recv();
+                LogError("ev:in wait login state, conn should not read from client");
+                Finish();
             } break;
             default:
                 ASSERT(false);
-                LogDebug("ev:unknown step,step:{}", status_);
+                LogError("ev:unknown step,step:{}", status_);
                 Finish();
                 break;
         }

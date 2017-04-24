@@ -91,6 +91,9 @@ extern void mtk_queue_elem_free(mtk_queue_t q, void *elem);
 extern mtk_slice_t mtk_slice_create();
 extern void mtk_slice_put(mtk_slice_t s, const char *p, mtk_size_t len);
 extern void mtk_slice_destroy(mtk_slice_t s);
+/* ref/unref library */
+extern void mtk_lib_ref();
+extern void mtk_lib_unref();
 
 
 

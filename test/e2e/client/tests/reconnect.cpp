@@ -31,3 +31,9 @@ void test_reconnect(mtk_conn_t c, test &t, test::testconn &conn) {
 	}
 	done(count > 0);
 }
+
+/*void test_close(mtk_conn_t c, test &t, test::testconn &conn) {
+	auto done = t.latch();
+	mtk_conn_close(c);
+	done(true);
+}*/

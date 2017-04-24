@@ -48,7 +48,7 @@ bool test::run(ConnectPayload::LoginMode login_mode, mtk_time_t timeout) {
 	};
 	mtk_clconf_t conf = {
 		.on_ready = mtk_closure_nop,
-	};
+	}; 
 	mtk_closure_init(&conf.on_payload, on_payload, &test::on_payload, (void *)login_mode);
 	testconn *conns = new testconn[concurrency_];
 	for (int i = 0; i < concurrency_; i++) {

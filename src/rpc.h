@@ -265,4 +265,10 @@ namespace mtk {
     };
     template <> void RPCStream::SetSystemPayloadKind<SystemPayload::Connect>(Request &req);
     template <> void RPCStream::SetSystemPayloadKind<SystemPayload::Ping>(Request &req);
+
+    //holding/release reference to grpc library, to prevent grpc_init/shutdown from being repeated on the fly.
+    //this is useful if application which embed mtk need to cleanup/initialize mtk environment repeatedly on runtime, 
+    //but do not want to cause grpc library init/shutdown with that timing.
+    void PinLibrary();
+    void UnpinLibrary();
 }
