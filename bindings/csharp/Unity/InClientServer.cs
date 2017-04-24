@@ -19,10 +19,12 @@ namespace Mtk.Unity {
 				.Build();
 		}
 		protected void Stop() {
+			//if server logic uses backend server connection, connection shutdown should be done before
+			//server shutdown, because server need to be alive to do graceful shutdown
+			logic_.Shutdown();
 			if (sv_ != null) {
 				sv_.Finalize();
 			}
-			logic_.Shutdown();
 		}
 		protected void FixedUpdate() {
 			unsafe {
