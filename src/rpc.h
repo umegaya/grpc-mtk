@@ -186,6 +186,7 @@ namespace mtk {
         void StartRead();
         inline bool IsConnected() const { return status_ == CONNECT; }
         inline bool IsConnecting() const { return status_ >= CONNECTING && status_ <= INITIALIZING; }
+        inline NetworkStatus Status() const { return status_; }
         inline mtk_msgid_t NewMsgId() {
             while (true) {
                 int32_t expect = msgid_seed_.load();

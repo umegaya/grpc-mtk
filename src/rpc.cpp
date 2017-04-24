@@ -5,6 +5,10 @@
 #include <chrono>
 #include <grpc++/impl/grpc_library.h>
 
+extern "C" {
+#include "src/core/lib/surface/completion_queue.h"
+}
+
 namespace mtk {
 extern std::string cl_ca;
 extern std::string cl_key;
@@ -47,10 +51,8 @@ void IOThread::Stop() {
     if (thr_.joinable()) {
         sending_shutdown_ = true;
         if (owner_.IsConnecting() || owner_.IsConnected()) {
-            //TRACE("Stop: do graceful shutdown");
             owner_.SendShutdownRequest();
         } else {
-            //TRACE("Stop: shutdown immediately");
             cq_.Shutdown();
         }
         thr_.join();

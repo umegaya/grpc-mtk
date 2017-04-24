@@ -52,14 +52,18 @@ namespace mtk {
     ATOMIC_UINT64 Conn::login_cid_seed_;
     std::mutex Conn::cmap_mtx_, Conn::pmap_mtx_;
     void Conn::Destroy() {
-        ConsumeTask(-1); //process all task
-        handler_->Close(this);
-        Unregister();
+        TRACE("ev:conn destroy,ptr:{},has_peer:{}", (void *)this, HasPeer());
+        if (HasPeer()) {
+            ConsumeTask(-1); //process all task
+            handler_->Close(this);
+            Unregister();
+        }
         delete this;
     }
     void Conn::ConsumeTask(int n_process) {
         Request *t;
-        if (worker_->Dying()) {
+        if (mtk_unlikely(worker_->Dying()) && status_ != CLOSE) {
+            LogInfo("ev:app closed by Worker shutdown,st:{}", status_);
             Finish(true);
             return;
         }
@@ -68,11 +72,15 @@ namespace mtk {
                 switch(t->kind()) {
                 case Request::Login: {
                     SystemPayload::Login lreq;
+                    //LogInfo("ev:deferred login reply,blen:{}",t->payload().length());
                     if (Codec::Unpack((const uint8_t *)t->payload().c_str(), t->payload().length(), lreq) >= 0) {
-                        AcceptLogin(lreq);
+                        if (!AcceptLogin(lreq)) {
+                            LogInfo("ev:app closed by Deferred Login failure");
+                            Finish(true);
+                        }
                     } else {
                         ASSERT(false);
-                        LogInfo("ev:app closed by Defered Login failure");
+                        LogInfo("ev:app closed by Deferred Login invalid payload");
                         Finish(true);
                     }
                 } break;
@@ -83,6 +91,7 @@ namespace mtk {
                 default:
                     TRACE("invalid system payload kind: {}", t->kind())
                     ASSERT(false);
+                    Finish(true);
                     break;
                 }
             } else {
@@ -149,7 +158,6 @@ namespace mtk {
             default:
                 ASSERT(false);
                 LogDebug("ev:unknown step,step:{}", status_);
-                status_ = CLOSE;
                 Finish();
                 break;
         }

@@ -3,24 +3,16 @@
 
 namespace mtk {
 void IServer::Shutdown() {
+    logger::info("ev:sv shutdown start");
     //indicate worker to start shutdown
-    logger::info("sv shutdown1");
     for (Worker *w : workers_) {
         w->PrepareShutdown();
     }
     //wait until all RPC processed
-    logger::info("sv shutdown2");
     if (server_ != nullptr) {
-    logger::info("sv shutdown3");
         server_->Shutdown();
-    logger::info("sv shutdown4");
     }
-    //shutdown read worker to consume queue
-    for (Worker *w : workers_) {
-        w->Shutdown();
-    }
-    logger::info("sv shutdown5");
-
+    //then IServer::Kick wakeup and do remaining shutdown
 }
 void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options) {
     Stream::AsyncService service;
@@ -57,8 +49,15 @@ void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, Cre
         cond_.notify_one();
     }
     // Wait for the server to shutdown. 
-    logger::info("sv launch thread wait shutdown {}", (void *)server_.get());
     server_->Wait();
-    logger::info("sv launch thread shutdown done");
+    //shutdown read worker to consume queue
+    for (Worker *w : workers_) {
+        w->Shutdown();
+    }
+    for (Worker *w : workers_) {
+        //need to wait worker thread shutdown otherwise these worker touches freed memory.
+        w->Join();
+    }
+    logger::info("ev:sv shutdown");
 }
 }

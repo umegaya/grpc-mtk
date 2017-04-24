@@ -386,6 +386,7 @@ namespace Mtk {
                             Marshal.Copy((System.IntPtr)(((byte *)ev) + sizeof(ServerEvent)), ret, 0, (int)ev->datalen);
                             var cid = logic.OnAccept(ev->cid, new SVConn(dc), ret, out rep);
                             fixed (byte *pb = rep) {
+                                Mtk.Log.Info("mtk_svconn_finish_login: " + rep.Length + " bytes sent");
                                 mtk_svconn_finish_login(ev->lcid, cid, ev->msgid, pb, (uint)rep.Length);
                             }
                         }

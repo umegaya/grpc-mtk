@@ -13,6 +13,7 @@ namespace Mtk {
     		try {
 	    		m.WriteTo(ous);
     		} catch (InvalidProtocolBufferException e) {
+                Mtk.Log.Error("ev:packerr,msg:" + e.Message);
 				return -1;    			
     		}
     		return (int)ous.Position;
@@ -22,6 +23,7 @@ namespace Mtk {
     		try {
 	    		m.MergeFrom(ins);
     		} catch (InvalidProtocolBufferException e) {
+                Mtk.Log.Error("ev:unpackerr,msg:" + e.Message);
 				return -1;    			
     		}
     		return (int)ins.Position;

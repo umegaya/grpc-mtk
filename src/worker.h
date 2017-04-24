@@ -26,7 +26,7 @@ namespace mtk {
         Worker(Service *service, IHandler *handler, ServerBuilder &builder) :
             service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
             connections_(), dying_(false) {}
-        virtual ~Worker() { if (thr_.joinable()) { thr_.join(); } }
+        virtual ~Worker() {}
         void Launch();
         Conn *New();
         inline void Process(bool ok, void *tag) {
@@ -39,6 +39,7 @@ namespace mtk {
         }
         inline bool Dying() const { return dying_;  }
         inline void Shutdown() { cq_->Shutdown(); }
+        inline void Join() { if (thr_.joinable()) { thr_.join(); } }
         inline void PrepareShutdown() { dying_ = true; }
     public: //interface
         void Run();

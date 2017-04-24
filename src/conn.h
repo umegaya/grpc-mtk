@@ -275,7 +275,10 @@ namespace mtk {
         Conn(Worker *worker, IHandler *handler) :
             worker_(worker), handler_(handler), stream_(new SVStream()), 
             status_(INIT), req_(), cid_(0), lcid_(0) { REF(stream_); }
-        ~Conn() { UNREF(stream_); }
+        ~Conn() { 
+            UNREF(stream_); 
+            stream_ = (SVStream *)0xdeadbeef;
+        }
         void Step() override;
         void Destroy() override;
         void ConsumeTask(int n_process);
@@ -308,6 +311,7 @@ namespace mtk {
     public:
         inline mtk_cid_t Id() const { return cid_; }
         inline bool WaitLoginAccept() const { return status_ == WAIT_LOGIN; }
+        inline bool HasPeer() const { return status_ > ACCEPT; }
         inline mtk_msgid_t CurrentMsgId() const { return req_.msgid(); }
         static Stream Get(mtk_cid_t uid) {
             cmap_mtx_.lock();
@@ -337,12 +341,13 @@ namespace mtk {
             LOG(error, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Format(fmt, args...));
         }        
     public: //following no need to use from user code
-        void AcceptLogin(SystemPayload::Login &a) {
+        bool AcceptLogin(SystemPayload::Login &a) {
            if (a.id() == 0) {
                 Error *e = new Error();
                 e->set_error_code(MTK_ACCEPT_DENY);
                 e->set_payload(a.payload());
                 Throw(a.msgid(), e);
+                return false;
             } else {
                 Register(a.id());
                 ASSERT(status_ == WAIT_LOGIN);
@@ -352,6 +357,7 @@ namespace mtk {
                 sysrep.set_id(a.id());
                 sysrep.set_payload(a.payload());
                 SysRep(a.msgid(), sysrep);
+                return true;
             }
         }
         static mtk_login_cid_t DeferLogin(mtk_svconn_t c) {
