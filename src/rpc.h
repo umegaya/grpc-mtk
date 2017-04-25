@@ -206,7 +206,7 @@ namespace mtk {
             ASSERT(false);
             return 0;
         }
-        timespec_t ReconnectWaitUsec();
+        timespec_t ReconnectWait();
         static timespec_t CalcReconnectWaitDuration(int n_attempt);
         static timespec_t CalcJitter(timespec_t base);
         static timespec_t Tick();

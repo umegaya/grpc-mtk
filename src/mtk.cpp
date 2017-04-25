@@ -208,13 +208,13 @@ protected:
 public:
 	Client(mtk_clconf_t *clconf) : RPCStream(this), cid_(0), clconf_(*clconf) {}
 	//implements RPCStream::IClientDelegate
-	uint64_t Id() const { return cid_; }
-   	bool Ready() const { 
+	uint64_t Id() const override { return cid_; }
+   	bool Ready() const override { 
    		return mtk_closure_valid(&clconf_.on_ready) ? 
    			mtk_closure_call_noarg(&clconf_.on_ready, on_ready) : 
    			true; 
    	}
-    bool AddPayload(SystemPayload::Connect &c) {
+    bool AddPayload(SystemPayload::Connect &c) override {
     	MemSlice s;
     	uint64_t cid = mtk_closure_call(&clconf_.on_payload, on_payload, &s);
     	c.set_id(cid);
@@ -223,7 +223,7 @@ public:
 	    }
     	return true;
     }
-    bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len) {
+    bool OnOpenStream(mtk_result_t r, const char *p, mtk_size_t len) override {
     	if (r < 0) {
 	    	return mtk_closure_call(&(clconf_.on_connect), on_connect, 0, "", 0);
     	}
@@ -233,14 +233,14 @@ public:
 		cid_ = crep_.id();
 		return mtk_closure_call(&clconf_.on_connect, on_connect, cid_, crep_.payload().c_str(), crep_.payload().length());;
     }
-    mtk_time_t OnCloseStream(int reconnect_attempt) {
+    mtk_time_t OnCloseStream(int reconnect_attempt) override {
     	mtk_time_t dur = 0;
     	if (mtk_closure_valid(&clconf_.on_close)) {
     		dur = mtk_closure_call(&clconf_.on_close, on_close, cid_, reconnect_attempt);
     	}
     	return dur != 0 ? dur : CalcReconnectWaitDuration(reconnect_attempt);
     }
-    void Poll() {}
+    void Poll() override {}
 };
 
 /* Queue */
@@ -393,6 +393,10 @@ void mtk_conn_send(mtk_conn_t c, uint32_t type, const char *p, mtk_size_t plen, 
 void mtk_conn_timeout(mtk_conn_t c, mtk_time_t duration) {
 	Client *cl = (Client *)c;
 	cl->SetDefaultTimeout(duration);
+}
+mtk_time_t mtk_conn_reconnect_wait(mtk_conn_t c) {
+	Client *cl = (Client *)c;
+	return cl->ReconnectWait();
 }
 void mtk_conn_watch(mtk_conn_t c, mtk_closure_t clsr) {
 	Client *cl = (Client *)c;

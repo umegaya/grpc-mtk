@@ -103,17 +103,18 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_queue_elem_free(System.IntPtr q, System.IntPtr elem);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_log_config([MarshalAs(UnmanagedType.LPStr)]string name, LogWriteCB writer);
-        [DllImport (DllName)]
-        private static extern unsafe ulong mtk_time();
-        [DllImport (DllName)]
-        private static extern unsafe ulong mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
+        private static extern ulong mtk_time();
         [DllImport (DllName)]
         private static extern unsafe void mtk_slice_put(System.IntPtr slice, byte *data, uint datalen);
         [DllImport (DllName)]
         private static extern unsafe void mtk_lib_ref();
         [DllImport (DllName)]
         private static extern unsafe void mtk_lib_unref();
+
+        [DllImport (DllName)]
+        private static extern void mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
+        [DllImport (DllName)]
+        private static extern void mtk_log_config([MarshalAs(UnmanagedType.LPStr)]string name, LogWriteCB writer);
 
         //listener
         [DllImport (DllName)]
@@ -182,6 +183,8 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_conn_timeout(System.IntPtr conn, ulong duration);
         [DllImport (DllName)]
+        private static extern unsafe ulong mtk_conn_reconnect_wait(System.IntPtr conn); 
+        [DllImport (DllName)]
         private static extern unsafe void mtk_conn_watch(System.IntPtr conn, Closure clsr);
         [DllImport (DllName)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -228,6 +231,9 @@ namespace Mtk {
             }
             public bool IsConnected {
                 get { unsafe { return mtk_conn_connected(conn_); } }
+            }
+            public ulong ReconnectWait {
+                get { unsafe { return mtk_conn_reconnect_wait(conn_); } }
             }
             public void Send(uint type, byte[] data, Closure clsr, ulong timeout_duration = 0) {
                 unsafe { 
@@ -571,9 +577,27 @@ namespace Mtk {
             mtk_log_config(name, writer);
         }
         public static void Log(LogLevel lv, string str) {
-            unsafe {
-                mtk_log((int)lv, str);
+#if UNITY_EDITOR
+            switch (lv) {
+            case Core.LogLevel.Trace:
+            case Core.LogLevel.Debug:
+                UnityEngine.Debug.Log(str);
+                break;
+            case Core.LogLevel.Info:
+            case Core.LogLevel.Report:
+                UnityEngine.Debug.Log(str + ",lv_:" + lv);
+                break;
+            case Core.LogLevel.Warn:
+                UnityEngine.Debug.LogWarning(str + ",lv_:" + lv);
+                break;
+            case Core.LogLevel.Error:
+            case Core.LogLevel.Fatal:
+                UnityEngine.Debug.LogError(str + ",lv_:" + lv);
+                break;
             }
+#else
+            mtk_log((int)lv, str);
+#endif
         }
         public static void Assert(bool expr) {
             if (!expr) {
@@ -589,32 +613,32 @@ namespace Mtk {
                 }
             }
         }
+        public static void Ref() { unsafe { mtk_lib_ref(); } }
+        public static void Unref() { unsafe { mtk_lib_unref(); } }
         Core() {
             ConnMap = new Dictionary<ulong, Conn>();
             ServerMap = new Dictionary<string, Server>();
             System.Environment.SetEnvironmentVariable("GRPC_TRACE", "all");
         }
-        public void Ref() { unsafe { mtk_lib_ref(); } }
-        public void Unref() { unsafe { mtk_lib_unref(); } }
     }
     public class Log {
         public static void Write(Core.LogLevel lv, string str) {
             Core.Log(lv, str);
         }
         public static void Info(string str) {
-            Write(Core.LogLevel.Info, str);
+            Core.Log(Core.LogLevel.Info, str);
         }
         public static void Error(string str) {
-            Write(Core.LogLevel.Error, str);
+            Core.Log(Core.LogLevel.Error, str);
         }
         public static void Debug(string str) {
-            Write(Core.LogLevel.Debug, str);
+            Core.Log(Core.LogLevel.Debug, str);
         }
         public static void Fatal(string str) {
-            Write(Core.LogLevel.Fatal, str);
+            Core.Log(Core.LogLevel.Fatal, str);
         }
         public static void Report(string str) {
-            Write(Core.LogLevel.Report, str);
+            Core.Log(Core.LogLevel.Report, str);
         }
     }
 }

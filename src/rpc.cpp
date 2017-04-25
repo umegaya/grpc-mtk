@@ -208,7 +208,7 @@ timespec_t RPCStream::Tick() {
     return clock::now();
 }
 
-timespec_t RPCStream::ReconnectWaitUsec() {
+timespec_t RPCStream::ReconnectWait() {
     timespec_t now = Tick();
     if (reconnect_when_ < now) {
         return 0;
@@ -278,7 +278,7 @@ void RPCStream::ProcessReply() {
                 status_ = NetworkStatus::DISCONNECT;
                 //set reconnect wait 5, 10, 20, .... upto 300 sec
                 reconnect_when_ = Tick() + delegate_->OnCloseStream(reconnect_attempt_);
-                TRACE("next reconnect wait: {}", ReconnectWaitUsec());
+                TRACE("next reconnect wait: {}", ReconnectWait());
             } else if (rep == ESTABLISHED_EVENT) {
                 reconnect_attempt_ = 0;
                 reconnect_when_ = 0;
@@ -347,7 +347,7 @@ void RPCStream::Update() {
         case NetworkStatus::DISCONNECT: {
             //due to reconnect_attempt_, sleep for a while
             if (!delegate_->Ready() || reconnect_when_ > now) {
-                //TRACE("reconnect wait: {}", ReconnectWaitUsec());
+                //TRACE("reconnect wait: {}", ReconnectWait());
                 return; //skip reconnection until time comes
             } else {
                 status_ = NetworkStatus::CONNECTING;
