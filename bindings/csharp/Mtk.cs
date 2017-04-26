@@ -404,7 +404,7 @@ namespace Mtk {
                     } else if (ev->msgid != 0) {
                         var c = new CidConn(ev->cid, ev->msgid);
                         var ret = new byte[ev->datalen];
-                        Marshal.Copy((System.IntPtr)(((byte *)ev) + sizeof(ServerEvent)), ret, 0, (int)ev->datalen);
+                        Marshal.Copy((System.IntPtr)(((byte *)ev) + SERVER_EVENT_TRUE_SIZE), ret, 0, (int)ev->datalen);
                         logic.OnRecv(c, ev->result, ret);
                     } else {
                         logic.OnClose(ev->cid);

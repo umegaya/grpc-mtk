@@ -13,8 +13,8 @@ namespace Mtk {
     		try {
 	    		m.WriteTo(ous);
     		} catch (InvalidProtocolBufferException e) {
-                Mtk.Log.Error("ev:packerr,msg:" + e.Message);
-				return -1;    			
+                Mtk.Log.Error("ev:packerr,msg:" + e.Message + ",len:" + len);
+				return -1;
     		}
     		return (int)ous.Position;
     	}
@@ -23,7 +23,7 @@ namespace Mtk {
     		try {
 	    		m.MergeFrom(ins);
     		} catch (InvalidProtocolBufferException e) {
-                Mtk.Log.Error("ev:unpackerr,msg:" + e.Message);
+                Mtk.Log.Error("ev:unpackerr,msg:" + e.Message + ",len:" + bytes.Length);
 				return -1;    			
     		}
     		return (int)ins.Position;
@@ -39,7 +39,7 @@ namespace Mtk {
             bool Reply(uint msgid, IMessage m);
             bool Task(uint type, IMessage m);
             bool Throw(uint msgid, IMessage m);
-            bool Notify(uint type, IMessage m);            
+            bool Notify(uint type, IMessage m);
         }
         public partial class SVConn {
             public bool Reply(uint msgid, IMessage m) {
