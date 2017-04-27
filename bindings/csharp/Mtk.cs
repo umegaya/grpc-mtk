@@ -563,6 +563,7 @@ namespace Mtk {
             get { return (uint)(mtk_time() / (1000 * 1000 * 1000)); }
         }
         static public ulong Sec2Tick(uint sec) { return ((ulong)sec) * 1000 * 1000 * 1000; }
+        static public ulong FSec2Tick(float sec) { return ((ulong)(sec * 1000f * 1000f)) * 1000; }
         static public ulong MSec2Tick(uint msec) { return ((ulong)msec) * 1000 * 1000; }
         static public ulong USec2Tick(uint usec) { return ((ulong)usec) * 1000; }
         static public ulong NSec2Tick(uint nsec) { return ((ulong)nsec); }
