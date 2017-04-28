@@ -520,6 +520,11 @@ void mtk_httpsrv_write_body(mtk_httpsrv_response_t res, const char *buffer, mtk_
 mtk_time_t mtk_time() {
 	return clock::now();
 }
+mtk_second_t mtk_second() {
+	long t, nt;
+	clock::now(t, nt);
+	return (mtk_second_t)t;
+}
 mtk_time_t mtk_sleep(mtk_time_t d) {
 	return clock::sleep(d);
 }

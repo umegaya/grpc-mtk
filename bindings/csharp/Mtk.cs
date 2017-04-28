@@ -105,6 +105,8 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern ulong mtk_time();
         [DllImport (DllName)]
+        private static extern ulong mtk_second();
+        [DllImport (DllName)]
         private static extern unsafe void mtk_slice_put(System.IntPtr slice, byte *data, uint datalen);
         [DllImport (DllName)]
         private static extern unsafe void mtk_lib_ref();
@@ -215,9 +217,18 @@ namespace Mtk {
             void Shutdown();
         }
         public partial class Conn : IConn {
+            struct Task {
+                public GCHandle gch;
+                public bool finish;
+            };
             System.IntPtr conn_;
+            uint task_id_seed_ = 0;
+            Dictionary<uint, Task> tasks_;
+            List<uint> work_;
             public Conn(System.IntPtr c) {
                 conn_ = c;
+                tasks_ = new Dictionary<uint, Task>();
+                work_ = new List<uint>(); 
             }
             public void Finalize() {
                 unsafe {
@@ -235,20 +246,35 @@ namespace Mtk {
             public ulong ReconnectWait {
                 get { unsafe { return mtk_conn_reconnect_wait(conn_); } }
             }
-            public void Send(uint type, byte[] data, Closure clsr, ulong timeout_duration = 0) {
-                unsafe { 
-                    fixed (byte* d = data) { mtk_conn_send(conn_, type, d, (uint)data.Length, clsr); } 
-                }
-            }
             public void Send(uint type, byte[] data, ClientRecvCB on_recv, ulong timeout_duration = 0) {
+                //gc finished task
+                foreach (var kv in tasks_) {
+                    if (kv.Value.finish) {
+                        work_.Add(kv.Key);
+                        kv.Value.gch.Free();
+                    }
+                }
+                foreach (var id in work_) {
+                    tasks_.Remove(id);
+                }
+                work_.Clear();
+                var t = new Task{ gch = GCHandle.Alloc(on_recv) };
+                var task_id = ++task_id_seed_;
+                tasks_[task_id] = t;
                 unsafe {
                     fixed (byte* d = data) { 
                         mtk_conn_send(conn_, type, d, (uint)data.Length, new Closure {
-                            arg = System.IntPtr.Zero,
+                            arg = new System.IntPtr(task_id),
                             cb = Marshal.GetFunctionPointerForDelegate(on_recv),
                         }); 
                     }
-
+                }
+            }
+            public void Finish(uint task_id) {
+                Task t;
+                if (tasks_.TryGetValue(task_id, out t)) {
+                    t.finish = true;
+                    tasks_[task_id] = t;
                 }
             }
             public void Timeout(ulong duration) {
@@ -560,14 +586,14 @@ namespace Mtk {
             get { return mtk_time(); } 
         }
         static public uint Time {
-            get { return (uint)(mtk_time() / (1000 * 1000 * 1000)); }
+            get { return (uint)mtk_second(); }
         }
         static public ulong Sec2Tick(uint sec) { return ((ulong)sec) * 1000 * 1000 * 1000; }
         static public ulong FSec2Tick(float sec) { return ((ulong)(sec * 1000f * 1000f)) * 1000; }
         static public ulong MSec2Tick(uint msec) { return ((ulong)msec) * 1000 * 1000; }
         static public ulong USec2Tick(uint usec) { return ((ulong)usec) * 1000; }
         static public ulong NSec2Tick(uint nsec) { return ((ulong)nsec); }
-        static public float Tick2Sec(ulong tick) { return ((float)tick)/(1000 * 1000 * 1000);}
+        static public uint Tick2Sec(ulong tick) { return (uint)(tick / (1000 * 1000 * 1000)); }
         static public Core Instance() {
             if (instance_ == null) {
                 instance_ = new Core();

@@ -29,14 +29,14 @@ namespace mtk {
     }
     void SVStream::Step() {
         mtx_.lock();
-        //TRACE("RSVStream[{}]:wstep = {}, {}, {}", (void *)this, step_, queue_.size(), is_sending_);
+        //TRACE("RSVStream[{}]:wstep = {}, {}", (void *)this, queue_.size(), is_sending_);
         if (queue_.size() > 0) {
             //pop one from queue and send it.
             Reply *r = &(*queue_.front());
             Write(*r, this);
-            delete r; //todo return r to cache instead of delete
             queue_.pop();
             mtx_.unlock();
+            delete r; //todo return r to cache instead of delete
         } else {
             //turn off sending flag so that next Send call kick io.Write again
             //otherwise, WSVStream never processed by this worker thread.
@@ -52,7 +52,6 @@ namespace mtk {
     ATOMIC_UINT64 Conn::login_cid_seed_;
     std::mutex Conn::cmap_mtx_, Conn::pmap_mtx_;
     void Conn::Destroy() {
-        LogInfo("ev:conn destroy,ptr:{},has_peer:{}", (void *)this, HasPeer());
         if (HasPeer()) {
             ConsumeTask(-1); //process all task
             handler_->Close(this);

@@ -64,11 +64,11 @@ namespace mtk {
         virtual ~SVStream();
 #if defined(REFCNT_CHECK)
         inline void Ref(const char *file, int line) { 
-            TRACE("Ref {}: from {}({}): {}", (void *)this, file, line, refc_);
+            TRACE("Ref {}: from {}({}): {}", (void *)this, file, line, refc_.load());
             ++refc_; 
         }
         inline void Unref(const char *file, int line) { 
-            TRACE("Unref {}: from {}({}): {}", (void *)this, file, line, refc_);
+            TRACE("Unref {}: from {}({}): {}", (void *)this, file, line, refc_.load());
             if (--refc_ <= 0) { delete this; } 
         } 
         #define REF(s) { s->Ref(__FILE__, __LINE__); }
@@ -117,6 +117,7 @@ namespace mtk {
         }
         void Send(Reply *r) {
             mtx_.lock();
+            //TRACE("Send {} {} {} {} {} {} {}", (void *)this, (void *)r, queue_.size(), r->type(), r->msgid(), r->has_error(), is_sending_);
             if (!is_sending_) {
                 is_sending_ = true;
                 REF(this);
@@ -126,6 +127,13 @@ namespace mtk {
                 queue_.push(r);
             }
             mtx_.unlock();
+        }
+        size_t QueueSize() {
+            size_t sz;
+            mtx_.lock();
+            sz = queue_.size();
+            mtx_.unlock();
+            return sz;
         }
         template <class W> inline void AddTask(MessageType type, const W &w) {
             Request *r = new Request(); //todo: get r from cache

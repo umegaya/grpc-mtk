@@ -16,6 +16,7 @@ typedef uint64_t mtk_cid_t;
 typedef uint64_t mtk_login_cid_t;
 typedef uint32_t mtk_msgid_t;
 typedef uint64_t mtk_time_t;
+typedef uint64_t mtk_second_t;
 typedef uint32_t mtk_size_t;
 typedef void *mtk_httpsrv_request_t;
 typedef void *mtk_httpsrv_response_t;
@@ -76,6 +77,7 @@ static inline mtk_time_t mtk_msec(uint64_t n) { return ((n) * 1000 * 1000); }
 static inline mtk_time_t mtk_usec(uint64_t n) { return ((n) * 1000); }
 static inline mtk_time_t mtk_nsec(uint64_t n) { return (n); }
 extern mtk_time_t mtk_time();
+extern mtk_second_t mtk_second();
 extern mtk_time_t mtk_sleep(mtk_time_t d); //ignore EINTR
 extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
 /* log */
