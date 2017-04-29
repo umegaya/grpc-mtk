@@ -216,7 +216,7 @@ public:
    	}
     bool AddPayload(SystemPayload::Connect &c) override {
     	MemSlice s;
-    	uint64_t cid = mtk_closure_call(&clconf_.on_payload, on_payload, &s);
+    	uint64_t cid = mtk_closure_call(&clconf_.on_start, on_start, &s);
     	c.set_id(cid);
     	if (s.len_ > 0) {
 	    	c.set_payload(s.ptr_, s.len_);

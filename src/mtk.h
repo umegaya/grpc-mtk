@@ -28,7 +28,7 @@ typedef struct {
 typedef void (*mtk_callback_t)(void *, mtk_result_t, const char *, mtk_size_t);
 typedef bool (*mtk_connect_cb_t)(void *, mtk_cid_t, const char *, mtk_size_t);
 typedef bool (*mtk_validate_cb_t)(void *);
-typedef mtk_cid_t (*mtk_connect_payload_cb_t)(void *, mtk_slice_t);
+typedef mtk_cid_t (*mtk_connect_start_cb_t)(void *, mtk_slice_t);
 typedef mtk_time_t (*mtk_close_cb_t)(void *, mtk_cid_t, long);
 typedef void (*mtk_server_close_cb_t)(void *, mtk_svconn_t);
 typedef mtk_result_t (*mtk_server_recv_cb_t)(void *, mtk_svconn_t, mtk_result_t, const char *, mtk_size_t);
@@ -44,7 +44,7 @@ typedef struct {
 		mtk_connect_cb_t on_connect;
 		mtk_close_cb_t on_close;
 		mtk_validate_cb_t on_ready;
-		mtk_connect_payload_cb_t on_payload;
+		mtk_connect_start_cb_t on_start;
 		mtk_server_recv_cb_t on_svmsg;
 		mtk_server_accept_cb_t on_accept;
 		mtk_server_close_cb_t on_svclose;
@@ -119,7 +119,7 @@ typedef struct {
 	char data[0];
 } mtk_svevent_t;
 typedef struct {
-	mtk_closure_t on_connect, on_close, on_ready, on_payload;
+	mtk_closure_t on_connect, on_close, on_ready, on_start;
 } mtk_clconf_t;
 typedef enum {
 	MTK_APPLICATION_ERROR = -1,

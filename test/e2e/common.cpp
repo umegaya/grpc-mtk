@@ -30,7 +30,7 @@ mtk_time_t test::closed(void *arg, mtk_cid_t cid, long attempt) {
 	tc->should_signal = true;
 	return mtk_sec(1);
 }
-mtk_cid_t test::on_payload(void *arg, mtk_slice_t s) {
+mtk_cid_t test::on_start(void *arg, mtk_slice_t s) {
 	ConnectPayload p;
 	p.set_login_mode((ConnectPayload::LoginMode)(intptr_t)arg);
 	char buff[p.ByteSize()];
@@ -49,7 +49,7 @@ bool test::run(ConnectPayload::LoginMode login_mode, mtk_time_t timeout) {
 	mtk_clconf_t conf = {
 		.on_ready = mtk_closure_nop,
 	}; 
-	mtk_closure_init(&conf.on_payload, on_payload, &test::on_payload, (void *)login_mode);
+	mtk_closure_init(&conf.on_start, on_start, &test::on_start, (void *)login_mode);
 	testconn *conns = new testconn[concurrency_];
 	for (int i = 0; i < concurrency_; i++) {
 		mtk_closure_init(&conf.on_connect, on_connect, &test::launch, &(conns[i]));

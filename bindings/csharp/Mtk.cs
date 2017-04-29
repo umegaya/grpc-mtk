@@ -23,7 +23,7 @@ namespace Mtk {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate ulong ClientCloseCB(System.IntPtr arg, ulong cid, int connect_attempts);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate ulong ClientPayloadCB(System.IntPtr arg, System.IntPtr slice);
+        public delegate ulong ClientStartCB(System.IntPtr arg, System.IntPtr slice);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public unsafe delegate int ServerReceiveCB(System.IntPtr arg, System.IntPtr svconn, int type, byte *buf, uint buflen);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -76,7 +76,7 @@ namespace Mtk {
             [MarshalAs(UnmanagedType.I1)] public bool use_queue;
         };
         struct ClientConfig {
-            public Closure on_connect, on_close, on_ready, on_payload;
+            public Closure on_connect, on_close, on_ready, on_start;
         };
         struct ServerEvent {
             public ulong lcid; // != 0 for accept event, 0 for recv event
@@ -463,7 +463,7 @@ namespace Mtk {
         public class ClientBuilder : Builder {
             ulong id_;
             byte[] payload_;
-            Closure on_connect_, on_close_, on_ready_, on_payload_, on_notify_;
+            Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at) {
                 base.ListenAt(at);
@@ -503,10 +503,10 @@ namespace Mtk {
                 on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnPayload(ClientPayloadCB cb, List<GCHandle> mems) {
+            public ClientBuilder OnStart(ClientStartCB cb, List<GCHandle> mems) {
                 mems.Add(GCHandle.Alloc(cb));
-                on_payload_.arg = System.IntPtr.Zero;
-                on_payload_.cb = Marshal.GetFunctionPointerForDelegate(cb);
+                on_start_.arg = System.IntPtr.Zero;
+                on_start_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;                
             }
             public Conn Build() {
@@ -519,7 +519,7 @@ namespace Mtk {
                         Address addr = MakeAddress(h, c, k, a);
                         ClientConfig conf = new ClientConfig { 
                             on_connect = on_connect_, on_close = on_close_, 
-                            on_payload = on_payload_, on_ready = on_ready_,
+                            on_start = on_start_, on_ready = on_ready_,
                         };
                         var conn = new Conn(mtk_connect(ref addr, ref conf));
                         Core.Instance().ConnMap[id_] = conn;
