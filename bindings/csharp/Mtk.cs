@@ -37,31 +37,6 @@ namespace Mtk {
         
         //structs
         public struct Closure {
-            /*[System.Runtime.InteropServices.StructLayout(LayoutKind.Explicit)]
-            public struct UCallback {
-                //union fields
-                [FieldOffset(0)]
-                public ClientRecvCB on_msg;
-
-                [FieldOffset(0)]
-                public ClientConnectCB on_connect;
-
-                [FieldOffset(0)]
-                public ClientCloseCB on_close;
-
-                [FieldOffset(0)]
-                public ClientReadyCB on_ready;
-
-                [FieldOffset(0)]
-                public ServerReceiveCB on_svmsg;
-
-                [FieldOffset(0)]
-                public ServerAcceptCB on_accept;
-
-                [FieldOffset(0)]
-                public ServerCloseCB on_svclose;
-            };*/
-
             public System.IntPtr arg;
             //TODO: add type check. only above unmanaged function pointers are allowed.
             public System.IntPtr cb;
@@ -224,17 +199,23 @@ namespace Mtk {
             System.IntPtr conn_;
             uint task_id_seed_ = 0;
             Dictionary<uint, Task> tasks_;
+            List<GCHandle> cbmems_;
             List<uint> work_;
-            public Conn(System.IntPtr c) {
+            internal Conn(System.IntPtr c, List<GCHandle> cbmems) {
                 conn_ = c;
                 tasks_ = new Dictionary<uint, Task>();
                 work_ = new List<uint>(); 
+                cbmems_ = cbmems;
             }
             public void Finalize() {
                 unsafe {
                     if (conn_ != System.IntPtr.Zero) {
                         mtk_conn_close(conn_);
                     }
+                }
+                TaskGC();
+                foreach (var gch in cbmems_) {
+                    gch.Free();
                 }
             }
             public ulong Id { 
@@ -247,17 +228,7 @@ namespace Mtk {
                 get { unsafe { return mtk_conn_reconnect_wait(conn_); } }
             }
             public void Send(uint type, byte[] data, ClientRecvCB on_recv, ulong timeout_duration = 0) {
-                //gc finished task
-                foreach (var kv in tasks_) {
-                    if (kv.Value.finish) {
-                        work_.Add(kv.Key);
-                        kv.Value.gch.Free();
-                    }
-                }
-                foreach (var id in work_) {
-                    tasks_.Remove(id);
-                }
-                work_.Clear();
+                TaskGC();
                 var t = new Task{ gch = GCHandle.Alloc(on_recv) };
                 var task_id = ++task_id_seed_;
                 tasks_[task_id] = t;
@@ -293,6 +264,20 @@ namespace Mtk {
             }
             public void Close() {
                 unsafe { mtk_conn_close(conn_); }
+            }
+
+            protected void TaskGC() {
+                //gc finished task
+                foreach (var kv in tasks_) {
+                    if (kv.Value.finish) {
+                        work_.Add(kv.Key);
+                        kv.Value.gch.Free();
+                    }
+                }
+                foreach (var id in work_) {
+                    tasks_.Remove(id);
+                }
+                work_.Clear();
             }
         }
         public partial class SVConn : ISVConn, IContextSetter {
@@ -464,6 +449,7 @@ namespace Mtk {
             ulong id_;
             byte[] payload_;
             Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
+            List<GCHandle> cbmems_ = new List<GCHandle>();
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at) {
                 base.ListenAt(at);
@@ -479,32 +465,32 @@ namespace Mtk {
                 return this;
             }
             //these function will be called from same thread as Unity's main thread
-            public ClientBuilder OnClose(ClientCloseCB cb, List<GCHandle> mems) {
-                mems.Add(GCHandle.Alloc(cb));
+            public ClientBuilder OnClose(ClientCloseCB cb) {
+                cbmems_.Add(GCHandle.Alloc(cb));
                 on_close_.arg = System.IntPtr.Zero;
                 on_close_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnConnect(ClientConnectCB cb, List<GCHandle> mems) {
-                mems.Add(GCHandle.Alloc(cb));
+            public ClientBuilder OnConnect(ClientConnectCB cb) {
+                cbmems_.Add(GCHandle.Alloc(cb));
                 on_connect_.arg = System.IntPtr.Zero;
                 on_connect_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnReady(ClientReadyCB cb, List<GCHandle> mems) {
-                mems.Add(GCHandle.Alloc(cb));
+            public ClientBuilder OnReady(ClientReadyCB cb) {
+                cbmems_.Add(GCHandle.Alloc(cb));
                 on_ready_.arg = System.IntPtr.Zero;
                 on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnNotify(ClientRecvCB cb, List<GCHandle> mems) {
-                mems.Add(GCHandle.Alloc(cb));
+            public ClientBuilder OnNotify(ClientRecvCB cb) {
+                cbmems_.Add(GCHandle.Alloc(cb));
                 on_notify_.arg = System.IntPtr.Zero;
                 on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnStart(ClientStartCB cb, List<GCHandle> mems) {
-                mems.Add(GCHandle.Alloc(cb));
+            public ClientBuilder OnStart(ClientStartCB cb) {
+                cbmems_.Add(GCHandle.Alloc(cb));
                 on_start_.arg = System.IntPtr.Zero;
                 on_start_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;                
@@ -521,7 +507,7 @@ namespace Mtk {
                             on_connect = on_connect_, on_close = on_close_, 
                             on_start = on_start_, on_ready = on_ready_,
                         };
-                        var conn = new Conn(mtk_connect(ref addr, ref conf));
+                        var conn = new Conn(mtk_connect(ref addr, ref conf), cbmems_);
                         Core.Instance().ConnMap[id_] = conn;
                         conn.Watch(on_notify_);
                         return conn;
