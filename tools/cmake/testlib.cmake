@@ -1,2 +1,2 @@
-add_definitions(-DTEST)
+add_compile_options("-D_TEST")
 set(DEBUG True)

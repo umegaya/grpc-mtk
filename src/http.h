@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <cstdlib>
+#include "defs.h"
 extern "C" {
 #include "src/core/lib/http/parser.h"
 #include "src/core/lib/http/httpcli.h"

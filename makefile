@@ -5,6 +5,7 @@ GRPC_PROTO_ROOT=$(GRPC_ROOT)/src/proto
 GRPC_CPP_PLUGIN=grpc_cpp_plugin
 GRPC_BIN_PATH=/usr/local/bin/grpc_cpp_plugin
 DOCKER_IMAGE=mtktool/builder
+GRPC_COMMIT=$(shell bash ./tools/builder/hash.sh)
 # project root from build directory
 PROJECT_ROOT=../..
 BUILD_SETTING_PATH=$(PROJECT_ROOT)/tools/cmake
@@ -24,6 +25,10 @@ $(FILELIST_TOOL_PATH)/lists.cmake: $(GRPC_ROOT)/Makefile
 proto: $(PROTO_SRC_PATH)/mtk.pb.cc $(PROTO_SRC_PATH)/mtk.pb.h $(PROTO_SRC_PATH)/mtk.grpc.pb.cc $(PROTO_SRC_PATH)/mtk.grpc.pb.h
 
 filelist: $(FILELIST_TOOL_PATH)/lists.cmake
+
+linux: proto filelist
+	- mkdir -p build/linux
+	cd build/linux && cmake -DCMAKE_TOOLCHAIN_FILE=$(BUILD_SETTING_PATH)/linux.cmake $(PROJECT_ROOT) && make
 
 bundle: proto filelist
 	- mkdir -p build/osx
@@ -51,6 +56,9 @@ android: proto filelist
 	mv build/android.v7/libmtk.so build/android/libmtk-armv7.so
 	mv build/android.64/libmtk.so build/android/libmtk-arm64.so
 
+install:
+	mkdir -p /usr/local/lib && cp build/linux/libmtk.a /usr/local/lib
+	mkdir -p /usr/local/include/mtk && find ./src -name '*.h' -exec cp -prv '{}' '/usr/local/include/mtk/' ';'
 
 .PHONY: build
 build: bundle ios android
@@ -68,4 +76,7 @@ clean:
 	rm -r build
 
 builder:
-	docker build -t mtktools/builder tools/builder
+	docker build --build-arg GRPC_COMMIT=$(GRPC_COMMIT) -t mtktools/builder .
+
+
+

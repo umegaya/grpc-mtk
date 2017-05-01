@@ -11,6 +11,10 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2")
 endif()	
+# pthread_rwlock_t requires a feature flag.
+if(NOT WIN32)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=700")
+endif()
 file(GLOB_RECURSE libsrc [
 	# lib source
 	"src/*.cpp" 
