@@ -27,12 +27,28 @@ namespace mtk {
         virtual void Step() = 0;
         virtual void Destroy() = 0;
     };
+    /* slice to get memory block from host language */
+    struct MemSlice {
+        void *ptr_;
+        mtk_size_t len_;
+        MemSlice() : ptr_(nullptr), len_(0) {}
+        inline ~MemSlice() {
+            if (ptr_ != nullptr) {
+                free(ptr_);
+            }
+        }
+        inline void Put(const char *p, mtk_size_t l) {
+            ptr_ = malloc(l);
+            memcpy(ptr_, p, l);
+            len_ = l;
+        }
+    };
     class Conn;
     class Worker;
     class IHandler {
     public:
         virtual grpc::Status Handle(Conn *c, Request &req) = 0;
-        virtual mtk_cid_t Login(Conn *c, Request &req) = 0;
+        virtual mtk_cid_t Login(Conn *c, Request &req, MemSlice &s) = 0;
         virtual void Close(Conn *c) = 0;
         virtual Conn *NewConn(Worker *worker, IHandler *handler) = 0;
     };
@@ -349,6 +365,31 @@ namespace mtk {
             LOG(error, "tag:conn,id:{},a:{},{}", cid_, stream_->RemoteAddress(), logger::Format(fmt, args...));
         }        
     public: //following no need to use from user code
+        mtk_cid_t Login() {
+            MemSlice s;
+            mtk_cid_t cid = handler_->Login(this, req_, s);
+            if (WaitLoginAccept()) {
+                return cid;
+            } else if (cid != 0) {
+                SystemPayload::Connect sysrep;
+                sysrep.set_id(cid);
+                if (s.len_ > 0) {
+                    ASSERT(s.ptr_ != nullptr);
+                    sysrep.set_payload(s.ptr_, s.len_);
+                }
+                SysRep(req_.msgid(), sysrep);
+            } else {
+                Error *e = new Error();
+                e->set_error_code(MTK_ACCEPT_DENY);
+                if (s.len_ > 0) {
+                    ASSERT(s.ptr_ != nullptr);
+                    e->set_payload(s.ptr_, s.len_);
+                }
+                Throw(req_.msgid(), e);
+            }
+            return cid;
+
+        }
         bool AcceptLogin(SystemPayload::Login &a) {
            if (a.id() == 0) {
                 Error *e = new Error();

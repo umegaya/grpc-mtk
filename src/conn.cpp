@@ -122,7 +122,7 @@ namespace mtk {
                     Finish();
                     break;
                 }
-                mtk_cid_t cid = handler_->Login(this, req_);
+                mtk_cid_t cid = Login();
                 if (mtk_unlikely(status_ == CLOSE || worker_->Dying())) {
                     LogInfo("ev:app closed by {}", worker_->Dying() ? "Shutdown starts" : "Login failure");
                     Finish();

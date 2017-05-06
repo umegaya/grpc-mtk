@@ -14,22 +14,6 @@ using namespace mtk;
 static_assert(offsetof(mtk_svevent_t, data) == 28, "mtk_svevent_t offset illegal");
 
 /******* internal bridge *******/
-/* slice to get memory block from host language */
-struct MemSlice {
-	void *ptr_;
-	mtk_size_t len_;
-	MemSlice() : ptr_(nullptr), len_(0) {}
-	inline ~MemSlice() {
-		if (ptr_ != nullptr) {
-			free(ptr_);
-		}
-	}
-	inline void Put(const char *p, mtk_size_t l) {
-		ptr_ = malloc(l);
-		memcpy(ptr_, p, l);
-		len_ = l;
-	}
-};
 /* worker handler (callback) */
 class FunctionHandler : public IHandler {
 protected:
@@ -48,34 +32,13 @@ public:
     		mtk_closure_call(&closer_, on_svclose, c);
     	}		
 	}
-	mtk_cid_t Login(Conn *c, Request &req) {
+	mtk_cid_t Login(Conn *c, Request &req, MemSlice &s) {
 		SystemPayload::Connect creq;
 		if (Codec::Unpack((const uint8_t *)req.payload().c_str(), req.payload().length(), creq) < 0) {
 			return 0;
 		}
-		MemSlice s;
-		mtk_cid_t cid = mtk_closure_call(&acceptor_, on_accept, c, req.msgid(), 
+		return mtk_closure_call(&acceptor_, on_accept, c, req.msgid(), 
 										creq.id(), creq.payload().c_str(), creq.payload().length(), &s);
-		if (c->WaitLoginAccept()) {
-			return cid;
-		} else if (cid != 0) {
-			SystemPayload::Connect sysrep;
-			sysrep.set_id(cid);
-			if (s.len_ > 0) {
-				ASSERT(s.ptr_ != nullptr);
-				sysrep.set_payload(s.ptr_, s.len_);
-			}
-			c->SysRep(req.msgid(), sysrep);
-		} else {
-			Error *e = new Error();
-			e->set_error_code(MTK_ACCEPT_DENY);
-			if (s.len_ > 0) {
-				ASSERT(s.ptr_ != nullptr);
-				e->set_payload(s.ptr_, s.len_);
-			}
-			c->Throw(req.msgid(), e);
-		}
-		return cid;
 	}
 	Conn *NewConn(Worker *worker, IHandler *handler) {
 		return new Conn(worker, handler);
