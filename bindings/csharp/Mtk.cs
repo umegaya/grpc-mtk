@@ -10,7 +10,7 @@ namespace Mtk {
     #elif UNITY_IPHONE
         const string DllName = "__Internal";
     #else
-        #error "invalid arch"
+        const string DllName = "__Internal";
     #endif
 
         //delegates
@@ -181,7 +181,6 @@ namespace Mtk {
             void Task(uint type, byte[] data);
             void Throw(uint msgid, byte[] data);
             void Notify(uint type, byte[] data);
-            void Close();
             T Context<T>();
         }
         public interface IServerLogic {
@@ -207,7 +206,7 @@ namespace Mtk {
                 work_ = new List<uint>(); 
                 cbmems_ = cbmems;
             }
-            public void Finalize() {
+            public void Destroy() {
                 unsafe {
                     if (conn_ != System.IntPtr.Zero) {
                         mtk_conn_close(conn_);
@@ -388,7 +387,7 @@ namespace Mtk {
             public bool Initialized {
                 get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
             }
-            public void Finalize() {
+            public void Destroy() {
                 unsafe {
                     if (server_ != System.IntPtr.Zero) {
                         mtk_server_join(server_);
@@ -455,7 +454,7 @@ namespace Mtk {
                 base.ListenAt(at);
                 return this;
             }
-            public ClientBuilder Certs(string cert, string key, string ca) {
+            public new ClientBuilder Certs(string cert, string key, string ca) {
                 base.Certs(cert, key, ca);
                 return this;            
             }
@@ -518,14 +517,15 @@ namespace Mtk {
         public class ServerBuilder : Builder {
             uint n_worker_;
             bool use_queue_ = true;
-            Closure handler_, acceptor_, closer_;
+            //TODO: support closuer mode
+            //Closure handler_, acceptor_, closer_;
             public ServerBuilder() {
             }
-            public ServerBuilder ListenAt(string at) {
+            public new ServerBuilder ListenAt(string at) {
                 base.ListenAt(at);
                 return this;
             }
-            public ServerBuilder Certs(string cert, string key, string ca) {
+            public new ServerBuilder Certs(string cert, string key, string ca) {
                 base.Certs(cert, key, ca);
                 return this;
             }
@@ -549,7 +549,7 @@ namespace Mtk {
                         ServerConfig conf = new ServerConfig { 
                             n_worker = n_worker_, exclusive = false,
                             use_queue = use_queue_,
-                            handler = handler_, acceptor = acceptor_, closer = closer_, 
+                            //handler = handler_, acceptor = acceptor_, closer = closer_, 
                         };
                         System.IntPtr svp = System.IntPtr.Zero;
                         mtk_listen(ref addr, ref conf, ref svp);

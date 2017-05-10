@@ -23,7 +23,7 @@ namespace Mtk.Unity {
 			//server shutdown, because server need to be alive to do graceful shutdown
 			logic_.Shutdown();
 			if (sv_ != null) {
-				sv_.Finalize();
+				sv_.Destroy();
 			}
 		}
 		protected void FixedUpdate() {

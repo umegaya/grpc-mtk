@@ -85,13 +85,16 @@ namespace Mtk {
                 return true;
             }
             static public void Reply(ulong cid, uint msgid, ByteString data) {
-                unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
+                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
             }
             static public void Throw(ulong cid, uint msgid, ByteString data) {
-                unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
+                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
             }
             static public void Notify(ulong cid, uint type, ByteString data) {
-                unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
+                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
             }
         }
         public partial class CidConn {

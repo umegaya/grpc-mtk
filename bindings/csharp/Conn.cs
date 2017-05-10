@@ -44,7 +44,7 @@ public class Conn {
 	}
 	public void Stop() {
 		if (conn_ != null) {
-			conn_.Finalize();
+			conn_.Destroy();
 		}
 	}
 	public void Poll() {
