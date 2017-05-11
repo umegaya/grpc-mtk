@@ -18,6 +18,7 @@ public class Conn {
 	IEventHandler handler_;
 	ulong cid_;	
 	Dictionary<uint, NotifyReceiver> Notifiers { get; set; }
+	public ulong Id { get { return cid_; } }
 
 	public Conn(string connectTo, ulong cid, IEventHandler handler, 
 				string cert = null, string key = null, string ca = null) {
