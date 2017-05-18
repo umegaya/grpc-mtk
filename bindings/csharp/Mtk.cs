@@ -71,6 +71,11 @@ namespace Mtk {
             Report,
         };
 
+        /*
+            TODO: some of below entry points should be replaced internal call (really called high freqency, like mtk_svconn_XXX)
+            see http://forcedtoadmin.blogspot.jp/2014/04/mono-unmanaged-calls-performance.html 
+        */
+
         //util
         [DllImport (DllName)]
         [return: MarshalAs(UnmanagedType.I1)]
