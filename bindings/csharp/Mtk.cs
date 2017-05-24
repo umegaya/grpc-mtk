@@ -342,6 +342,9 @@ namespace Mtk {
             static public void Notify(ulong cid, uint type, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
             }
+            static public ulong IdFromPtr(System.IntPtr c) {
+                unsafe { return mtk_svconn_cid(c); }
+            }
 
         }
         public partial class CidConn : ISVConn {
@@ -568,7 +571,12 @@ namespace Mtk {
                 unsafe {
                     fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca) {
                         Address addr; ServerConfig conf;
-                        GetConfig(out addr, out conf);
+                        addr = MakeAddress(h, c, k, a);
+                        conf = new ServerConfig { 
+                            n_worker = n_worker_, exclusive = false,
+                            use_queue = use_queue_,
+                            //handler = handler_, acceptor = acceptor_, closer = closer_, 
+                        };                
 #if !MTKSV
                         System.IntPtr svp = System.IntPtr.Zero;
                         mtk_listen(ref addr, ref conf, ref svp);
@@ -578,14 +586,6 @@ namespace Mtk {
 #endif
                     }
                 }
-            }
-            private void GetConfig(out Address addr, out ServerConfig conf) {
-                addr = MakeAddress(h, c, k, a);
-                conf = new ServerConfig { 
-                    n_worker = n_worker_, exclusive = false,
-                    use_queue = use_queue_,
-                    //handler = handler_, acceptor = acceptor_, closer = closer_, 
-                };                
             }
         }
 
@@ -678,20 +678,23 @@ namespace Mtk {
         }
     }
 #if MTKSV
-    public class EntryPoint {
+    public class EntryPointBase {
         static protected Core.IServerLogic logic_;
-        static public unsafe ulong Login(ulong cid, byte* data, uint len, out byte[] repdata) {
+        static public void SetLogic(Core.IServerLogic l) {
+            logic_ = l;
+        }
+        static public unsafe ulong Login(System.IntPtr c, ulong cid, byte* data, uint len, out byte[] repdata) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic_.OnAccept(cid, new CidConn(cid), data, repdata);
+            return logic_.OnAccept(cid, new Core.SVConn(c), ret, out repdata);
         }
         static public unsafe bool Handle(System.IntPtr c, int type, byte* data, uint len) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic_.OnRecv(new SVConn(c), type, data);
+            return logic_.OnRecv(new Core.SVConn(c), type, ret) >= 0;
         }
         static public void Close(System.IntPtr c) {
-            return logic_.OnClose(mtk_svconn_cid(c));
+            logic_.OnClose(Core.SVConn.IdFromPtr(c));
         }
     }
 #endif
