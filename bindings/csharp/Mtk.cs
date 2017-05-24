@@ -7,10 +7,10 @@ namespace Mtk {
         //dllname
     #if UNITY_EDITOR || UNITY_ANDROID
         const string DllName = "mtk";
-    #elif UNITY_IPHONE
+    #elif UNITY_IPHONE || MTKSV
         const string DllName = "__Internal";
     #else
-        const string DllName = "__Internal";
+        #error "unsupported platform"
     #endif
 
         //delegates
@@ -102,11 +102,13 @@ namespace Mtk {
         [DllImport (DllName)]
         private static extern unsafe void mtk_listen(ref Address listen_at, ref ServerConfig conf, ref System.IntPtr sv);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_server_stop(System.IntPtr sv);
-        [DllImport (DllName)]
         private static extern unsafe System.IntPtr mtk_server_queue(System.IntPtr sv);
         [DllImport (DllName)]
         private static extern unsafe void mtk_server_join(System.IntPtr sv);
+#if MTKSV
+        [DllImport (DllName)]
+        private static extern unsafe System.IntPtr mtkdn_server(ref Address listen_at, ref ServerConfig conf);
+#endif
 
         //server conn operation
         [DllImport (DllName)]
@@ -171,6 +173,7 @@ namespace Mtk {
         [DllImport (DllName)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern unsafe bool mtk_conn_connected(System.IntPtr conn);
+
 
         //wrapper
         public interface IConn {
@@ -543,30 +546,46 @@ namespace Mtk {
                 return this;
             }
             //TODO: allow non use queue mode
+#if !MTKSV
             public Server Build() {
+                System.IntPtr svp = BuildRaw();
+                var s = new Server(svp);
+                if (s.Initialized) {
+                    Core.Instance().ServerMap[host_] = s;
+                    return s;
+                } else {
+                    return null;
+                }
+            }
+            protected System.IntPtr BuildRaw() {
+#else
+            public System.IntPtr Build() {
+#endif
                 var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
                 var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
                 var b_key = System.Text.Encoding.UTF8.GetBytes(key_ + "\0");
                 var b_ca = System.Text.Encoding.UTF8.GetBytes(ca_ + "\0");
                 unsafe {
                     fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca) {
-                        Address addr = MakeAddress(h, c, k, a);
-                        ServerConfig conf = new ServerConfig { 
-                            n_worker = n_worker_, exclusive = false,
-                            use_queue = use_queue_,
-                            //handler = handler_, acceptor = acceptor_, closer = closer_, 
-                        };
+                        Address addr; ServerConfig conf;
+                        GetConfig(out addr, out conf);
+#if !MTKSV
                         System.IntPtr svp = System.IntPtr.Zero;
                         mtk_listen(ref addr, ref conf, ref svp);
-                        var s = new Server(svp);
-                        if (s.Initialized) {
-                            Core.Instance().ServerMap[host_] = s;
-                            return s;
-                        } else {
-                            return null;
-                        }
+                        return svp;
+#else
+                        return mtkdn_server(ref addr, ref conf);
+#endif
                     }
                 }
+            }
+            private void GetConfig(out Address addr, out ServerConfig conf) {
+                addr = MakeAddress(h, c, k, a);
+                conf = new ServerConfig { 
+                    n_worker = n_worker_, exclusive = false,
+                    use_queue = use_queue_,
+                    //handler = handler_, acceptor = acceptor_, closer = closer_, 
+                };                
             }
         }
 
@@ -636,7 +655,6 @@ namespace Mtk {
         Core() {
             ConnMap = new Dictionary<ulong, Conn>();
             ServerMap = new Dictionary<string, Server>();
-            System.Environment.SetEnvironmentVariable("GRPC_TRACE", "all");
         }
     }
     public class Log {
@@ -659,6 +677,24 @@ namespace Mtk {
             Core.Log(Core.LogLevel.Report, str);
         }
     }
+#if MTKSV
+    public class EntryPoint {
+        static protected Core.IServerLogic logic_;
+        static public unsafe ulong Login(ulong cid, byte* data, uint len, out byte[] repdata) {
+            var ret = new byte[len];
+            Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
+            return logic_.OnAccept(cid, new CidConn(cid), data, repdata);
+        }
+        static public unsafe bool Handle(System.IntPtr c, int type, byte* data, uint len) {
+            var ret = new byte[len];
+            Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
+            return logic_.OnRecv(new SVConn(c), type, data);
+        }
+        static public void Close(System.IntPtr c) {
+            return logic_.OnClose(mtk_svconn_cid(c));
+        }
+    }
+#endif
 }
 
 

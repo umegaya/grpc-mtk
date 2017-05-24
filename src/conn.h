@@ -47,6 +47,8 @@ namespace mtk {
     class Worker;
     class IHandler {
     public:
+        virtual void TlsInit(Worker *w) {};
+        virtual void TlsFin(Worker *w) {};
         virtual grpc::Status Handle(Conn *c, Request &req) = 0;
         virtual mtk_cid_t Login(Conn *c, Request &req, MemSlice &s) = 0;
         virtual void Close(Conn *c) = 0;

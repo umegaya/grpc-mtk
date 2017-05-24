@@ -21,6 +21,7 @@ namespace mtk {
         }
     }
     void Worker::Run() {
+        handler_->TlsInit(this);
         New();
         gpr_timespec wait = gpr_time_from_millis(50, GPR_TIMESPAN);
         const int n_process = 3;
@@ -32,6 +33,7 @@ namespace mtk {
                     for (int i = 0; i < connections_.size(); i++) {
                         connections_[i]->Destroy();
                     }
+                    handler_->TlsFin(this);
                     return;
                 case grpc::CompletionQueue::GOT_EVENT:
                     Process(ok, tag);
