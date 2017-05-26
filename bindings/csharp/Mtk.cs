@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using AOT;
 using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Mtk {
@@ -201,20 +202,17 @@ namespace Mtk {
             void Shutdown();
         }
         public partial class Conn : IConn {
-            struct Task {
-                public GCHandle gch;
-                public bool finish;
-            };
+            public unsafe delegate void RPCResultCB(int type, byte *bytes, uint len);
             System.IntPtr conn_;
-            uint task_id_seed_ = 0;
-            Dictionary<uint, Task> tasks_;
+            ClientRecvCB on_recv_;
             List<GCHandle> cbmems_;
-            List<uint> work_;
             internal Conn(System.IntPtr c, List<GCHandle> cbmems) {
                 conn_ = c;
-                tasks_ = new Dictionary<uint, Task>();
-                work_ = new List<uint>(); 
                 cbmems_ = cbmems;
+                unsafe {
+                    on_recv_ = RecvCB;
+                }
+                cbmems_.Add(GCHandle.Alloc(on_recv_));
             }
             public void Destroy() {
                 unsafe {
@@ -222,7 +220,6 @@ namespace Mtk {
                         mtk_conn_close(conn_);
                     }
                 }
-                TaskGC();
                 foreach (var gch in cbmems_) {
                     gch.Free();
                 }
@@ -236,25 +233,21 @@ namespace Mtk {
             public ulong ReconnectWait {
                 get { unsafe { return mtk_conn_reconnect_wait(conn_); } }
             }
-            public void Send(uint type, byte[] data, ClientRecvCB on_recv, ulong timeout_duration = 0) {
-                TaskGC();
-                var t = new Task{ gch = GCHandle.Alloc(on_recv) };
-                var task_id = ++task_id_seed_;
-                tasks_[task_id] = t;
+            [MonoPInvokeCallback(typeof(Core.ClientReadyCB))]
+            static unsafe void RecvCB(System.IntPtr arg, int type, byte *bytes, uint len) {
+                GCHandle gch = GCHandle.FromIntPtr(arg);
+                ((RPCResultCB)gch.Target)(type, bytes, len);
+                gch.Free();
+            }
+            public void Send(uint type, byte[] data, RPCResultCB on_recv, ulong timeout_duration = 0) {
+                var gch = GCHandle.Alloc(on_recv);
                 unsafe {
                     fixed (byte* d = data) { 
                         mtk_conn_send(conn_, type, d, (uint)data.Length, new Closure {
-                            arg = new System.IntPtr(task_id),
-                            cb = Marshal.GetFunctionPointerForDelegate(on_recv),
+                            arg = GCHandle.ToIntPtr(gch),
+                            cb = Marshal.GetFunctionPointerForDelegate(on_recv_),
                         }); 
                     }
-                }
-            }
-            public void Finish(uint task_id) {
-                Task t;
-                if (tasks_.TryGetValue(task_id, out t)) {
-                    t.finish = true;
-                    tasks_[task_id] = t;
                 }
             }
             public void Timeout(ulong duration) {
@@ -273,20 +266,6 @@ namespace Mtk {
             }
             public void Close() {
                 unsafe { mtk_conn_close(conn_); }
-            }
-
-            protected void TaskGC() {
-                //gc finished task
-                foreach (var kv in tasks_) {
-                    if (kv.Value.finish) {
-                        work_.Add(kv.Key);
-                        kv.Value.gch.Free();
-                    }
-                }
-                foreach (var id in work_) {
-                    tasks_.Remove(id);
-                }
-                work_.Clear();
             }
         }
         public partial class SVConn : ISVConn, IContextSetter {
@@ -315,11 +294,12 @@ namespace Mtk {
             public void Close() {
                 unsafe { mtk_svconn_close(conn_); }
             }
+            [MonoPInvokeCallback(typeof(Core.DestroyPointerCB))]
             static void DestroyContext(System.IntPtr ptr) {
                 GCHandle.FromIntPtr(ptr).Free();
             }
             public T SetContext<T>(T obj) {
-                var ptr = GCHandle.Alloc(obj, GCHandleType.Pinned);
+                var ptr = GCHandle.Alloc(obj);
                 unsafe {
                     mtk_svconn_putctx(conn_, GCHandle.ToIntPtr(ptr), DestroyContext);
                 }
@@ -477,33 +457,33 @@ namespace Mtk {
                 return this;
             }
             //these function will be called from same thread as Unity's main thread
-            public ClientBuilder OnClose(ClientCloseCB cb) {
+            public ClientBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
                 cbmems_.Add(GCHandle.Alloc(cb));
-                on_close_.arg = System.IntPtr.Zero;
+                on_close_.arg = arg;
                 on_close_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnConnect(ClientConnectCB cb) {
+            public ClientBuilder OnConnect(ClientConnectCB cb, System.IntPtr arg) {
                 cbmems_.Add(GCHandle.Alloc(cb));
-                on_connect_.arg = System.IntPtr.Zero;
+                on_connect_.arg = arg;
                 on_connect_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnReady(ClientReadyCB cb) {
+            public ClientBuilder OnReady(ClientReadyCB cb, System.IntPtr arg) {
                 cbmems_.Add(GCHandle.Alloc(cb));
-                on_ready_.arg = System.IntPtr.Zero;
+                on_ready_.arg = arg;
                 on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnNotify(ClientRecvCB cb) {
+            public ClientBuilder OnNotify(ClientRecvCB cb, System.IntPtr arg) {
                 cbmems_.Add(GCHandle.Alloc(cb));
-                on_notify_.arg = System.IntPtr.Zero;
+                on_notify_.arg = arg;
                 on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;
             }
-            public ClientBuilder OnStart(ClientStartCB cb) {
+            public ClientBuilder OnStart(ClientStartCB cb, System.IntPtr arg) {
                 cbmems_.Add(GCHandle.Alloc(cb));
-                on_start_.arg = System.IntPtr.Zero;
+                on_start_.arg = arg;
                 on_start_.cb = Marshal.GetFunctionPointerForDelegate(cb);
                 return this;                
             }
