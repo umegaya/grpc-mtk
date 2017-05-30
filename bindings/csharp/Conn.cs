@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using Google.Protobuf;
 using System.Runtime.InteropServices;
+#if !MTKSV
 using AOT;
+#endif
 
 namespace Mtk {
 public class Conn {
@@ -40,8 +42,7 @@ public class Conn {
 	public void Start() {
 		unsafe {
 			conn_ = (new Mtk.Core.ClientBuilder())
-				.ConnectTo(connectTo_)
-				.Certs(cert_, key_, ca_) 
+				.ConnectTo(connectTo_, cert_, key_, ca_) 
 				.OnConnect(OnConnect, callbacks_)
 				.OnClose(OnClose, callbacks_)
 				.OnReady(OnReady, callbacks_)
@@ -107,7 +108,9 @@ public class Conn {
 	static CallbackCollection ToCallbacks(System.IntPtr arg) {
 		return (CallbackCollection)GCHandle.FromIntPtr(arg).Target;
 	}
+    #if !MTKSV
 	[MonoPInvokeCallback(typeof(Core.ClientConnectCB))]
+	#endif
 	static protected unsafe bool OnConnect(System.IntPtr arg, ulong cid, byte *bytes, uint len) {
 		byte[] arr = new byte[len];
 		Marshal.Copy((System.IntPtr)bytes, arr, 0, (int)len);
@@ -115,22 +118,30 @@ public class Conn {
 		ToCallbacks(arg).Handler.OnConnect(cid, arr);
 		return true;
 	}
+    #if !MTKSV
 	[MonoPInvokeCallback(typeof(Core.ClientCloseCB))]
+	#endif
 	static protected ulong OnClose(System.IntPtr arg, ulong cid, int connect_attempts) {
 		return ToCallbacks(arg).Handler.OnClose(cid, connect_attempts);
 	}
+    #if !MTKSV
 	[MonoPInvokeCallback(typeof(Core.ClientReadyCB))]
+	#endif
 	static protected bool OnReady(System.IntPtr arg) {
 		return ToCallbacks(arg).Handler.OnReady();
 	}
+    #if !MTKSV
 	[MonoPInvokeCallback(typeof(Core.ClientStartCB))]
+	#endif
 	static protected ulong OnStart(System.IntPtr arg, System.IntPtr slice) {
 		byte[] payload;
 		var cid = ToCallbacks(arg).Handler.OnStart(out payload);
 		Mtk.Core.PutSlice(slice, payload);
 		return cid;
 	}
+    #if !MTKSV
 	[MonoPInvokeCallback(typeof(Core.ClientRecvCB))]
+	#endif
 	static protected unsafe void OnNotify(System.IntPtr arg, int type, byte *bytes, uint len) {
 		NotifyReceiver n;
 		if (ToCallbacks(arg).Notifiers.TryGetValue((uint)type, out n)) {

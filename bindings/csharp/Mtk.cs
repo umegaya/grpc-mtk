@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+#if !MTKSV
 using AOT;
+#endif
 using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Mtk {
@@ -103,16 +105,16 @@ namespace Mtk {
 
         //listener
         [DllImport (DllName)]
-        private static extern unsafe void mtk_listen(ref Address listen_at, ref ServerConfig conf, ref System.IntPtr sv);
+        private static extern unsafe void mtk_listen(Address[] addrs, int n_addrs, ref ServerConfig conf, ref System.IntPtr sv);
         [DllImport (DllName)]
         private static extern unsafe System.IntPtr mtk_server_queue(System.IntPtr sv);
         [DllImport (DllName)]
         private static extern unsafe void mtk_server_join(System.IntPtr sv);
         [DllImport (DllName)]
-        private static extern unsafe uint mtk_server_address(System.IntPtr sv, byte[] strbuf);
+        private static extern unsafe uint mtk_server_address(System.IntPtr sv, int port_index, byte[] strbuf);
 #if MTKSV
         [DllImport (DllName)]
-        private static extern unsafe System.IntPtr mtkdn_server(ref Address listen_at, ref ServerConfig conf);
+        private static extern unsafe System.IntPtr mtkdn_server(Address[] addrs, int n_addrs, ref ServerConfig conf);
 #endif
 
         //server conn operation
@@ -235,7 +237,9 @@ namespace Mtk {
             public ulong ReconnectWait {
                 get { unsafe { return mtk_conn_reconnect_wait(conn_); } }
             }
+            #if !MTKSV
             [MonoPInvokeCallback(typeof(Core.ClientReadyCB))]
+            #endif
             static unsafe void RecvCB(System.IntPtr arg, int type, byte *bytes, uint len) {
                 GCHandle gch = GCHandle.FromIntPtr(arg);
                 ((RPCResultCB)gch.Target)(type, bytes, len);
@@ -296,7 +300,9 @@ namespace Mtk {
             public void Close() {
                 unsafe { mtk_svconn_close(conn_); }
             }
+            #if !MTKSV
             [MonoPInvokeCallback(typeof(Core.DestroyPointerCB))]
+            #endif
             static void DestroyContext(System.IntPtr ptr) {
                 GCHandle.FromIntPtr(ptr).Free();
             }
@@ -383,7 +389,7 @@ namespace Mtk {
                 get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
             }
             public string Address {
-                get { return }
+                get { return ""; }
             }
             public void Destroy() {
                 unsafe {
@@ -422,24 +428,50 @@ namespace Mtk {
             }
         }
         public class Builder {
-            protected string host_, cert_, key_, ca_;
+            protected struct Listener {
+                public string host_, cert_, key_, ca_;
+                public GCHandle gchost_, gccert_, gckey_, gcca_;
+            }
+            protected List<Listener> listeners_ = new List<Listener>();
             public Builder() {}
-            public Builder ListenAt(string host) {
-                host_ = host;
+            public Builder ListenAt(string host, string cert = "", string key = "", string ca = "") {
+                listeners_.Add(new Listener {
+                    host_ = host,
+                    cert_ = cert,
+                    key_ = key,
+                    ca_ = ca,
+                });
                 return this;
             }
-            public Builder Certs(string cert, string key, string ca) {
-                cert_ = cert;
-                key_ = key;
-                ca_ = ca;
-                return this;            
+            public Address[] MakeAddress() {
+                Address[] addrs = new Address[listeners_.Count];
+                for (int i = 0; i < listeners_.Count; i++) {
+                    var l = listeners_[i];
+                    var b_host = System.Text.Encoding.UTF8.GetBytes(l.host_ + "\0");
+                    var b_cert = System.Text.Encoding.UTF8.GetBytes(l.cert_ + "\0");
+                    var b_key = System.Text.Encoding.UTF8.GetBytes(l.key_ + "\0");
+                    var b_ca = System.Text.Encoding.UTF8.GetBytes(l.ca_ + "\0");
+                    l.gchost_ = GCHandle.Alloc(b_host, GCHandleType.Pinned);
+                    l.gccert_ = GCHandle.Alloc(b_cert, GCHandleType.Pinned);
+                    l.gckey_ = GCHandle.Alloc(b_key, GCHandleType.Pinned);
+                    l.gcca_ = GCHandle.Alloc(b_ca, GCHandleType.Pinned);
+                    addrs[i] = new Address { 
+                        host = b_host[0] == 0 ? System.IntPtr.Zero : l.gchost_.AddrOfPinnedObject(), 
+                        cert = b_cert[0] == 0 ? System.IntPtr.Zero : l.gccert_.AddrOfPinnedObject(), 
+                        key = b_key[0] == 0 ? System.IntPtr.Zero : l.gckey_.AddrOfPinnedObject(), 
+                        ca = b_ca[0] == 0 ? System.IntPtr.Zero : l.gcca_.AddrOfPinnedObject() 
+                    };
+                }
+                return addrs;
             }
-            static unsafe public Address MakeAddress(byte* host, byte* cert, byte* key, byte* ca) {
-                return new Address { 
-                    host = host[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)host, 
-                    cert = cert[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)cert, 
-                    key = key[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)key, 
-                    ca = ca[0] == 0 ? System.IntPtr.Zero : (System.IntPtr)ca };
+            public void DestroyAddress() {
+                for (int i = 0; i < listeners_.Count; i++) {
+                    var l = listeners_[i];
+                    l.gchost_.Free();
+                    l.gccert_.Free();
+                    l.gckey_.Free();
+                    l.gcca_.Free();
+                }
             }
         }
         public class ClientBuilder : Builder {
@@ -448,12 +480,8 @@ namespace Mtk {
             Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
             List<GCHandle> cbmems_ = new List<GCHandle>();
             public ClientBuilder() {}
-            public ClientBuilder ConnectTo(string at) {
-                base.ListenAt(at);
-                return this;
-            }
-            public new ClientBuilder Certs(string cert, string key, string ca) {
-                base.Certs(cert, key, ca);
+            public ClientBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
+                base.ListenAt(at, cert, key, ca);
                 return this;            
             }
             public ClientBuilder Credential(ulong id, byte[] data) {
@@ -493,23 +521,16 @@ namespace Mtk {
                 return this;                
             }
             public Conn Build() {
-                var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
-                var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
-                var b_key = System.Text.Encoding.UTF8.GetBytes(key_ + "\0");
-                var b_ca = System.Text.Encoding.UTF8.GetBytes(ca_ + "\0");
-                unsafe {
-                    fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca, p = payload_) {
-                        Address addr = MakeAddress(h, c, k, a);
-                        ClientConfig conf = new ClientConfig { 
-                            on_connect = on_connect_, on_close = on_close_, 
-                            on_start = on_start_, on_ready = on_ready_,
-                        };
-                        var conn = new Conn(mtk_connect(ref addr, ref conf), cbmems_);
-                        Core.Instance().ConnMap[id_] = conn;
-                        conn.Watch(on_notify_);
-                        return conn;
-                    }
-                }
+                Address[] addrs = MakeAddress();
+                ClientConfig conf = new ClientConfig { 
+                    on_connect = on_connect_, on_close = on_close_, 
+                    on_start = on_start_, on_ready = on_ready_,
+                };
+                var conn = new Conn(mtk_connect(ref addrs[0], ref conf), cbmems_);
+                Core.Instance().ConnMap[id_] = conn;
+                conn.Watch(on_notify_);
+                DestroyAddress();
+                return conn;
             }
         }
         public class ServerBuilder : Builder {
@@ -519,12 +540,8 @@ namespace Mtk {
             //Closure handler_, acceptor_, closer_;
             public ServerBuilder() {
             }
-            public new ServerBuilder ListenAt(string at) {
-                base.ListenAt(at);
-                return this;
-            }
-            public new ServerBuilder Certs(string cert, string key, string ca) {
-                base.Certs(cert, key, ca);
+            public new ServerBuilder ListenAt(string at, string cert = "", string key = "", string ca = "") {
+                base.ListenAt(at, cert, key, ca);
                 return this;
             }
             public ServerBuilder Worker(uint n_worker) {
@@ -538,41 +555,33 @@ namespace Mtk {
             //TODO: allow non use queue mode
 #if !MTKSV
             public Server Build() {
-                System.IntPtr svp = BuildRaw();
-                var s = new Server(svp);
-                if (s.Initialized) {
-                    Core.Instance().ServerMap[host_] = s;
-                    return s;
-                } else {
-                    return null;
-                }
-            }
-            protected System.IntPtr BuildRaw() {
 #else
             public System.IntPtr Build() {
 #endif
-                var b_host = System.Text.Encoding.UTF8.GetBytes(host_ + "\0");
-                var b_cert = System.Text.Encoding.UTF8.GetBytes(cert_ + "\0");
-                var b_key = System.Text.Encoding.UTF8.GetBytes(key_ + "\0");
-                var b_ca = System.Text.Encoding.UTF8.GetBytes(ca_ + "\0");
-                unsafe {
-                    fixed (byte* h = b_host, c = b_cert, k = b_key, a = b_ca) {
-                        Address addr; ServerConfig conf;
-                        addr = MakeAddress(h, c, k, a);
-                        conf = new ServerConfig { 
-                            n_worker = n_worker_, exclusive = false,
-                            use_queue = use_queue_,
-                            //handler = handler_, acceptor = acceptor_, closer = closer_, 
-                        };                
+                Address[] addr = MakeAddress();
+                ServerConfig conf = new ServerConfig { 
+                    n_worker = n_worker_, exclusive = false,
+                    use_queue = use_queue_,
+                    //handler = handler_, acceptor = acceptor_, closer = closer_, 
+                };                
 #if !MTKSV
-                        System.IntPtr svp = System.IntPtr.Zero;
-                        mtk_listen(ref addr, ref conf, ref svp);
-                        return svp;
-#else
-                        return mtkdn_server(ref addr, ref conf);
-#endif
+                System.IntPtr svp = System.IntPtr.Zero;
+                mtk_listen(addr, addr.Length, ref conf, ref svp);
+                var s = new Server(svp);
+                if (s.Initialized) {
+                    foreach (var l in listeners_) {
+                        Core.Instance().ServerMap[l.host_] = s;
                     }
+                    DestroyAddress();
+                    return s;
+                } else {
+                    DestroyAddress();
+                    return null;
                 }
+#else
+                DestroyAddress();
+                return mtkdn_server(addr, addr.Length, ref conf);
+#endif
             }
         }
 

@@ -23,14 +23,14 @@ namespace Mtk.Unity {
 		protected void CreateClusterFromSetting() {
 			foreach (var s in cluster_.services) {
 				Debug.Log("service:" + s.Key + "|" + s.Value.Runner + "|" + s.Value.Port(0) + "|" + s.Value.deploy.mode + "|" + s.Value.deploy.replicas);
-				GameObject go = new GameObject(s.Key);
+				/*GameObject go = new GameObject(s.Key);
 				go.transform.parent = gameObject.transform;
 				if (s.Value.Runner == null) {
-					Debug.LogError("service " + s.key + " is not for emurating in Unity Editor");
+					Debug.LogError("service " + s.Key + " is not for emurating in Unity Editor");
 					continue;
 				}
 				var cs = go.AddComponent(GetType(s.Value.Runner)) as Mtk.Unity.InClientServer;
-				if (cs == nullptr) {
+				if (cs == null) {
 					Debug.LogError("fatal: cannot load server logic class:" + s.Value.Runner);
 					return;
 				}
@@ -40,7 +40,7 @@ namespace Mtk.Unity {
 					}
 					cs.listenAt_ = "0.0.0.0:0"; //make bind() choosing port 
 					cs.worker_ = s.Value.deploy.replicas;
-				}
+				}*/
 			}
 		}
 
