@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 	mtk_closure_init(&(conf[1].acceptor), on_accept, acceptor, &id_seed);
 	mtk_closure_init(&(conf[1].closer), on_svclose, closer, nullptr);
 
-	mtk_listen(&addr[1], &conf[1], &sv[1]);	
+	mtk_listen(&addr[1], 1, &conf[1], &sv[1]);	
 
 	auto q = mtk_server_queue(sv[1]);
 	auto th1 = std::thread([q, &id_seed, &alive] {
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 		}
 	});
 
-	mtk_listen(&addr[0], &conf[0], &sv[0]);
+	mtk_listen(&addr[0], 1, &conf[0], &sv[0]);
 
 	alive = false;
 	th1.join();

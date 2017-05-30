@@ -8,3 +8,6 @@
 [submodule "ext/spdlog"]
 	path = ext/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "ext/YamlDotNet"]
+	path = ext/YamlDotNet
+	url = https://github.com/aaubry/YamlDotNet

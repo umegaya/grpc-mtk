@@ -108,6 +108,8 @@ namespace Mtk {
         private static extern unsafe System.IntPtr mtk_server_queue(System.IntPtr sv);
         [DllImport (DllName)]
         private static extern unsafe void mtk_server_join(System.IntPtr sv);
+        [DllImport (DllName)]
+        private static extern unsafe uint mtk_server_address(System.IntPtr sv, byte[] strbuf);
 #if MTKSV
         [DllImport (DllName)]
         private static extern unsafe System.IntPtr mtkdn_server(ref Address listen_at, ref ServerConfig conf);
@@ -379,6 +381,9 @@ namespace Mtk {
             }
             public bool Initialized {
                 get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
+            }
+            public string Address {
+                get { return }
             }
             public void Destroy() {
                 unsafe {

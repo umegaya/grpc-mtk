@@ -13,7 +13,6 @@
 #if defined(CHECK)
 #undef CHECK
 #endif
-#include <Catch/include/catch.hpp>
 #include "./proto/test.pb.h"
 
 namespace mtktest {

@@ -7,16 +7,21 @@ namespace Mtk.Unity {
 		Core.IServerLogic logic_ = null;
 		public string listenAt_ = "0.0.0.0:50051";
 		public uint worker_ = 1;
+		protected void Init() {
+			if (sv_ == null) {
+				sv_ = (new Core.ServerBuilder())
+					.ListenAt(listenAt_)
+					.Worker(worker_)
+					.Build();
+			}
+		}
 		protected void Start() {
 			logic_ = ServerLogic();
 			if (logic_ == null) {
 				UnityEngine.Debug.Assert(false);
 				return;
 			}
-			sv_ = (new Core.ServerBuilder())
-				.ListenAt(listenAt_)
-				.Worker(worker_)
-				.Build();
+			Init();
 		}
 		protected void Stop() {
 			//if server logic uses backend server connection, connection shutdown should be done before

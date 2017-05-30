@@ -8,6 +8,15 @@
 
 namespace mtk {
 	class IServer {
+	public: //typedefs
+		typedef mtk_addr_t Address;
+		typedef grpc::SslServerCredentialsOptions CredOptions;
+		typedef struct {
+			std::string host;
+			bool secure;
+			CredOptions credential;
+		} Listener;
+	protected:
 		std::thread thread_;
 		std::mutex mutex_;
 		std::condition_variable cond_;
@@ -32,11 +41,15 @@ namespace mtk {
 			}
 			delete this;
 		}
+		uint32_t GetAddress(int port_index, char *buff) {
+			return 0;
+		}
 	public://interface
-		typedef grpc::SslServerCredentialsOptions CredOptions;
 		virtual void Run() = 0;
 		virtual void Shutdown();
 	protected:
-		void Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options = nullptr);
+		void Kick(const Address *addrs, int n_addr, int n_worker, IHandler *h);
+		static bool CreateCred(const Address &c, CredOptions &options);
+		static bool LoadFile(const char *path, std::string &content);
 	};
 }

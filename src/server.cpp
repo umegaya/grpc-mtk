@@ -14,19 +14,55 @@ void IServer::Shutdown() {
     }
     //then IServer::Kick wakeup and do remaining shutdown
 }
-void IServer::Kick(const std::string &listen_at, int n_handler, IHandler *h, CredOptions *options) {
+bool IServer::LoadFile(const char *path, std::string &content) {
+    if (path == nullptr) {
+        return false;
+    }
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        content = std::string(path); //regard path as raw text
+        return true;
+    }
+    FILE *fp = fopen(path, "r");
+    if (fp == nullptr) {
+        return false;
+    }
+    char buffer[st.st_size];
+    auto sz = fread(buffer, 1, st.st_size, fp);
+    content = std::string(buffer, sz);
+    return true;
+}
+bool IServer::CreateCred(const Address &a, CredOptions &options) {
+    std::string cert, ca, key;
+    if (!LoadFile(a.cert, cert) || 
+        !LoadFile(a.ca, ca) ||
+        !LoadFile(a.key, key)) {
+        return false;
+    }
+    options.pem_root_certs = ca;
+    options.pem_key_cert_pairs = {
+        { .private_key = key, .cert_chain = cert },
+    };
+    return true;
+}
+void IServer::Kick(const Address *addrs, int n_addr, int n_worker, IHandler *h) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
 	// listening port
-    if (options != nullptr) {
-        builder.AddListeningPort(listen_at, grpc::SslServerCredentials(*options));
-    } else {
-        builder.AddListeningPort(listen_at, grpc::InsecureServerCredentials());
+    for (int i = 0; i < n_addr; i++) {
+        const auto &a = addrs[i];
+        CredOptions credential;
+        bool secure = CreateCred(a, credential);
+        if (secure) {
+            builder.AddListeningPort(a.host, grpc::SslServerCredentials(credential));
+        } else {
+            builder.AddListeningPort(a.host, grpc::InsecureServerCredentials());
+        }
     }
     // Register service and start sv
     builder.RegisterService(&service);
     // setup worker thread (need to do before BuildAndStart because completion queue should be created before)
-    for (int i = 0; i < n_handler; i++) {
+    for (int i = 0; i < n_worker; i++) {
         Worker *w = new Worker(&service, h, builder);
         workers_.push_back(w);
     }

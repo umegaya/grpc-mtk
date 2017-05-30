@@ -101,7 +101,7 @@ protected:
 	}
 };
 
-/* credentical generation */
+/* credential generation */
 static bool CreateCred(const mtk_addr_t &settings, RPCStream::CredOptions &options) {
     if (settings.cert == nullptr) {
         return false;
@@ -115,39 +115,35 @@ static bool CreateCred(const mtk_addr_t &settings, RPCStream::CredOptions &optio
 /* mtk specific server runner */
 class Server : public IServer {
 public:
-	Server(const mtk_addr_t &listen_at, const mtk_svconf_t &conf) : 
-		IServer(), queue_(nullptr), listen_at_(listen_at), conf_(conf) {}
+	Server(const mtk_addr_t *addrs, int n_addrs, const mtk_svconf_t &conf) : 
+		IServer(), n_addrs_(n_addrs), queue_(nullptr), conf_(conf) {
+		addrs_ = new mtk_addr_t[n_addrs];
+		for (int i = 0; i < n_addrs_; i++) { addrs_[i] = addrs[i]; }
+	}
 	~Server() {
 		if (queue_ != nullptr) {
 			mtk_queue_destroy(queue_);
 		}
+		if (addrs_ != nullptr) {
+			delete []addrs_;
+		}
 	}
 	inline mtk_queue_t Queue() { return queue_; }
-	bool CreateCred(CredOptions &options) {
-	    if (listen_at_.cert == nullptr) {
-	        return false;
-	    }
-	    options.pem_root_certs = listen_at_.ca;
-	    options.pem_key_cert_pairs = {
-	        { .private_key = listen_at_.key, .cert_chain = listen_at_.cert },
-	    };
-	    return true;
-	}
 	void Run() override {
 	    CredOptions opts;
-	    bool has_cred = CreateCred(opts);
 	    if (conf_.use_queue) {
 	        auto r = std::unique_ptr<QueueReadHandler>(new QueueReadHandler());
 	        queue_ = r->Queue();
-	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
+	        Kick(addrs_, n_addrs_, conf_.n_worker, r.get());
 	    } else {
 	        auto r = std::unique_ptr<FunctionHandler>(new FunctionHandler(conf_.handler, conf_.acceptor, conf_.closer));
-	        Kick(listen_at_.host, conf_.n_worker, r.get(), has_cred ? &opts : nullptr);
+	        Kick(addrs_, n_addrs_, conf_.n_worker, r.get());
 	    }
 	}
 private:
+	mtk_addr_t *addrs_;
+	int n_addrs_;
 	mtk_queue_t queue_;
-	mtk_addr_t listen_at_;
 	mtk_svconf_t conf_;
 };
 
@@ -227,8 +223,8 @@ public:
 
 
 /******* grpc client/server API *******/
-void mtk_listen(mtk_addr_t *addr, mtk_svconf_t *svconf, mtk_server_t *psv) {
-	Server *sv = new Server(*addr, *svconf);
+void mtk_listen(mtk_addr_t *addr, int n_addr, mtk_svconf_t *svconf, mtk_server_t *psv) {
+	Server *sv = new Server(addr, n_addr, *svconf);
 	*psv = sv;
 	if (svconf->exclusive) {
 		sv->Run();
@@ -244,6 +240,9 @@ void mtk_server_join(mtk_server_t sv) {
 }
 mtk_queue_t mtk_server_queue(mtk_server_t sv) {
 	return ((Server *)sv)->Queue();
+}
+mtk_size_t mtk_server_address(mtk_server_t sv, int port_index, char *buff) {
+	return ((Server *)sv)->GetAddress(port_index, buff);
 }
 mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn) {
 	return Conn::DeferLogin(conn);
