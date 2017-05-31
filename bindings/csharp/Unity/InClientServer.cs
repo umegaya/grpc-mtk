@@ -3,24 +3,32 @@ using System.Collections.Generic;
 
 namespace Mtk.Unity {
 	public class InClientServer : MonoBehaviour {
+		//typedef
+		[System.Serializable]
+		public struct Environment {
+			public string key;
+			public string val;
+		};
+		//internal handles
 		Core.Server sv_ = null;
 		Core.IServerLogic logic_ = null;
-		public string listenAt_ = "0.0.0.0:50051";
-		public uint worker_ = 1;
-		protected void Init() {
+		//exposed property
+		public string logic_class_name_;
+		public List<string> args_;
+		public List<Environment> env_;
+		public string[] Init() {
 			if (sv_ == null) {
-				sv_ = (new Core.ServerBuilder())
-					.ListenAt(listenAt_)
-					.Worker(worker_)
-					.Build();
+				foreach (var kv in env_) {
+					System.Environment.SetEnvironmentVariable(kv.key, kv.val);
+				}
+				var t = Util.GetType(logic_class_name_);
+				var factory = t.GetMethod("Instance");
+				logic_ = factory.Invoke(null, null) as Core.IServerLogic;
+				sv_ = logic_.Bootstrap(args_.ToArray()).Build();
 			}
+			return sv_.AddrList;
 		}
 		protected void Start() {
-			logic_ = ServerLogic();
-			if (logic_ == null) {
-				UnityEngine.Debug.Assert(false);
-				return;
-			}
 			Init();
 		}
 		protected void Stop() {
@@ -38,6 +46,5 @@ namespace Mtk.Unity {
 				}
 			}
 		}
-		protected virtual Core.IServerLogic ServerLogic() { return null; }
 	}
 }

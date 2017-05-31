@@ -199,6 +199,7 @@ namespace Mtk {
             T Context<T>();
         }
         public interface IServerLogic {
+            ServerBuilder Bootstrap(string[] args);
             ulong OnAccept(ulong cid, IContextSetter setter, byte[] data, out byte[] rep);
             int OnRecv(ISVConn c, int type, byte[] data);
             void OnClose(ulong cid);
@@ -388,8 +389,8 @@ namespace Mtk {
             public bool Initialized {
                 get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
             }
-            public string Address {
-                get { return ""; }
+            public string[] AddrList {
+                get { return new string[] { "" }; }
             }
             public void Destroy() {
                 unsafe {
@@ -428,7 +429,7 @@ namespace Mtk {
             }
         }
         public class Builder {
-            protected struct Listener {
+            protected class Listener {
                 public string host_, cert_, key_, ca_;
                 public GCHandle gchost_, gccert_, gckey_, gcca_;
             }
@@ -475,19 +476,12 @@ namespace Mtk {
             }
         }
         public class ClientBuilder : Builder {
-            ulong id_;
-            byte[] payload_;
             Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
             List<GCHandle> cbmems_ = new List<GCHandle>();
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
                 base.ListenAt(at, cert, key, ca);
                 return this;            
-            }
-            public ClientBuilder Credential(ulong id, byte[] data) {
-                id_ = id;
-                payload_ = data;
-                return this;
             }
             //these function will be called from same thread as Unity's main thread
             public ClientBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
@@ -527,7 +521,6 @@ namespace Mtk {
                     on_start = on_start_, on_ready = on_ready_,
                 };
                 var conn = new Conn(mtk_connect(ref addrs[0], ref conf), cbmems_);
-                Core.Instance().ConnMap[id_] = conn;
                 conn.Watch(on_notify_);
                 DestroyAddress();
                 return conn;
@@ -569,9 +562,6 @@ namespace Mtk {
                 mtk_listen(addr, addr.Length, ref conf, ref svp);
                 var s = new Server(svp);
                 if (s.Initialized) {
-                    foreach (var l in listeners_) {
-                        Core.Instance().ServerMap[l.host_] = s;
-                    }
                     DestroyAddress();
                     return s;
                 } else {
@@ -586,8 +576,6 @@ namespace Mtk {
         }
 
         static Core instance_ = null;
-        public Dictionary<ulong, Conn> ConnMap { get; set; }
-        public Dictionary<string, Server> ServerMap { get; set; }
         static public ulong Tick { 
             get { return mtk_time(); } 
         }
@@ -651,10 +639,7 @@ namespace Mtk {
         }
         public static void Ref() { unsafe { mtk_lib_ref(); } }
         public static void Unref() { unsafe { mtk_lib_unref(); } }
-        Core() {
-            ConnMap = new Dictionary<ulong, Conn>();
-            ServerMap = new Dictionary<string, Server>();
-        }
+        Core() {}
     }
     public class Log {
         public static void Write(Core.LogLevel lv, string str) {
@@ -678,22 +663,26 @@ namespace Mtk {
     }
 #if MTKSV
     public class EntryPointBase {
-        static protected Core.IServerLogic logic_;
-        static public void SetLogic(Core.IServerLogic l) {
-            logic_ = l;
+        static public System.IntPtr Bootstrap(Core.IServerLogic logic, string[] args) {
+            return logic.Bootstrap(args).Build();
         }
-        static public unsafe ulong Login(System.IntPtr c, ulong cid, byte* data, uint len, out byte[] repdata) {
+        static public void Shutdown(Core.IServerLogic logic) {
+            logic.Shutdown();
+        }
+        static public unsafe ulong Login(Core.IServerLogic logic, 
+                                    System.IntPtr c, ulong cid, byte* data, uint len, out byte[] repdata) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic_.OnAccept(cid, new Core.SVConn(c), ret, out repdata);
+            return logic.OnAccept(cid, new Core.SVConn(c), ret, out repdata);
         }
-        static public unsafe bool Handle(System.IntPtr c, int type, byte* data, uint len) {
+        static public unsafe bool Handle(Core.IServerLogic logic, 
+                                    System.IntPtr c, int type, byte* data, uint len) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic_.OnRecv(new Core.SVConn(c), type, ret) >= 0;
+            return logic.OnRecv(new Core.SVConn(c), type, ret) >= 0;
         }
-        static public void Close(System.IntPtr c) {
-            logic_.OnClose(Core.SVConn.IdFromPtr(c));
+        static public void Close(Core.IServerLogic logic, System.IntPtr c) {
+            logic.OnClose(Core.SVConn.IdFromPtr(c));
         }
     }
 #endif
