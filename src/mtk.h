@@ -133,7 +133,6 @@ typedef void (*mtk_ctx_free_t)(void *);
 extern void mtk_listen(mtk_addr_t *addrs, int n_addr, mtk_svconf_t *conf, mtk_server_t *sv);
 extern void mtk_server_join(mtk_server_t sv);
 extern mtk_queue_t mtk_server_queue(mtk_server_t sv);
-extern mtk_size_t mtk_server_address(mtk_server_t sv, int port_index, char *buff);
 extern mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn);
 extern mtk_svconn_t mtk_svconn_find_deferred(mtk_login_cid_t lcid);
 extern void mtk_svconn_finish_login(mtk_login_cid_t login_cid, 

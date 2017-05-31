@@ -97,8 +97,6 @@ namespace Mtk {
         private static extern unsafe System.IntPtr mtk_server_queue(System.IntPtr sv);
         [DllImport (DllName)]
         private static extern unsafe void mtk_server_join(System.IntPtr sv);
-        [DllImport (DllName)]
-        private static extern unsafe uint mtk_server_address(System.IntPtr sv, int port_index, byte[] strbuf);
 #if MTKSV
         [DllImport (DllName)]
         private static extern unsafe System.IntPtr mtkdn_server(Address[] addrs, int n_addrs, ref ServerConfig conf);

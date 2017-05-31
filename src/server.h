@@ -41,9 +41,7 @@ namespace mtk {
 			}
 			delete this;
 		}
-		uint32_t GetAddress(int port_index, char *buff) {
-			return 0;
-		}
+		uint32_t GetPorts(int port_index, int *ports_buf, uint32_t n_ports_buf);
 	public://interface
 		virtual void Run() = 0;
 		virtual void Shutdown();

@@ -45,6 +45,9 @@ bool IServer::CreateCred(const Address &a, CredOptions &options) {
     };
     return true;
 }
+uint32_t IServer::GetPorts(int ports_index, int *ports_buf, uint32_t n_ports_buf) {
+    return 0;
+}
 void IServer::Kick(const Address *addrs, int n_addr, int n_worker, IHandler *h) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;

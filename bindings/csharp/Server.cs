@@ -95,7 +95,7 @@ namespace Mtk {
         public partial class CidConn : ISVConn {
             ulong cid_;
             uint msgid_;
-            internal CidConn(ulong cid, uint msgid) {
+            public CidConn(ulong cid, uint msgid) {
                 cid_ = cid;
                 msgid_ = msgid;
             }
@@ -131,15 +131,23 @@ namespace Mtk {
                 }
             }
         }
-        public class ServerBuilder : Builder {
+        public sealed class ServerBuilder : Builder {
             uint n_worker_;
             bool use_queue_ = true;
+            static string service_name_;
+            static internal void SetCurrentServiceName(string name) {
+            	service_name_ = name;
+            } 
             //TODO: support closuer mode
             //Closure handler_, acceptor_, closer_;
             public ServerBuilder() {
             }
             public new ServerBuilder ListenAt(string at, string cert = "", string key = "", string ca = "") {
-                base.ListenAt(at, cert, key, ca);
+            	string resolved;
+            	if (Util.NAT.Instance == null || !Util.NAT.Instance.Translate(service_name_, at, out resolved)) {
+            		resolved = at;
+            	}
+                base.ListenAt(resolved, cert, key, ca);
                 return this;
             }
             public ServerBuilder Worker(uint n_worker) {
@@ -190,9 +198,6 @@ namespace Mtk {
             }
             public bool Initialized {
                 get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
-            }
-            public string[] AddrList {
-                get { return new string[] { "" }; }
             }
             public void Destroy() {
                 unsafe {

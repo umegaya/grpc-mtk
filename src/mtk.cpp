@@ -241,9 +241,6 @@ void mtk_server_join(mtk_server_t sv) {
 mtk_queue_t mtk_server_queue(mtk_server_t sv) {
 	return ((Server *)sv)->Queue();
 }
-mtk_size_t mtk_server_address(mtk_server_t sv, int port_index, char *buff) {
-	return ((Server *)sv)->GetAddress(port_index, buff);
-}
 mtk_login_cid_t mtk_svconn_defer_login(mtk_svconn_t conn) {
 	return Conn::DeferLogin(conn);
 }

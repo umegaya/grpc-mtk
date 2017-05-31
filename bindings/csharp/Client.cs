@@ -125,13 +125,18 @@ namespace Mtk {
                 }
             }
         }
-        public class ClientBuilder : Builder {
+        public sealed class ClientBuilder : Builder {
         	Client client_;
+        	bool auto_cleanup_ = true;
             Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
             List<GCHandle> cbmems_ = new List<GCHandle>();
             public ClientBuilder() {}
             public ClientBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
-                base.ListenAt(at, cert, key, ca);
+            	string resolved;
+            	if (Util.NAT.Instance == null || !Util.NAT.Instance.Resolve(at, out resolved)) {
+            		resolved = at;
+            	}
+                base.ListenAt(resolved, cert, key, ca);
                 return this;            
             }
             //for building client these function will be called from same thread as Unity's main thread
@@ -141,6 +146,10 @@ namespace Mtk {
             }
             public ClientBuilder RegisterNotifier<N>(uint t, Client.Notifier<N> notifier) where N : IMessage, new() {
             	client_.RegisterNotifier<N>(t, notifier);
+            	return this;
+            }
+            public ClientBuilder AutoCleanup(bool yes_or_no) {
+            	auto_cleanup_ = yes_or_no;
             	return this;
             }
             //for building conn. these function will be called from same thread as Unity's main thread
@@ -196,7 +205,7 @@ namespace Mtk {
 
                     Address[] addrs = MakeAddress();
                     ClientConfig conf = MakeConfig();
-    				c.Start(addrs[0], conf, cbmems_);
+    				c.Start(addrs[0], conf, cbmems_, auto_cleanup_);
     				c.Watch(on_notify_);
     				DestroyAddress();
                 }
@@ -227,7 +236,6 @@ namespace Mtk {
 				public Dictionary<uint, NotifyReceiver> Notifiers { get; set; }
 				public IEventHandler Handler { get; set; }
 			}
-			public static Util.NAT NAT { get; set; }
 
         	internal System.IntPtr CallbacksPtr { get; set; }
         	public Client(IEventHandler handler) : base() {
@@ -237,8 +245,13 @@ namespace Mtk {
 				});
 				CallbacksPtr = GCHandle.ToIntPtr(cc);        		
 			}
-			internal void Start(Address addr, ClientConfig conf, List<GCHandle> cbmems) {
+			internal void Start(Address addr, ClientConfig conf, List<GCHandle> cbmems, bool auto_cleanup) {
 				base.Init(mtk_connect(ref addr, ref conf), cbmems);
+#if UNITY_EDITOR
+				if (auto_cleanup) {
+					Unity.ExitHandler.Instance().AtExit(Unity.ExitHandler.Priority.Client, Stop);
+				}
+#endif
 			}
 			public void Stop() {
 				base.Destroy();
