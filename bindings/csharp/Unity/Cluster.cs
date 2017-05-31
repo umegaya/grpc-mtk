@@ -3,42 +3,6 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
 namespace Mtk.Unity {
-class ClusterNAT {
-	struct Entry {
-		public List<string> Addresses;
-		public int RoundRobinIndex;
-	}
-	Dictionary<string, Entry> Table { get; set; }
-
-	public ClusterNAT() {
-		Table = new Dictionary<string, Entry>();
-	}
-	public bool Resolve(string service_and_port, out string resolved_host_and_port) {
-		Entry ent;
-		if (Table.TryGetValue(service_and_port, out ent)) {
-			var idx = ent.RoundRobinIndex % ent.Addresses.Count;
-			resolved_host_and_port = ent.Addresses[idx];
-			ent.RoundRobinIndex = ((idx + 1) % ent.Addresses.Count);
-			return true;
-		}
-		resolved_host_and_port = "";
-		return false;
-	}
-	public void Register(string service_and_port, string host_and_port) {
-		Entry ent;
-		if (!Table.TryGetValue(service_and_port, out ent)) {
-			ent = new Entry {
-				Addresses = new List<string>(),
-				RoundRobinIndex = 0,
-			};
-			Table[service_and_port] = ent;
-		}
-		ent.Addresses.Add(host_and_port);
-	}
-	public bool HasEntry(string service_and_port) {
-		return Table.ContainsKey(service_and_port);
-	}
-}
 struct Cluster {
     public struct Deploy {
     	public int replicas;
@@ -100,9 +64,9 @@ struct Cluster {
    		public List<string> environment { get; set; }
    		public Deploy deploy { get; set; }
 
-   		public string Runner {
+   		public string Logic {
    			get {
-   				return FindEnv("MTKSV_RUNNER");
+   				return FindEnv("MTKSV_LOGIC");
    			}
    		}
    		public int Port(int idx) {

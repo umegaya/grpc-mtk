@@ -7,7 +7,7 @@ namespace Mtk.Unity {
 		public TextAsset composerFile_;
 		public TextAsset cert_, key_, ca_;
 		Cluster cluster_;
-		ClusterNAT clusterNat_ = new ClusterNAT();
+		Util.NAT nat_ = new Util.NAT();
 
 		protected void Start() {
 			using(var reader = new System.IO.StringReader(composerFile_.text)) {
@@ -18,11 +18,12 @@ namespace Mtk.Unity {
             	cluster_ = deser.Deserialize<Cluster>(reader);
  			}
  			CreateClusterFromSetting();
+ 			//Conn.NAT = nat_;
 		}
 
 		protected void CreateClusterFromSetting() {
 			foreach (var s in cluster_.services) {
-				Debug.Log("service:" + s.Key + "|" + s.Value.Runner + "|" + s.Value.Port(0) + "|" + s.Value.deploy.mode + "|" + s.Value.deploy.replicas);
+				Debug.Log("service:" + s.Key + "|" + s.Value.Logic + "|" + s.Value.Port(0) + "|" + s.Value.deploy.mode + "|" + s.Value.deploy.replicas);
 				/*GameObject go = new GameObject(s.Key);
 				go.transform.parent = gameObject.transform;
 				if (s.Value.Runner == null) {
@@ -36,7 +37,7 @@ namespace Mtk.Unity {
 				}
 				for (int i = 0; i < s.Value.PortNum; i++) {
 					var port = s.Value.Port(i);
-					if (clusterNat_.HasEntry(s.Key + ":" + port) {
+					if (nat_.HasEntry(s.Key + ":" + port) {
 						cs.listenAt_ = "0.0.0.0:" + port;
 					} else {
 						cs.listenAt_ = "0.0.0.0:0"; //make bind() choosing port 
@@ -44,7 +45,7 @@ namespace Mtk.Unity {
 					cs.worker_ = s.Value.deploy.replicas;
 					string bind_address = cs.Init();
 					string service_address = s.Key + ":" + port;
-					clusterNat_.Register(service_address, bind_address);
+					nat_.Register(service_address, bind_address);
 				}*/
 			}
 		}
