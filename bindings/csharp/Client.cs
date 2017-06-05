@@ -136,6 +136,7 @@ namespace Mtk {
             	if (Util.NAT.Instance == null || !Util.NAT.Instance.Resolve(at, out resolved)) {
             		resolved = at;
             	}
+            	Mtk.Log.Info("clientbuilder: connect to:" + at + " => " + resolved);
                 base.ListenAt(resolved, cert, key, ca);
                 return this;            
             }

@@ -16,20 +16,17 @@ namespace Mtk.Unity {
 		protected void CreateClusterFromSetting() {
 			foreach (var s in compose_.services) {
 				Debug.Log("service:" + s.Key + "|" + s.Value.Logic + "|" + s.Value.Port(0) + "|" + s.Value.deploy.mode + "|" + s.Value.deploy.replicas);
-				/*GameObject go = new GameObject(s.Key);
-				go.transform.parent = gameObject.transform;
-				if (s.Value.Runner == null) {
-					Debug.LogError("service " + s.Key + " is not for emurating in Unity Editor");
+				if (s.Value.Logic == null) {
+					Debug.Log("service " + s.Key + " is not for emurating in Unity Editor");
 					continue;
 				}
-				var cs = go.AddComponent(typeof(Mtk.Unity.InClientServer));
-				if (cs == null) {
-					Debug.LogError("fatal: cannot load server logic class:" + s.Value.Runner);
-					return;
-				}
+				GameObject go = new GameObject(s.Key);
+				go.transform.parent = gameObject.transform;
+				var cs = go.AddComponent(typeof(Mtk.Unity.InClientServer)) as Mtk.Unity.InClientServer;
 				cs.service_name_ = s.Key;
 				cs.logic_class_name_ = s.Value.Logic;
-				cs.args_ = new string[] {}; */
+				cs.args_ = new List<string>();
+				cs.Bootstrap();
 			}
 		}
 	}

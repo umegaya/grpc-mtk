@@ -1,7 +1,5 @@
 using System.Reflection;
 using System.Collections.Generic;
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
 
 namespace Mtk {
     public partial class Core {
@@ -13,7 +11,7 @@ namespace Mtk {
             }
         }
 	}
-	public class Util {
+	public partial class Util {
 		static public System.Type GetType( string TypeName ) {
 			var type = System.Type.GetType( TypeName );
 			// If it worked, then we're done here
@@ -54,60 +52,15 @@ namespace Mtk {
 			// The type just couldn't be found...
 			return null;
 		}
-		public struct ComposeFile {
+		public partial struct ComposeFile {
 		    public struct Deploy {
 		    	public int replicas;
 		    	public string mode;
 		    }
-		    public struct Port {
+		    public partial struct Port {
 		    	public string mode { get; set; }
 		    	public int target { get; set; }
 		    	public int published { get; set; }
-				public class Converter : IYamlTypeConverter {
-					public bool Accepts(System.Type type) {
-					    return type == typeof(Port);
-					}
-					public object ReadYaml(IParser parser, System.Type type) {
-						Port port = new Port();
-						int target, published;
-						if (parser.Current is YamlDotNet.Core.Events.Scalar) {
-						    var scalar = (YamlDotNet.Core.Events.Scalar)parser.Current;
-						    //UnityEngine.Debug.Log("scalar value:" + scalar.Value);
-						    if (int.TryParse(scalar.Value.Split(':')[0], out published) && 
-						    	int.TryParse(scalar.Value.Split(':')[1], out target)) {
-							    port.published = published;
-							    port.target = target;
-							    port.mode = "normal";
-							}
-						    parser.MoveNext();
-						} else if (parser.Current is YamlDotNet.Core.Events.MappingStart) {
-							string key = null;
-						    parser.MoveNext();
-							while (parser.Current is YamlDotNet.Core.Events.Scalar) {
-							    var scalar = (YamlDotNet.Core.Events.Scalar)parser.Current;
-							    //UnityEngine.Debug.Log("scalar value:" + scalar.Value);
-								if (key == null) {
-									key = scalar.Value;
-								} else if (key == "mode") {
-									port.mode = scalar.Value;
-									key = null;
-								} else if (key == "published" && int.TryParse(scalar.Value, out published)) {
-									port.published = published;
-									key = null;
-								} else if (key == "target" && int.TryParse(scalar.Value, out target)) {
-									port.target = target;
-									key = null;
-								}
-								parser.MoveNext();
-							}
-							parser.MoveNext();
-						} 
-						return port;
-					}
-					public void WriteYaml(IEmitter emitter, object value, System.Type type) {
-					    var port = (Port)value;
-					}
-				}
 		    }
 		   	public struct Service {
 		   		public string image { get; set; }
@@ -127,7 +80,14 @@ namespace Mtk {
 		   				return 0;
 		   			}
 		   		}
-
+		   		public bool HasPort(string port) {
+		   			foreach (var p in ports) {
+		   				if (p.published.ToString() == port) {
+		   					return true;
+		   				}
+		   			}
+		   			return false;
+		   		}
 		   		public string FindEnv(string key) {
 					if (environment == null) {
 						return null;
@@ -139,22 +99,10 @@ namespace Mtk {
 					}
 					return null;
 		   		}
-		   	};
+		   	}
 
 		    public string version { get; set; }
 		   	public Dictionary<string, Service> services { get; set; }
-		   	static Deserializer NewDeserializer() {
-		   		return new DeserializerBuilder().
-					WithTypeConverter(new ComposeFile.Port.Converter()).
-					IgnoreUnmatchedProperties().
-					Build();
-		   	}
-		   	static public ComposeFile Load(System.IO.TextReader reader) {
-				return NewDeserializer().Deserialize<ComposeFile>(reader);
-		   	}
-		   	static public ComposeFile Load(string text) {
-				return NewDeserializer().Deserialize<ComposeFile>(text);
-		   	}
 		}
 		public class NAT {
 			static NAT instance_ = null;
@@ -187,10 +135,13 @@ namespace Mtk {
 				return false;
 			}
 			public bool Translate(string service_name, string host_and_port, out string translated_host_and_port) {
+				var port = host_and_port.Split(':')[1];
 				if (Compose.services.ContainsKey(service_name)) {
-					translated_host_and_port = "0.0.0.0:" + port_num_seed_++;
-					Register(service_name + ":" + host_and_port.Split(':')[1], translated_host_and_port.Replace("0.0.0.0", "localhost"));
-					return true;
+					if (!Compose.services[service_name].HasPort(port)) {
+						translated_host_and_port = "0.0.0.0:" + port_num_seed_++;
+						Register(service_name + ":" + port, translated_host_and_port.Replace("0.0.0.0", "localhost"));
+						return true;
+					}
 				}
 				translated_host_and_port = "";
 				return false;

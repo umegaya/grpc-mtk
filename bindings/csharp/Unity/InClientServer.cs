@@ -10,17 +10,22 @@ namespace Mtk.Unity {
 		public string service_name_;
 		public string logic_class_name_;
 		public List<string> args_;
-		public void Init() {
+		public void Bootstrap() {
 			if (sv_ == null) {
 				Core.ServerBuilder.SetCurrentServiceName(service_name_);
 				var t = Util.GetType(logic_class_name_);
-				var factory = t.GetMethod("Instance");
-				logic_ = factory.Invoke(null, null) as Core.IServerLogic;
-				sv_ = logic_.Bootstrap(args_.ToArray()).Build();
+				var bootstrap = t.GetMethod("Bootstrap");
+				if (bootstrap == null) {
+					Debug.LogError("Logic class need to implement static method 'Bootstrap'");
+					return;
+				}
+				sv_ = (bootstrap.Invoke(null, new object[]{args_.ToArray()}) as Core.ServerBuilder).Build();
 			}
 		}
 		protected void Start() {
-			Init();
+			var t = Util.GetType(logic_class_name_);
+			var instance = t.GetMethod("Instance");
+			logic_ = instance.Invoke(null, null) as Core.IServerLogic;
 #if UNITY_EDITOR
 			ExitHandler.Instance().AtExit(ExitHandler.Priority.Server, Stop);
 #endif

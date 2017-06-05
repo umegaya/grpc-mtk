@@ -20,13 +20,19 @@ namespace Mtk {
             T SetContext<T>(T obj);
         }
         public interface IServerLogic {
-            ServerBuilder Bootstrap(string[] args);
             ulong OnAccept(ulong cid, IContextSetter setter, byte[] data, out byte[] rep);
             int OnRecv(ISVConn c, int type, byte[] data);
             void OnClose(ulong cid);
             void Poll();
             void Shutdown();
         }
+        //logic class need to have static methods
+        /*
+        static ServerBuilder Bootstrap(string[]);
+        static IServerLogic Instance();
+        (but no way to force this)
+        */
+
 
         //classes
         public partial class SVConn : ISVConn, IContextSetter {
@@ -147,6 +153,7 @@ namespace Mtk {
             	if (Util.NAT.Instance == null || !Util.NAT.Instance.Translate(service_name_, at, out resolved)) {
             		resolved = at;
             	}
+            	Mtk.Log.Info("ServerBuilder: listen at:" + at + "=>" + resolved);
                 base.ListenAt(resolved, cert, key, ca);
                 return this;
             }
@@ -236,29 +243,4 @@ namespace Mtk {
             }
         }
     }
-#if MTKSV
-    public class EntryPointBase {
-        static public System.IntPtr Bootstrap(Core.IServerLogic logic, string[] args) {
-            return logic.Bootstrap(args).Build();
-        }
-        static public void Shutdown(Core.IServerLogic logic) {
-            logic.Shutdown();
-        }
-        static public unsafe ulong Login(Core.IServerLogic logic, 
-                                    System.IntPtr c, ulong cid, byte* data, uint len, out byte[] repdata) {
-            var ret = new byte[len];
-            Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic.OnAccept(cid, new Core.SVConn(c), ret, out repdata);
-        }
-        static public unsafe bool Handle(Core.IServerLogic logic, 
-                                    System.IntPtr c, int type, byte* data, uint len) {
-            var ret = new byte[len];
-            Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic.OnRecv(new Core.SVConn(c), type, ret) >= 0;
-        }
-        static public void Close(Core.IServerLogic logic, System.IntPtr c) {
-            logic.OnClose(Core.SVConn.IdFromPtr(c));
-        }
-    }
-#endif
 }
