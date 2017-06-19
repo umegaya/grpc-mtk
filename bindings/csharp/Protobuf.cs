@@ -41,6 +41,13 @@ namespace Mtk {
             bool Throw(uint msgid, IMessage m);
             bool Notify(uint type, IMessage m);
         }
+        public partial class DeferredSVConn {
+            internal void FinishLogin(ulong cid, IMessage m) {
+                byte[] data;
+                if (Codec.Pack(m, out data) < 0) { Core.Assert(false); return; }
+                FinishLogin(cid, data);
+            }
+        }
         public partial class SVConn {
             public bool Reply(uint msgid, IMessage m) {
                 byte[] data;

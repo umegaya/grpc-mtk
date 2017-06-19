@@ -99,7 +99,7 @@ namespace Google.Protobuf.Reflection
             Fields = new FieldCollection(this);
         }
 
-        private static ReadOnlyDictionary<string, FieldDescriptor> CreateJsonFieldMap(IList<FieldDescriptor> fields)
+        private static Google.Protobuf.Collections.ReadOnlyDictionary<string, FieldDescriptor> CreateJsonFieldMap(IList<FieldDescriptor> fields)
         {
             var map = new Dictionary<string, FieldDescriptor>();
             foreach (var field in fields)
@@ -107,7 +107,7 @@ namespace Google.Protobuf.Reflection
                 map[field.Name] = field;
                 map[field.JsonName] = field;
             }
-            return new ReadOnlyDictionary<string, FieldDescriptor>(map);
+            return new Google.Protobuf.Collections.ReadOnlyDictionary<string, FieldDescriptor>(map);
         }
 
         /// <summary>

@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 #if !MTKSV
 using AOT;
 #endif
+#if !MTK_DISABLE_ASYNC
+using System.Threading.Tasks;
+#endif
 
 namespace Mtk {
     public partial class Core {
@@ -16,11 +19,11 @@ namespace Mtk {
             void Notify(uint type, byte[] data);
             T Context<T>();
         }
-        public interface IContextSetter {
+        public partial interface IContextSetter {
             T SetContext<T>(T obj);
         }
         public interface IServerLogic {
-            ulong OnAccept(ulong cid, IContextSetter setter, byte[] data, out byte[] rep);
+            void OnAccept(ulong cid, IContextSetter setter, byte[] data);
             int OnRecv(ISVConn c, int type, byte[] data);
             void OnClose(ulong cid);
             void Poll();
@@ -35,8 +38,34 @@ namespace Mtk {
 
 
         //classes
-        public partial class SVConn : ISVConn, IContextSetter {
-            System.IntPtr conn_;
+        public partial class DeferredSVConn : IContextSetter {
+            ulong lcid_;
+            uint msgid_;
+            public DeferredSVConn(ulong lcid, uint msgid) {
+                lcid_ = lcid;
+                msgid_ = msgid;
+            }
+            public T SetContext<T>(T obj) {
+                var conn = mtk_svconn_find_deferred(lcid_);
+                if (conn != System.IntPtr.Zero) {
+                    return SVConn.CreateContext<T>(conn, obj);
+                } else {
+                    Mtk.Log.Error("ev:deferred conn already closed,lcid:" + lcid_);
+                    return default(T);
+                }
+            }
+            internal void FinishLogin(ulong cid, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_svconn_finish_login(lcid_, cid, msgid_, d, (uint)data.Length); } }
+            }
+            static internal ulong DeferLogin(System.IntPtr c) {
+                unsafe { return mtk_svconn_defer_login(c); }
+            }
+            static internal uint GetDeferMsgid(System.IntPtr c) {
+                unsafe { return mtk_svconn_msgid(c); }
+            }
+        }
+        public partial class SVConn : ISVConn {
+            internal System.IntPtr conn_;
             internal SVConn(System.IntPtr c) {
                 conn_ = c;
             }
@@ -61,18 +90,8 @@ namespace Mtk {
             public void Close() {
                 unsafe { mtk_svconn_close(conn_); }
             }
-            #if !MTKSV
-            [MonoPInvokeCallback(typeof(Core.DestroyPointerCB))]
-            #endif
-            static void DestroyContext(System.IntPtr ptr) {
-                GCHandle.FromIntPtr(ptr).Free();
-            }
             public T SetContext<T>(T obj) {
-                var ptr = GCHandle.Alloc(obj);
-                unsafe {
-                    mtk_svconn_putctx(conn_, GCHandle.ToIntPtr(ptr), DestroyContext);
-                }
-                return (T)ptr.Target;                
+                return CreateContext<T>(conn_, obj);             
             }
             public T Context<T>() {
                 unsafe {
@@ -83,6 +102,20 @@ namespace Mtk {
                         return (T)GCHandle.FromIntPtr(ptr).Target;
                     }
                 }
+            }            
+
+            #if !MTKSV
+            [MonoPInvokeCallback(typeof(Core.DestroyPointerCB))]
+            #endif
+            static void DestroyContext(System.IntPtr ptr) {
+                GCHandle.FromIntPtr(ptr).Free();
+            }
+            static public T CreateContext<T>(System.IntPtr conn, T obj) {
+                var ptr = GCHandle.Alloc(obj);
+                unsafe {
+                    mtk_svconn_putctx(conn, GCHandle.ToIntPtr(ptr), DestroyContext);
+                }
+                return (T)ptr.Target;                
             }
             static public void Reply(ulong cid, uint msgid, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
@@ -219,17 +252,11 @@ namespace Mtk {
                 while (mtk_queue_pop(queue_, ref elem)) {
                     ServerEvent *ev = (ServerEvent *)elem;
                     if (ev->lcid != 0) {
-                        System.IntPtr dc = mtk_svconn_find_deferred(ev->lcid);
-                        if (dc != System.IntPtr.Zero) {
-                            var ret = new byte[ev->datalen];
-                            byte[] rep;
-                            byte *bp = (((byte *)ev) + SERVER_EVENT_TRUE_SIZE);
-                            Marshal.Copy((System.IntPtr)bp, ret, 0, (int)ev->datalen);
-                            var cid = logic.OnAccept(ev->cid, new SVConn(dc), ret, out rep);
-                            fixed (byte *pb = rep) {
-                                mtk_svconn_finish_login(ev->lcid, cid, ev->msgid, pb, (uint)rep.Length);
-                            }
-                        }
+                        var ret = new byte[ev->datalen];
+                        byte[] rep;
+                        byte *bp = (((byte *)ev) + SERVER_EVENT_TRUE_SIZE);
+                        Marshal.Copy((System.IntPtr)bp, ret, 0, (int)ev->datalen);
+                        logic.OnAccept(ev->cid, new DeferredSVConn(ev->lcid, ev->msgid), ret);
                     } else if (ev->msgid != 0) {
                         var c = new CidConn(ev->cid, ev->msgid);
                         var ret = new byte[ev->datalen];
@@ -241,14 +268,15 @@ namespace Mtk {
                     mtk_queue_elem_free(queue_, elem);
                 }
             }
-            //typical accept and recv handlers
+            //typical accept and recv handlers (sync)
             public delegate ERR AcceptHandler<REQ, REP, ERR>(ref ulong cid, Core.IContextSetter setter, REQ req, ref REP rep);
-            static public ulong OnAccept<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, out byte[] repdata, AcceptHandler<REQ, REP, ERR> hd) 
+            static public void OnAccept<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AcceptHandler<REQ, REP, ERR> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : Google.Protobuf.IMessage, IError, new() {
                 var req = new REQ();
                 ERR err = default(ERR);
+                byte[] repdata;
                 int ret = Codec.Unpack(data, ref req);
                 if (ret >= 0) {
                     var rep = new REP();
@@ -261,7 +289,8 @@ namespace Mtk {
                     if (err == null) {
                         ret = Codec.Pack(rep, out repdata);
                         if (ret >= 0) {
-                            return cid;
+                            (setter as DeferredSVConn).FinishLogin(cid, repdata);
+                            return;
                         }
                         err = new ERR();
                         err.Set(Core.SystemErrorCode.PayloadPackFail);
@@ -272,7 +301,8 @@ namespace Mtk {
                 }
                 Codec.Pack(err, out repdata);
                 Mtk.Log.Error("ev:OnAccept fails,msg:" + err.Message);
-                return 0;
+                (setter as DeferredSVConn).FinishLogin(0, repdata);
+                return;
             }
 
             public delegate ERR Handler<REQ, REP, ERR>(Core.ISVConn c, REQ req, ref REP rep);
@@ -306,6 +336,79 @@ namespace Mtk {
                 Mtk.Log.Error("ev:invalid request payload,id:" + c.Id);
                 return -1;
             }
+
+#if !MTK_DISABLE_ASYNC
+            //typical accept and recv handlers (async)
+            public delegate Task<Result<ERR>> AsyncAcceptHandler<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, REQ req);
+            static public async void OnAcceptAsync<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AsyncAcceptHandler<REQ, REP, ERR> hd) 
+                where REQ : Google.Protobuf.IMessage, new() 
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : Google.Protobuf.IMessage, IError, new() {
+                var req = new REQ();
+                var res = default(Result<ERR>);
+                ERR err;
+                byte[] repdata;
+                int ret = Codec.Unpack(data, ref req);
+                if (ret >= 0) {
+                    var rep = new REP();
+                    try {
+                        res = await hd(cid, setter, req);
+                        err = res.Error;
+                    } catch (System.Exception e) {
+                        err = new ERR();
+                        err.Set(e);
+                    }
+                    if (err == null) {
+                        ret = Codec.Pack(res.Reply, out repdata);
+                        if (ret >= 0) {
+                            (setter as DeferredSVConn).FinishLogin(cid, repdata);
+                            return;
+                        }
+                        err = new ERR();
+                        err.Set(Core.SystemErrorCode.PayloadPackFail);
+                    }
+                } else {
+                    err = new ERR();
+                    err.Set(Core.SystemErrorCode.PayloadUnpackFail); 
+                }
+                Codec.Pack(err, out repdata);
+                Mtk.Log.Error("ev:OnAccept fails,msg:" + err.Message);
+                (setter as DeferredSVConn).FinishLogin(0, repdata);
+            }
+
+            public delegate Task<Result<ERR>> AsyncHandler<REQ, REP, ERR>(Core.ISVConn c, REQ req);
+            static public async void HandleAsync<REQ, REP, ERR>(Core.ISVConn c, byte[] data, AsyncHandler<REQ, REP, ERR> hd) 
+                where REQ : Google.Protobuf.IMessage, new() 
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : Google.Protobuf.IMessage, IError, new() {
+                //Mtk.Log.Info("Handle received:" + typeof(REQ));
+                var req = new REQ();
+                if (Codec.Unpack(data, ref req) >= 0) {
+                    Result<ERR> res = default(Result<ERR>);
+                    ERR err;
+                    try {
+                        res = await hd(c, req);
+                        err = res.Error;
+                    } catch (System.Exception e) {
+                        err = new ERR();
+                        err.Set(e);
+                    }
+                    if (err == null) {
+                        if (!c.Reply(c.Msgid, res.Reply)) {
+                            err = new ERR();
+                            err.Set(Core.SystemErrorCode.PayloadPackFail);
+                            c.Throw(c.Msgid, err);
+                        }
+                    } else if (!err.Pending) {
+                        Mtk.Log.Error("ev:handler fail,emsg:" + err.Message);
+                        c.Throw(c.Msgid, err);
+                    }
+                    return;
+                } 
+                Mtk.Log.Error("ev:invalid request payload,id:" + c.Id);
+                return;
+            }
+#endif // !MTK_DISABLE_ASYNC
         }
     }
 #if MTKSV
@@ -317,7 +420,10 @@ namespace Mtk {
                                     System.IntPtr c, ulong cid, byte* data, uint len, out byte[] repdata) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic.OnAccept(cid, new Core.SVConn(c), ret, out repdata);
+            ulong lcid = DeferedSVConn.DeferLogin(c);
+            uint msgid = DeferedSVConn.GetDeferMsgid(c);
+            logic.OnAccept(cid, new Core.DeferedSVConn(lcid, msgid), ret);
+            return 0;
         }
         static public unsafe bool Handle(Core.IServerLogic logic, 
                                     System.IntPtr c, int type, byte* data, uint len) {

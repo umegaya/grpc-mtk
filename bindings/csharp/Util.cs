@@ -10,6 +10,11 @@ namespace Mtk {
                 }
             }
         }
+        //represents async rpc result
+        public class Result<ERR> {
+            public Google.Protobuf.IMessage Reply;
+            public ERR Error;
+        }        
 	}
 	public partial class Util {
 		static public System.Type GetType( string TypeName ) {
