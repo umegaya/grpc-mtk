@@ -9,7 +9,7 @@ namespace Mtk.Unity {
 		//exposed property
 		public string service_name_;
 		public string logic_class_name_;
-		public List<string> args_;
+		public string[] args_;
 		public void Bootstrap() {
 			if (sv_ == null) {
 				Core.ServerBuilder.SetCurrentServiceName(service_name_);
@@ -19,7 +19,7 @@ namespace Mtk.Unity {
 					Debug.LogError("Logic class need to implement static method 'Bootstrap'");
 					return;
 				}
-				sv_ = (bootstrap.Invoke(null, new object[]{args_.ToArray()}) as Core.ServerBuilder).Build();
+				sv_ = (bootstrap.Invoke(null, new object[]{args_}) as Core.ServerBuilder).Build();
 			}
 		}
 		protected void Start() {
@@ -27,7 +27,8 @@ namespace Mtk.Unity {
 			var instance = t.GetMethod("Instance");
 			logic_ = instance.Invoke(null, null) as Core.IServerLogic;
 #if UNITY_EDITOR
-			ExitHandler.Instance().AtExit(ExitHandler.Priority.Server, Stop);
+			var self = this;
+			ExitHandler.Instance().AtExit(ExitHandler.Priority.Server, delegate () { self.Stop(); } );
 #endif
 		}
 		protected void Stop() {

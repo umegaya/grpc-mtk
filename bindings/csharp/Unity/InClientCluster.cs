@@ -25,7 +25,7 @@ namespace Mtk.Unity {
 				var cs = go.AddComponent(typeof(Mtk.Unity.InClientServer)) as Mtk.Unity.InClientServer;
 				cs.service_name_ = s.Key;
 				cs.logic_class_name_ = s.Value.Logic;
-				cs.args_ = new List<string>();
+				cs.args_ = s.Value.Args;
 				cs.Bootstrap();
 			}
 		}

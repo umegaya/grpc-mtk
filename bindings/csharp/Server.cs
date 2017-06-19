@@ -241,6 +241,71 @@ namespace Mtk {
                     mtk_queue_elem_free(queue_, elem);
                 }
             }
+            //typical accept and recv handlers
+            public delegate ERR AcceptHandler<REQ, REP, ERR>(ref ulong cid, Core.IContextSetter setter, REQ req, ref REP rep);
+            static public ulong OnAccept<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, out byte[] repdata, AcceptHandler<REQ, REP, ERR> hd) 
+                where REQ : Google.Protobuf.IMessage, new() 
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : Google.Protobuf.IMessage, IError, new() {
+                var req = new REQ();
+                ERR err = default(ERR);
+                int ret = Codec.Unpack(data, ref req);
+                if (ret >= 0) {
+                    var rep = new REP();
+                    try {
+                        err = hd(ref cid, setter, req, ref rep);
+                    } catch (System.Exception e) {
+                        err = new ERR();
+                        err.Set(e);
+                    }
+                    if (err == null) {
+                        ret = Codec.Pack(rep, out repdata);
+                        if (ret >= 0) {
+                            return cid;
+                        }
+                        err = new ERR();
+                        err.Set(Core.SystemErrorCode.PayloadPackFail);
+                    }
+                } else {
+                    err = new ERR();
+                    err.Set(Core.SystemErrorCode.PayloadUnpackFail); 
+                }
+                Codec.Pack(err, out repdata);
+                Mtk.Log.Error("ev:OnAccept fails,msg:" + err.Message);
+                return 0;
+            }
+
+            public delegate ERR Handler<REQ, REP, ERR>(Core.ISVConn c, REQ req, ref REP rep);
+            static public int Handle<REQ, REP, ERR>(Core.ISVConn c, byte[] data, Handler<REQ, REP, ERR> hd) 
+                where REQ : Google.Protobuf.IMessage, new() 
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : Google.Protobuf.IMessage, IError, new() {
+                //Mtk.Log.Info("Handle received:" + typeof(REQ));
+                var req = new REQ();
+                if (Codec.Unpack(data, ref req) >= 0) {
+                    REP rep = new REP();
+                    ERR err = default(ERR);
+                    try {
+                        err = hd(c, req, ref rep);
+                    } catch (System.Exception e) {
+                        err = new ERR();
+                        err.Set(e);
+                    }
+                    if (err == null) {
+                        if (!c.Reply(c.Msgid, rep)) {
+                            err = new ERR();
+                            err.Set(Core.SystemErrorCode.PayloadPackFail);
+                            c.Throw(c.Msgid, err);
+                        }
+                    } else if (!err.Pending) {
+                        Mtk.Log.Error("ev:handler fail,emsg:" + err.Message);
+                        c.Throw(c.Msgid, err);
+                    }
+                    return 0;
+                } 
+                Mtk.Log.Error("ev:invalid request payload,id:" + c.Id);
+                return -1;
+            }
         }
     }
 #if MTKSV

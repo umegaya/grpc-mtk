@@ -66,11 +66,17 @@ namespace Mtk {
 		   		public string image { get; set; }
 		   		public List<Port> ports { get; set; }
 		   		public List<string> environment { get; set; }
+		   		public string command { get; set; }
 		   		public Deploy deploy { get; set; }
 
 		   		public string Logic {
 		   			get {
 		   				return FindEnv("MTKSV_LOGIC");
+		   			}
+		   		}
+		   		public string[] Args {
+		   			get {
+		   				return command.Split(default(string[]), System.StringSplitOptions.RemoveEmptyEntries);
 		   			}
 		   		}
 		   		public int Port(int idx) {
@@ -80,9 +86,14 @@ namespace Mtk {
 		   				return 0;
 		   			}
 		   		}
-		   		public bool HasPort(string port) {
+		   		public bool HasPort(string port, out Port setting) {
+		   			setting = default(Port);
+		   			if (ports == null) {
+		   				return false;
+		   			}
 		   			foreach (var p in ports) {
-		   				if (p.published.ToString() == port) {
+		   				if (p.target.ToString() == port) {
+		   					setting = p;
 		   					return true;
 		   				}
 		   			}
@@ -125,7 +136,7 @@ namespace Mtk {
 			}
 			public bool Resolve(string service_and_port, out string resolved_host_and_port) {
 				Entry ent;
-				if (Table.TryGetValue(service_and_port, out ent)) {
+				if (Table.TryGetValue(service_and_port.Trim(), out ent)) {
 					var idx = ent.RoundRobinIndex % ent.Addresses.Count;
 					resolved_host_and_port = ent.Addresses[idx];
 					ent.RoundRobinIndex = ((idx + 1) % ent.Addresses.Count);
@@ -136,29 +147,36 @@ namespace Mtk {
 			}
 			public bool Translate(string service_name, string host_and_port, out string translated_host_and_port) {
 				var port = host_and_port.Split(':')[1];
-				if (Compose.services.ContainsKey(service_name)) {
-					if (!Compose.services[service_name].HasPort(port)) {
+				var key = service_name.Trim();
+				if (Compose.services.ContainsKey(key)) {
+					//if port is published, no address translation because its accessed from external executable
+					ComposeFile.Port p;
+					if (!Compose.services[key].HasPort(port, out p)) { 
 						translated_host_and_port = "0.0.0.0:" + port_num_seed_++;
-						Register(service_name + ":" + port, translated_host_and_port.Replace("0.0.0.0", "localhost"));
-						return true;
+					} else {
+						translated_host_and_port = "0.0.0.0:" + p.published;
 					}
+					Register(key + ":" + port, translated_host_and_port.Replace("0.0.0.0", "localhost"));
+					return true;
 				}
 				translated_host_and_port = "";
 				return false;
 			}
 			public void Register(string service_and_port, string host_and_port) {
 				Entry ent;
-				if (!Table.TryGetValue(service_and_port, out ent)) {
+				var key = service_and_port.Trim();
+				if (!Table.TryGetValue(key, out ent)) {
 					ent = new Entry {
 						Addresses = new List<string>(),
 						RoundRobinIndex = 0,
 					};
-					Table[service_and_port] = ent;
+					Table[key] = ent;
 				}
+				Mtk.Log.Info("ev:register to NAT,key:" + key + ",resolved:" + host_and_port);
 				ent.Addresses.Add(host_and_port);
 			}
 			public bool HasEntry(string service_and_port) {
-				return Table.ContainsKey(service_and_port);
+				return Table.ContainsKey(service_and_port.Trim());
 			}
 		}
 	}

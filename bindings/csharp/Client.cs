@@ -250,7 +250,8 @@ namespace Mtk {
 				base.Init(mtk_connect(ref addr, ref conf), cbmems);
 #if UNITY_EDITOR
 				if (auto_cleanup) {
-					Unity.ExitHandler.Instance().AtExit(Unity.ExitHandler.Priority.Client, Stop);
+                    var self = this;
+					Unity.ExitHandler.Instance().AtExit(Unity.ExitHandler.Priority.Client, delegate () { self.Stop(); });
 				}
 #endif
 			}
