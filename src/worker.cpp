@@ -45,6 +45,7 @@ namespace mtk {
                 auto c = connections_[i];
                 c->ConsumeTask(n_process);
             }
+            handler_->Poll();
         }
     }
 }

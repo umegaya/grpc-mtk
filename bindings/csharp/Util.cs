@@ -1,5 +1,9 @@
 using System.Reflection;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Continuation = System.Tuple<System.Threading.SendOrPostCallback, object>;
 
 namespace Mtk {
     public partial class Core {
@@ -10,6 +14,7 @@ namespace Mtk {
                 }
             }
         }
+
         //represents async rpc result
         public class HandleResult {
             public Google.Protobuf.IMessage Reply;
@@ -20,6 +25,27 @@ namespace Mtk {
             public Google.Protobuf.IMessage Reply;
             public IError Error;
         }
+
+        //synchronization context to 
+        public class ManualPumpingSynchronizationContext : SynchronizationContext
+		{
+			ConcurrentQueue<Continuation> conts_ = new ConcurrentQueue<Continuation>();
+
+			public override void Post(SendOrPostCallback d, object state)
+			{
+				conts_.Enqueue(new Continuation(d, state));
+			}
+
+			public void Update()
+			{
+				Continuation cont;
+				while(conts_.TryDequeue(out cont))
+				{
+					cont.Item1(cont.Item2);
+				}
+			}
+		}
+
 	}
 	public partial class Util {
 		static public System.Type GetType( string TypeName ) {

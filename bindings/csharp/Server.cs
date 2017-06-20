@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Threading;
 #if !MTKSV
 using AOT;
 #endif
@@ -243,8 +244,10 @@ namespace Mtk {
         public class Server {
             System.IntPtr server_;
             System.IntPtr queue_;
+            ManualPumpingSynchronizationContext sync_;
             public Server(System.IntPtr s) {
                 server_ = s;
+                sync_ = new ManualPumpingSynchronizationContext();　
                 unsafe {
                     queue_ = mtk_server_queue(server_);
                 }
@@ -260,26 +263,34 @@ namespace Mtk {
                 }
             }
             public unsafe void Process(IServerLogic logic) {
-                logic.Poll();
-                System.IntPtr elem = new System.IntPtr();
-                while (mtk_queue_pop(queue_, ref elem)) {
-                    ServerEvent *ev = (ServerEvent *)elem;
-                    if (ev->lcid != 0) {
-                        var ret = new byte[ev->datalen];
-                        byte[] rep;
-                        byte *bp = (((byte *)ev) + SERVER_EVENT_TRUE_SIZE);
-                        Marshal.Copy((System.IntPtr)bp, ret, 0, (int)ev->datalen);
-                        logic.OnAccept(ev->cid, new DeferredSVConn(ev->lcid, ev->msgid), ret);
-                    } else if (ev->msgid != 0) {
-                        var c = new CidConn(ev->cid, ev->msgid);
-                        var ret = new byte[ev->datalen];
-                        Marshal.Copy((System.IntPtr)(((byte *)ev) + SERVER_EVENT_TRUE_SIZE), ret, 0, (int)ev->datalen);
-                        logic.OnRecv(c, ev->result, ret);
-                    } else {
-                        logic.OnClose(ev->cid);
+                var pctx =  SynchronizationContext.Current;
+                try {
+                    SynchronizationContext.SetSynchronizationContext(sync_);
+                    logic.Poll();
+                    System.IntPtr elem = new System.IntPtr();
+                    while (mtk_queue_pop(queue_, ref elem)) {
+                        ServerEvent *ev = (ServerEvent *)elem;
+                        if (ev->lcid != 0) {
+                            var ret = new byte[ev->datalen];
+                            byte[] rep;
+                            byte *bp = (((byte *)ev) + SERVER_EVENT_TRUE_SIZE);
+                            Marshal.Copy((System.IntPtr)bp, ret, 0, (int)ev->datalen);
+                            logic.OnAccept(ev->cid, new DeferredSVConn(ev->lcid, ev->msgid), ret);
+                        } else if (ev->msgid != 0) {
+                            var c = new CidConn(ev->cid, ev->msgid);
+                            var ret = new byte[ev->datalen];
+                            Marshal.Copy((System.IntPtr)(((byte *)ev) + SERVER_EVENT_TRUE_SIZE), ret, 0, (int)ev->datalen);
+                            logic.OnRecv(c, ev->result, ret);
+                        } else {
+                            logic.OnClose(ev->cid);
+                        }
+                        mtk_queue_elem_free(queue_, elem);
                     }
-                    mtk_queue_elem_free(queue_, elem);
+                } 
+                finally {
+                    SynchronizationContext.SetSynchronizationContext(pctx);
                 }
+                sync_.Update(); //resume pending continuation (awaited tasks)
             }
             //typical accept and recv handlers (sync)
             public delegate ERR AcceptHandler<REQ, REP, ERR>(ref ulong cid, Core.IContextSetter setter, REQ req, ref REP rep);
@@ -429,6 +440,8 @@ namespace Mtk {
     }
 #if MTKSV
     public class EntryPoint {
+        [ThreadStatic]
+        static ManualPumpingSynchronizationContext sync_;
         static public void Shutdown(Core.IServerLogic logic) {
             logic.Shutdown();
         }
@@ -438,17 +451,55 @@ namespace Mtk {
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
             ulong lcid = DeferedSVConn.DeferLogin(c);
             uint msgid = DeferedSVConn.GetDeferMsgid(c);
-            logic.OnAccept(cid, new Core.DeferedSVConn(lcid, msgid), ret);
+            var pctx =  SynchronizationContext.Current;
+            try {
+                SynchronizationContext.SetSynchronizationContext(sync_);
+                logic.OnAccept(cid, new Core.DeferedSVConn(lcid, msgid), ret);
+            }
+            finally {
+                SynchronizationContext.SetSynchronizationContext(pctx);
+            }
             return 0;
         }
         static public unsafe bool Handle(Core.IServerLogic logic, 
                                     System.IntPtr c, int type, byte* data, uint len) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            return logic.OnRecv(new Core.SVConn(c), type, ret) >= 0;
+            var pctx =  SynchronizationContext.Current;
+            try {
+                SynchronizationContext.SetSynchronizationContext(sync_);
+                return logic.OnRecv(new Core.SVConn(c), type, ret) >= 0;
+            }
+            finally {
+                SynchronizationContext.SetSynchronizationContext(pctx);
+            }
         }
         static public void Close(Core.IServerLogic logic, System.IntPtr c) {
-            logic.OnClose(Core.SVConn.IdFromPtr(c));
+            var pctx =  SynchronizationContext.Current;
+            try {
+                SynchronizationContext.SetSynchronizationContext(sync_);
+                logic.OnClose(Core.SVConn.IdFromPtr(c));
+            }
+            finally {
+                SynchronizationContext.SetSynchronizationContext(pctx);
+            }
+        }
+        static public void TlsInit(Core.IServerLogic logic) {
+            sync_ = new ManualPumpingSynchronizationContext();
+        }
+        static public void TlsFin(Core.IServerLogic logic) {
+
+        }
+        static public void Poll(Core.IServerLogic logic) {
+            var pctx =  SynchronizationContext.Current;
+            try {
+                SynchronizationContext.SetSynchronizationContext(sync_);
+                logic.Poll();
+            }
+            finally {
+                SynchronizationContext.SetSynchronizationContext(pctx);
+            }
+            sync_.Update(); //execute pending continuation (awaited tasks)
         }
     }
 #endif

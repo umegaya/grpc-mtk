@@ -53,6 +53,7 @@ namespace mtk {
         virtual mtk_cid_t Login(Conn *c, Request &req, MemSlice &s) = 0;
         virtual void Close(Conn *c) = 0;
         virtual Conn *NewConn(Worker *worker, IHandler *handler) = 0;
+        virtual void Poll() {}
     };
     typedef uint32_t MessageType;
     class SVStream : public IJob {
