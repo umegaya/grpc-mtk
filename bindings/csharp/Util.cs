@@ -11,10 +11,15 @@ namespace Mtk {
             }
         }
         //represents async rpc result
-        public class Result<ERR> {
+        public class HandleResult {
             public Google.Protobuf.IMessage Reply;
-            public ERR Error;
-        }        
+            public IError Error;
+        }
+        public class AcceptResult {
+            public ulong Cid;
+            public Google.Protobuf.IMessage Reply;
+            public IError Error;
+        }
 	}
 	public partial class Util {
 		static public System.Type GetType( string TypeName ) {

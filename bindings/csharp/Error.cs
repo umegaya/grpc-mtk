@@ -5,7 +5,7 @@ namespace Mtk {
     		PayloadPackFail = -1,
     		PayloadUnpackFail = -2,
     	};
-    	public interface IError {
+    	public interface IError : Google.Protobuf.IMessage {
     		//indicate handler should not reply immediately
     		bool Pending { get; }
     		string Message { get; }

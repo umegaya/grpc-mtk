@@ -22,12 +22,25 @@ namespace Mtk {
         public partial interface IContextSetter {
             T SetContext<T>(T obj);
         }
-        public interface IServerLogic {
-            void OnAccept(ulong cid, IContextSetter setter, byte[] data);
-            int OnRecv(ISVConn c, int type, byte[] data);
-            void OnClose(ulong cid);
-            void Poll();
-            void Shutdown();
+        public abstract class IServerLogic {
+            public abstract void OnAccept(ulong cid, IContextSetter setter, byte[] data);
+            public abstract int OnRecv(ISVConn c, int type, byte[] data);
+            public abstract void OnClose(ulong cid);
+            public abstract void Poll();
+            public abstract void Shutdown();
+
+            protected HandleResult Ok(Google.Protobuf.IMessage reply) {
+                return new HandleResult{ Reply = reply, Error = null };
+            }
+            protected HandleResult Error(IError error) {
+                return new HandleResult{ Reply = null, Error = error };
+            }
+            protected AcceptResult Accept(ulong cid, Google.Protobuf.IMessage reply) {
+                return new AcceptResult{ Cid = cid, Reply = reply, Error = null };
+            }
+            protected AcceptResult Reject(IError error) {
+                return new AcceptResult{ Reply = null, Error = error };
+            }
         }
         //logic class need to have static methods
         /*
@@ -273,12 +286,11 @@ namespace Mtk {
             static public void OnAccept<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AcceptHandler<REQ, REP, ERR> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
-                where ERR : Google.Protobuf.IMessage, IError, new() {
+                where ERR : IError, new() {
                 var req = new REQ();
-                ERR err = default(ERR);
+                IError err = null;
                 byte[] repdata;
-                int ret = Codec.Unpack(data, ref req);
-                if (ret >= 0) {
+                if (Codec.Unpack(data, ref req) >= 0) {
                     var rep = new REP();
                     try {
                         err = hd(ref cid, setter, req, ref rep);
@@ -287,8 +299,7 @@ namespace Mtk {
                         err.Set(e);
                     }
                     if (err == null) {
-                        ret = Codec.Pack(rep, out repdata);
-                        if (ret >= 0) {
+                        if (Codec.Pack(rep, out repdata) >= 0) {
                             (setter as DeferredSVConn).FinishLogin(cid, repdata);
                             return;
                         }
@@ -301,7 +312,11 @@ namespace Mtk {
                 }
                 Codec.Pack(err, out repdata);
                 Mtk.Log.Error("ev:OnAccept fails,msg:" + err.Message);
-                (setter as DeferredSVConn).FinishLogin(0, repdata);
+                if (Codec.Pack(err, out repdata) >= 0) {
+                    (setter as DeferredSVConn).FinishLogin(0, repdata);
+                } else {
+                    (setter as DeferredSVConn).FinishLogin(0, new byte[0]);
+                }
                 return;
             }
 
@@ -309,7 +324,7 @@ namespace Mtk {
             static public int Handle<REQ, REP, ERR>(Core.ISVConn c, byte[] data, Handler<REQ, REP, ERR> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
-                where ERR : Google.Protobuf.IMessage, IError, new() {
+                where ERR : IError, new() {
                 //Mtk.Log.Info("Handle received:" + typeof(REQ));
                 var req = new REQ();
                 if (Codec.Unpack(data, ref req) >= 0) {
@@ -339,17 +354,16 @@ namespace Mtk {
 
 #if !MTK_DISABLE_ASYNC
             //typical accept and recv handlers (async)
-            public delegate Task<Result<ERR>> AsyncAcceptHandler<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, REQ req);
-            static public async void OnAcceptAsync<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AsyncAcceptHandler<REQ, REP, ERR> hd) 
+            public delegate Task<AcceptResult> AsyncAcceptHandler<REQ, REP>(ulong cid, Core.IContextSetter setter, REQ req);
+            static public async void OnAcceptAsync<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AsyncAcceptHandler<REQ, REP> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
-                where ERR : Google.Protobuf.IMessage, IError, new() {
+                where ERR : IError, new() {
                 var req = new REQ();
-                var res = default(Result<ERR>);
-                ERR err;
+                AcceptResult res = null;
+                IError err;
                 byte[] repdata;
-                int ret = Codec.Unpack(data, ref req);
-                if (ret >= 0) {
+                if (Codec.Unpack(data, ref req) >= 0) {
                     var rep = new REP();
                     try {
                         res = await hd(cid, setter, req);
@@ -359,9 +373,8 @@ namespace Mtk {
                         err.Set(e);
                     }
                     if (err == null) {
-                        ret = Codec.Pack(res.Reply, out repdata);
-                        if (ret >= 0) {
-                            (setter as DeferredSVConn).FinishLogin(cid, repdata);
+                        if (Codec.Pack(res.Reply, out repdata) >= 0) {
+                            (setter as DeferredSVConn).FinishLogin(res.Cid, repdata);
                             return;
                         }
                         err = new ERR();
@@ -371,21 +384,24 @@ namespace Mtk {
                     err = new ERR();
                     err.Set(Core.SystemErrorCode.PayloadUnpackFail); 
                 }
-                Codec.Pack(err, out repdata);
                 Mtk.Log.Error("ev:OnAccept fails,msg:" + err.Message);
-                (setter as DeferredSVConn).FinishLogin(0, repdata);
+                if (Codec.Pack(err, out repdata) >= 0) {
+                    (setter as DeferredSVConn).FinishLogin(0, repdata);
+                } else {
+                    (setter as DeferredSVConn).FinishLogin(0, new byte[0]);
+                }
             }
 
-            public delegate Task<Result<ERR>> AsyncHandler<REQ, REP, ERR>(Core.ISVConn c, REQ req);
+            public delegate Task<HandleResult> AsyncHandler<REQ, REP, ERR>(Core.ISVConn c, REQ req);
             static public async void HandleAsync<REQ, REP, ERR>(Core.ISVConn c, byte[] data, AsyncHandler<REQ, REP, ERR> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
-                where ERR : Google.Protobuf.IMessage, IError, new() {
+                where ERR : IError, new() {
                 //Mtk.Log.Info("Handle received:" + typeof(REQ));
                 var req = new REQ();
                 if (Codec.Unpack(data, ref req) >= 0) {
-                    Result<ERR> res = default(Result<ERR>);
-                    ERR err;
+                    HandleResult res = null;
+                    IError err;
                     try {
                         res = await hd(c, req);
                         err = res.Error;
