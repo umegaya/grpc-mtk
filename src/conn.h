@@ -425,6 +425,7 @@ namespace mtk {
                 return;
             }
             auto mc = it->second;
+            pmap_.erase(lcid);
             pmap_mtx_.unlock();
             SystemPayload::Login a;
             a.set_login_cid(lcid);

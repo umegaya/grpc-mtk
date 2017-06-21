@@ -68,7 +68,7 @@ namespace Mtk {
                     return default(T);
                 }
             }
-            internal void FinishLogin(ulong cid, byte[] data) {
+            public void FinishLogin(ulong cid, byte[] data) {
                 unsafe { fixed (byte* d = data) { mtk_svconn_finish_login(lcid_, cid, msgid_, d, (uint)data.Length); } }
             }
             static internal ulong DeferLogin(System.IntPtr c) {
@@ -272,7 +272,6 @@ namespace Mtk {
                         ServerEvent *ev = (ServerEvent *)elem;
                         if (ev->lcid != 0) {
                             var ret = new byte[ev->datalen];
-                            byte[] rep;
                             byte *bp = (((byte *)ev) + SERVER_EVENT_TRUE_SIZE);
                             Marshal.Copy((System.IntPtr)bp, ret, 0, (int)ev->datalen);
                             logic.OnAccept(ev->cid, new DeferredSVConn(ev->lcid, ev->msgid), ret);
@@ -375,7 +374,6 @@ namespace Mtk {
                 IError err;
                 byte[] repdata;
                 if (Codec.Unpack(data, ref req) >= 0) {
-                    var rep = new REP();
                     try {
                         res = await hd(cid, setter, req);
                         err = res.Error;
@@ -440,23 +438,22 @@ namespace Mtk {
     }
 #if MTKSV
     public class EntryPoint {
-        [ThreadStatic]
-        static ManualPumpingSynchronizationContext sync_;
+        [System.ThreadStatic]
+        static Core.ManualPumpingSynchronizationContext sync_;
         static public void Shutdown(Core.IServerLogic logic) {
             logic.Shutdown();
         }
         static public unsafe ulong Login(Core.IServerLogic logic, 
-                                    System.IntPtr c, ulong cid, byte* data, uint len, out byte[] repdata) {
+                                    System.IntPtr c, ulong cid, byte* data, uint len) {
             var ret = new byte[len];
             Marshal.Copy((System.IntPtr)data, ret, 0, (int)len);
-            ulong lcid = DeferedSVConn.DeferLogin(c);
-            uint msgid = DeferedSVConn.GetDeferMsgid(c);
+            ulong lcid = Core.DeferredSVConn.DeferLogin(c);
+            uint msgid = Core.DeferredSVConn.GetDeferMsgid(c);
             var pctx =  SynchronizationContext.Current;
             try {
                 SynchronizationContext.SetSynchronizationContext(sync_);
-                logic.OnAccept(cid, new Core.DeferedSVConn(lcid, msgid), ret);
-            }
-            finally {
+                logic.OnAccept(cid, new Core.DeferredSVConn(lcid, msgid), ret);
+            } finally {
                 SynchronizationContext.SetSynchronizationContext(pctx);
             }
             return 0;
@@ -469,8 +466,7 @@ namespace Mtk {
             try {
                 SynchronizationContext.SetSynchronizationContext(sync_);
                 return logic.OnRecv(new Core.SVConn(c), type, ret) >= 0;
-            }
-            finally {
+            } finally {
                 SynchronizationContext.SetSynchronizationContext(pctx);
             }
         }
@@ -479,13 +475,12 @@ namespace Mtk {
             try {
                 SynchronizationContext.SetSynchronizationContext(sync_);
                 logic.OnClose(Core.SVConn.IdFromPtr(c));
-            }
-            finally {
+            } finally {
                 SynchronizationContext.SetSynchronizationContext(pctx);
             }
         }
         static public void TlsInit(Core.IServerLogic logic) {
-            sync_ = new ManualPumpingSynchronizationContext();
+            sync_ = new Core.ManualPumpingSynchronizationContext();
         }
         static public void TlsFin(Core.IServerLogic logic) {
 
@@ -495,8 +490,7 @@ namespace Mtk {
             try {
                 SynchronizationContext.SetSynchronizationContext(sync_);
                 logic.Poll();
-            }
-            finally {
+            } finally {
                 SynchronizationContext.SetSynchronizationContext(pctx);
             }
             sync_.Update(); //execute pending continuation (awaited tasks)
