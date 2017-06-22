@@ -41,6 +41,47 @@ namespace Mtk {
             bool Throw(uint msgid, IMessage m);
             bool Notify(uint type, IMessage m);
         }
+        public partial class IServerLogic {
+            public bool Reply<T>(ulong cid, uint msgid, T data) where T : IMessage {
+                byte[] payload;
+                if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
+                Reply(cid, msgid, payload);
+                return true;
+            }
+            public bool Throw<T>(ulong cid, uint msgid, T data) where T : IMessage {
+                byte[] payload;
+                if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
+                Throw(cid, msgid, payload);
+                return true;
+            }
+            public bool Notify<T>(ulong cid, uint type, T data) where T : IMessage {
+                byte[] payload;
+                if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
+                Notify(cid, type, payload);
+                return true;
+            }
+            public void Reply(ulong cid, uint msgid, ByteString data) {
+                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_send(server_, cid, msgid, d, (uint)data.Length); } }
+            }
+            public void Throw(ulong cid, uint msgid, ByteString data) {
+                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_error(server_, cid, msgid, d, (uint)data.Length); } }
+            }
+            public void Notify(ulong cid, uint type, ByteString data) {
+                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_notify(server_, cid, type, d, (uint)data.Length); } }
+            }
+            public void Reply(ulong cid, uint msgid, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_cid_send(server_, cid, msgid, d, (uint)data.Length); } }
+            }
+            public void Throw(ulong cid, uint msgid, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_cid_error(server_, cid, msgid, d, (uint)data.Length); } }
+            }
+            public void Notify(ulong cid, uint type, byte[] data) {
+                unsafe { fixed (byte* d = data) { mtk_cid_notify(server_, cid, type, d, (uint)data.Length); } }
+            }
+        }
         public partial class DeferredSVConn {
             internal void FinishLogin(ulong cid, IMessage m) {
                 byte[] data;
@@ -72,36 +113,6 @@ namespace Mtk {
                 if (Codec.Pack(m, out data) < 0) { Core.Assert(false); return false; }
                 Notify(type, data);
                 return true;
-            }
-            static public bool Reply<T>(ulong cid, uint msgid, T data) where T : IMessage {
-                byte[] payload;
-                if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
-                Reply(cid, msgid, payload);
-                return true;
-            }
-            static public bool Throw<T>(ulong cid, uint msgid, T data) where T : IMessage {
-                byte[] payload;
-                if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
-                Throw(cid, msgid, payload);
-                return true;
-            }
-            static public bool Notify<T>(ulong cid, uint type, T data) where T : IMessage {
-                byte[] payload;
-                if (Codec.Pack(data, out payload) < 0) { Core.Assert(false); return false; }
-                Notify(cid, type, payload);
-                return true;
-            }
-            static public void Reply(ulong cid, uint msgid, ByteString data) {
-                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
-                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
-            }
-            static public void Throw(ulong cid, uint msgid, ByteString data) {
-                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
-                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
-            }
-            static public void Notify(ulong cid, uint type, ByteString data) {
-                //unsafe { fixed (byte* d = data.UnsafeBuffer) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
-                unsafe { fixed (byte* d = data.ToByteArray()) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
             }
         }
         public partial class CidConn {

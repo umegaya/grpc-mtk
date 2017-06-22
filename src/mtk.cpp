@@ -283,50 +283,47 @@ void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor) {
 void *mtk_svconn_getctx(mtk_svconn_t conn) {
 	return ((Conn *)conn)->UserCtxPtr();
 }
-void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
-	Conn::Stream s = Conn::Get(cid);
+mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
+	Client *cl = new Client(clconf);
+	Client::CredOptions opts;
+	cl->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
+	return (void *)cl;
+}
+void mtk_cid_send(mtk_server_t sv, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
+	Conn::Stream s = Conn::Get((IServer *)sv, cid);
 	if (s == nullptr) { return; }
 	std::string buf(data, datalen);
 	s->Rep(msgid, buf);
 }
-void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
-	Conn::Stream s = Conn::Get(cid);
+void mtk_cid_notify(mtk_server_t sv, mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
+	Conn::Stream s = Conn::Get((IServer *)sv, cid);
 	if (s == nullptr) { return; }
 	std::string buf(data, datalen);
 	s->Notify(type, buf);
 }
-void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
-	Conn::Stream s = Conn::Get(cid);
+void mtk_cid_error(mtk_server_t sv, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen) {
+	Conn::Stream s = Conn::Get((IServer *)sv, cid);
 	if (s == nullptr) { return; }
 	Error *e = new Error();
 	e->set_error_code(MTK_APPLICATION_ERROR);
 	e->set_payload(data, datalen);
 	s->Throw(msgid, e);
 }
-void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
-	Conn::Stream s = Conn::Get(cid);
+void mtk_cid_task(mtk_server_t sv, mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen) {
+	Conn::Stream s = Conn::Get((IServer *)sv, cid);
 	if (s == nullptr) { return; }
 	std::string buf(data, datalen);
 	s->AddTask(type, buf);
 }
-void mtk_cid_close(mtk_cid_t cid) {
-	Conn::Stream s = Conn::Get(cid);
+void mtk_cid_close(mtk_server_t sv, mtk_cid_t cid) {
+	Conn::Stream s = Conn::Get((IServer *)sv, cid);
 	if (s == nullptr) { return; }
 	s->Close();
 }
-void *mtk_cid_getctx(mtk_cid_t cid) {
-	Conn::Stream s = Conn::Get(cid);
+void *mtk_cid_getctx(mtk_server_t sv, mtk_cid_t cid) {
+	Conn::Stream s = Conn::Get((IServer *)sv, cid);
 	if (s == nullptr) { return nullptr; }
 	return s->UserCtxPtr();
-}
-
-
-
-mtk_conn_t mtk_connect(mtk_addr_t *addr, mtk_clconf_t *clconf) {
-	Client *cl = new Client(clconf);
-	Client::CredOptions opts;
-	cl->Initialize(addr->host, CreateCred(*addr, opts) ? &opts : nullptr);
-	return (void *)cl;
 }
 mtk_cid_t mtk_conn_cid(mtk_conn_t c) {
 	Client *cl = (Client *)c;

@@ -131,17 +131,17 @@ namespace Mtk {
 
         //other server conn, using cid 
         [DllImport (DllName)]
-        private static extern unsafe void mtk_cid_send(ulong cid, uint msgid, byte *data, uint datalen);
+        private static extern unsafe void mtk_cid_send(System.IntPtr sv, ulong cid, uint msgid, byte *data, uint datalen);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_cid_notify(ulong cid, uint type, byte *data, uint datalen);
+        private static extern unsafe void mtk_cid_notify(System.IntPtr sv, ulong cid, uint type, byte *data, uint datalen);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_cid_error(ulong cid, uint msgid, byte *data, uint datalen);
+        private static extern unsafe void mtk_cid_error(System.IntPtr sv, ulong cid, uint msgid, byte *data, uint datalen);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_cid_task(ulong cid, uint type, byte *data, uint datalen);
+        private static extern unsafe void mtk_cid_task(System.IntPtr sv, ulong cid, uint type, byte *data, uint datalen);
         [DllImport (DllName)]
-        private static extern unsafe void mtk_cid_close(ulong cid);
+        private static extern unsafe void mtk_cid_close(System.IntPtr sv, ulong cid);
         [DllImport (DllName)]
-        private static extern unsafe System.IntPtr mtk_cid_getctx(ulong cid);
+        private static extern unsafe System.IntPtr mtk_cid_getctx(System.IntPtr sv, ulong cid);
 
         //client conn
         [DllImport (DllName)]

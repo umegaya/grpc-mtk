@@ -58,6 +58,7 @@ namespace mtk {
         void Start();
         void Stop();
         void Run();
+        inline grpc::string RemoteAddress() const { return context_->peer(); }
     public: //tag util
         static inline void *GenerateWriteTag(mtk_msgid_t msgid) {
             return reinterpret_cast<void *>((msgid << 8) + 1);
@@ -243,6 +244,7 @@ namespace mtk {
             msg->set_msgid(msgid);
             requests_.enqueue(msg);
             reqmtx_.lock();
+            TRACE("set msgid {} for {} {}", msgid, iothr_->RemoteAddress(), (void *)this);
             reqmap_[msgid] = ent;
             reqmtx_.unlock();
         }

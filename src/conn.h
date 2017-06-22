@@ -45,6 +45,7 @@ namespace mtk {
     };
     class Conn;
     class Worker;
+    class IServer;
     class IHandler {
     public:
         virtual void TlsInit(Worker *w) {};
@@ -260,6 +261,7 @@ namespace mtk {
         void Destroy() override { delete this; }
     };
     class Conn : public IJob {
+        friend class IServer;
     public:
         typedef std::map<mtk_cid_t, Conn*> Map;
         typedef std::map<mtk_login_cid_t, Conn*> PendingMap;
@@ -286,11 +288,9 @@ namespace mtk {
             bool operator != (std::nullptr_t) const { return stream_ != nullptr; }
         };
     protected:
-        static Map cmap_;
         static PendingMap pmap_;
-        static Stream default_;
         static ATOMIC_UINT64 login_cid_seed_;
-        static std::mutex cmap_mtx_, pmap_mtx_;
+        static std::mutex pmap_mtx_;
 
         Worker *worker_;
         IHandler *handler_;
@@ -340,21 +340,8 @@ namespace mtk {
         inline bool WaitLoginAccept() const { return status_ == WAIT_LOGIN; }
         inline bool HasPeer() const { return status_ > ACCEPT; }
         inline mtk_msgid_t CurrentMsgId() const { return req_.msgid(); }
-        static Stream Get(mtk_cid_t uid) {
-            cmap_mtx_.lock();
-            auto it = cmap_.find(uid);
-            if (it != cmap_.end()) {
-                cmap_mtx_.unlock();
-                return Stream((*it).second->stream_);
-            }
-            cmap_mtx_.unlock();
-            return default_;
-        }
-        static void Operate(std::function<void(Map &)> op) {
-            cmap_mtx_.lock();
-            op(cmap_);
-            cmap_mtx_.unlock();
-        }
+        static Stream Get(IServer *sv, mtk_cid_t uid);
+        static void Operate(IServer *sv, std::function<void(Map &)> op);
     public:
         template <typename... Args> void LogDebug(const char* fmt, const Args&... args) {
 #if defined(DEBUG)

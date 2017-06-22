@@ -13,18 +13,20 @@ namespace {
 
 namespace mtk {
     class IHandler;
+    class IServer;
     //worker base
     class Worker {
     protected:
         std::thread thr_;
         Service* service_;
+        IServer* server_;
         IHandler* handler_;
         std::unique_ptr<ServerCompletionQueue> cq_;
         std::vector<Conn *> connections_;
         bool dying_;
     public:
-        Worker(Service *service, IHandler *handler, ServerBuilder &builder) :
-            service_(service), handler_(handler), cq_(builder.AddCompletionQueue()),
+        Worker(Service *service, IServer *server, IHandler *handler, ServerBuilder &builder) :
+            service_(service), server_(server), handler_(handler), cq_(builder.AddCompletionQueue()),
             connections_(), dying_(false) {}
         virtual ~Worker() {}
         void Launch();
@@ -37,6 +39,7 @@ namespace mtk {
                 c->Step();
             }
         }
+        inline IServer *Server() { return server_; }
         inline bool Dying() const { return dying_;  }
         inline void Shutdown() { cq_->Shutdown(); }
         inline void Join() { if (thr_.joinable()) { thr_.join(); } }

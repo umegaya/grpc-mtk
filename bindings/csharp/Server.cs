@@ -23,13 +23,21 @@ namespace Mtk {
         public partial interface IContextSetter {
             T SetContext<T>(T obj);
         }
-        public abstract class IServerLogic {
+        public abstract partial class IServerLogic {
             public abstract void OnAccept(ulong cid, IContextSetter setter, byte[] data);
             public abstract int OnRecv(ISVConn c, int type, byte[] data);
             public abstract void OnClose(ulong cid);
             public abstract void Poll();
             public abstract void Shutdown();
 
+            System.IntPtr server_;
+            public CidConn NewConn(ulong cid, uint msgid) {
+                return new CidConn(cid, msgid, server_);
+            }
+            public void SetServerDescriptor(System.IntPtr sv) {
+                server_  = sv;
+            }
+            
             protected HandleResult Ok(Google.Protobuf.IMessage reply) {
                 return new HandleResult{ Reply = reply, Error = null };
             }
@@ -131,15 +139,6 @@ namespace Mtk {
                 }
                 return (T)ptr.Target;                
             }
-            static public void Reply(ulong cid, uint msgid, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_send(cid, msgid, d, (uint)data.Length); } }
-            }
-            static public void Throw(ulong cid, uint msgid, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_error(cid, msgid, d, (uint)data.Length); } }
-            }
-            static public void Notify(ulong cid, uint type, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_notify(cid, type, d, (uint)data.Length); } }
-            }
             static public ulong IdFromPtr(System.IntPtr c) {
                 unsafe { return mtk_svconn_cid(c); }
             }
@@ -148,9 +147,11 @@ namespace Mtk {
         public partial class CidConn : ISVConn {
             ulong cid_;
             uint msgid_;
-            public CidConn(ulong cid, uint msgid) {
+            System.IntPtr sv_;
+            public CidConn(ulong cid, uint msgid, System.IntPtr sv) {
                 cid_ = cid;
                 msgid_ = msgid;
+                sv_ = sv;
             }
             public ulong Id {
                 get { unsafe { return cid_; } }
@@ -159,23 +160,23 @@ namespace Mtk {
                 get { unsafe { return msgid_; } }
             }
             public void Reply(uint msgid, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_send(cid_, msgid, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data) { mtk_cid_send(sv_, cid_, msgid, d, (uint)data.Length); } }
             }
             public void Task(uint type, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_task(cid_, type, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data) { mtk_cid_task(sv_, cid_, type, d, (uint)data.Length); } }
             }
             public void Throw(uint msgid, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_error(cid_, msgid, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data) { mtk_cid_error(sv_, cid_, msgid, d, (uint)data.Length); } }
             }
             public void Notify(uint type, byte[] data) {
-                unsafe { fixed (byte* d = data) { mtk_cid_notify(cid_, type, d, (uint)data.Length); } }
+                unsafe { fixed (byte* d = data) { mtk_cid_notify(sv_, cid_, type, d, (uint)data.Length); } }
             }
             public void Close() {
-                unsafe { mtk_cid_close(cid_); }
+                unsafe { mtk_cid_close(sv_, cid_); }
             }
             public T Context<T>() {
                 unsafe {
-                    System.IntPtr ptr = mtk_cid_getctx(cid_);
+                    System.IntPtr ptr = mtk_cid_getctx(sv_, cid_);
                     if (ptr == System.IntPtr.Zero) {
                         return default(T);
                     } else {
@@ -255,6 +256,9 @@ namespace Mtk {
             public bool Initialized {
                 get { return server_ != System.IntPtr.Zero && queue_ != System.IntPtr.Zero; }
             }
+            public System.IntPtr Descriptor {
+                get { return server_; }
+            }
             public void Destroy() {
                 unsafe {
                     if (server_ != System.IntPtr.Zero) {
@@ -276,7 +280,7 @@ namespace Mtk {
                             Marshal.Copy((System.IntPtr)bp, ret, 0, (int)ev->datalen);
                             logic.OnAccept(ev->cid, new DeferredSVConn(ev->lcid, ev->msgid), ret);
                         } else if (ev->msgid != 0) {
-                            var c = new CidConn(ev->cid, ev->msgid);
+                            var c = new CidConn(ev->cid, ev->msgid, server_);
                             var ret = new byte[ev->datalen];
                             Marshal.Copy((System.IntPtr)(((byte *)ev) + SERVER_EVENT_TRUE_SIZE), ret, 0, (int)ev->datalen);
                             logic.OnRecv(c, ev->result, ret);
@@ -401,8 +405,8 @@ namespace Mtk {
                 }
             }
 
-            public delegate Task<HandleResult> AsyncHandler<REQ, REP, ERR>(Core.ISVConn c, REQ req);
-            static public async void HandleAsync<REQ, REP, ERR>(Core.ISVConn c, byte[] data, AsyncHandler<REQ, REP, ERR> hd) 
+            public delegate Task<HandleResult> AsyncHandler<REQ, REP>(Core.ISVConn c, REQ req);
+            static public async void HandleAsync<REQ, REP, ERR>(Core.ISVConn c, byte[] data, AsyncHandler<REQ, REP> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : IError, new() {
@@ -419,7 +423,7 @@ namespace Mtk {
                         err.Set(e);
                     }
                     if (err == null) {
-                        if (!c.Reply(c.Msgid, res.Reply)) {
+                        if (!(res.Reply is REP) || !c.Reply(c.Msgid, res.Reply)) {
                             err = new ERR();
                             err.Set(Core.SystemErrorCode.PayloadPackFail);
                             c.Throw(c.Msgid, err);
@@ -440,6 +444,9 @@ namespace Mtk {
     public class EntryPoint {
         [System.ThreadStatic]
         static Core.ManualPumpingSynchronizationContext sync_;
+        static public void Initialize(Core.IServerLogic logic, System.IntPtr svdesc) {
+            logic.SetServerDescriptor(svdesc);
+        }
         static public void Shutdown(Core.IServerLogic logic) {
             logic.Shutdown();
         }

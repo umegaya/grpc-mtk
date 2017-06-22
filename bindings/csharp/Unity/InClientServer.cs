@@ -26,6 +26,7 @@ namespace Mtk.Unity {
 			var t = Util.GetType(logic_class_name_);
 			var instance = t.GetMethod("Instance");
 			logic_ = instance.Invoke(null, null) as Core.IServerLogic;
+			logic_.SetServerDescriptor(sv_.Descriptor);
 #if UNITY_EDITOR
 			var self = this;
 			ExitHandler.Instance().AtExit(ExitHandler.Priority.Server, delegate () { self.Stop(); } );

@@ -147,13 +147,13 @@ extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, 
 extern void mtk_svconn_close(mtk_svconn_t conn);
 extern void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor);
 extern void *mtk_svconn_getctx(mtk_svconn_t conn);
-//mtk_cid_* is callable anywhere. but you need cid which obtained by mtk_svconn_cid.
-extern void mtk_cid_send(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
-extern void mtk_cid_notify(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
-extern void mtk_cid_error(mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
-extern void mtk_cid_task(mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
-extern void mtk_cid_close(mtk_cid_t cid);
-extern void *mtk_cid_getctx(mtk_cid_t conn);
+//mtk_cid_* is callable anywhere. but you need cid which obtained by mtk_svconn_cid, and sv which cid belongs to
+extern void mtk_cid_send(mtk_server_t sv, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
+extern void mtk_cid_notify(mtk_server_t sv, mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
+extern void mtk_cid_error(mtk_server_t sv, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
+extern void mtk_cid_task(mtk_server_t sv, mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);
+extern void mtk_cid_close(mtk_server_t sv, mtk_cid_t cid);
+extern void *mtk_cid_getctx(mtk_server_t sv, mtk_cid_t cid);
 /* client */
 extern mtk_conn_t mtk_connect(mtk_addr_t *connect_to, mtk_clconf_t *conf);
 extern mtk_cid_t mtk_conn_cid(mtk_conn_t conn);

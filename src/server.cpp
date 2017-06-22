@@ -2,6 +2,7 @@
 #include "worker.h"
 
 namespace mtk {
+Conn::Stream IServer::default_stream_;
 void IServer::Shutdown() {
     logger::info("ev:sv shutdown start");
     //indicate worker to start shutdown
@@ -48,6 +49,37 @@ bool IServer::CreateCred(const Address &a, CredOptions &options) {
 uint32_t IServer::GetPorts(int ports_index, int *ports_buf, uint32_t n_ports_buf) {
     return 0;
 }
+void IServer::Register(Conn *conn) {
+    cmap_mtx_.lock();
+    cmap_[conn->Id()] = conn;
+    cmap_mtx_.unlock();
+}
+void IServer::Unregister(Conn *conn) {
+    auto cid = conn->Id();
+    cmap_mtx_.lock();
+    auto it = cmap_.find(cid);
+    if (it != cmap_.end()) {
+        if (it->second == conn) {
+            cmap_.erase(cid);
+        }
+    }
+    cmap_mtx_.unlock();
+}
+Conn::Stream IServer::GetStream(mtk_cid_t uid) {
+    cmap_mtx_.lock();
+    auto it = cmap_.find(uid);
+    if (it != cmap_.end()) {
+        cmap_mtx_.unlock();
+        return Conn::Stream((*it).second->stream_);
+    }
+    cmap_mtx_.unlock();
+    return default_stream_;
+}
+void IServer::ScanConn(std::function<void(Map &)> op) {
+    cmap_mtx_.lock();
+    op(cmap_);
+    cmap_mtx_.unlock();
+}
 void IServer::Kick(const Address *addrs, int n_addr, int n_worker, IHandler *h) {
     Stream::AsyncService service;
     grpc::ServerBuilder builder;
@@ -66,7 +98,7 @@ void IServer::Kick(const Address *addrs, int n_addr, int n_worker, IHandler *h) 
     builder.RegisterService(&service);
     // setup worker thread (need to do before BuildAndStart because completion queue should be created before)
     for (int i = 0; i < n_worker; i++) {
-        Worker *w = new Worker(&service, h, builder);
+        Worker *w = new Worker(&service, this, h, builder);
         workers_.push_back(w);
     }
     // create server

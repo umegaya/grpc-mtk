@@ -60,8 +60,10 @@ void IOThread::Stop() {
     if (thr_.joinable()) {
         sending_shutdown_ = true;
         if (owner_.IsConnecting() || owner_.IsConnected()) {
-            owner_.SendShutdownRequest();
+            TRACE("Stop: send shutdown request");
+            owner_.SendShutdownRequest(); //otherwise, unprocessed request appeared in completion queue, then crash
         } else {
+            TRACE("Stop: directly shutdown completion queue");
             cq_.Shutdown();
         }
         thr_.join();
@@ -306,7 +308,7 @@ void RPCStream::ProcessReply() {
                 delete ent;
             } else {
                 reqmtx_.unlock();
-                TRACE("msgid = {} not found", rep->msgid());
+                TRACE("msgid = {} not found {} {}", rep->msgid(), iothr_->RemoteAddress(), (void *)this);
             }
         }
         delete rep;
@@ -319,7 +321,8 @@ void RPCStream::ProcessTimeout(timespec_t now) {
     SEntry *entries[reqmap_.size()];
     for (auto &p : reqmap_) {
         if ((p.second->start_at_ + TIMEOUT_DURATION) < now) {
-            TRACE("request {} start at {} got timeout ({})", p.first, p.second->start_at_, now);
+            TRACE("request {} start at {} got timeout ({}) {} {}", p.first, p.second->start_at_, now,
+                  iothr_->RemoteAddress(), (void *)this);
             entries[n_erased] = p.second;
             erased[n_erased++] = p.first;
         }

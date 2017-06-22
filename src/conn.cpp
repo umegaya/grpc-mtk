@@ -1,5 +1,6 @@
 #include "conn.h"
 #include "worker.h"
+#include "server.h"
 
 namespace mtk {
     //SVStream
@@ -46,11 +47,9 @@ namespace mtk {
         }
     }
     //Conn
-    Conn::Map Conn::cmap_;
     Conn::PendingMap Conn::pmap_;
-    Conn::Stream Conn::default_;
     ATOMIC_UINT64 Conn::login_cid_seed_;
-    std::mutex Conn::cmap_mtx_, Conn::pmap_mtx_;
+    std::mutex Conn::pmap_mtx_;
     void Conn::Destroy() {
         if (HasPeer()) {
             ConsumeTask(-1); //process all task
@@ -167,23 +166,20 @@ namespace mtk {
     }
     void Conn::Register(mtk_cid_t cid) {
         ClearLoginCid();
-        cmap_mtx_.lock();
-        cmap_[cid] = this;
-        cmap_mtx_.unlock();
         cid_ = cid;
+        worker_->Server()->Register(this);
         worker_->OnRegister(this);
     }
     void Conn::Unregister() {
         ClearLoginCid();
-        cmap_mtx_.lock();
-        auto it = cmap_.find(cid_);
-        if (it != cmap_.end()) {
-            if (it->second == this) {
-                cmap_.erase(cid_);
-            }
-        }
-        cmap_mtx_.unlock();
+        worker_->Server()->Unregister(this);
         worker_->OnUnregister(this);
+    }
+    Conn::Stream Conn::Get(IServer *sv, mtk_cid_t uid) {
+        return sv->GetStream(uid);
+    }
+    void Conn::Operate(IServer *sv, std::function<void(Map &)> op) {
+        sv->ScanConn(op);
     }
     mtk_login_cid_t Conn::NewLoginCid() {
         lcid_ = ++login_cid_seed_;
