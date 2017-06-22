@@ -244,7 +244,6 @@ namespace mtk {
             msg->set_msgid(msgid);
             requests_.enqueue(msg);
             reqmtx_.lock();
-            TRACE("set msgid {} for {} {}", msgid, iothr_->RemoteAddress(), (void *)this);
             reqmap_[msgid] = ent;
             reqmtx_.unlock();
         }

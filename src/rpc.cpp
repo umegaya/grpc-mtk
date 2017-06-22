@@ -308,7 +308,7 @@ void RPCStream::ProcessReply() {
                 delete ent;
             } else {
                 reqmtx_.unlock();
-                TRACE("msgid = {} not found {} {}", rep->msgid(), iothr_->RemoteAddress(), (void *)this);
+                TRACE("msgid = {} not found", rep->msgid());
             }
         }
         delete rep;
@@ -321,8 +321,7 @@ void RPCStream::ProcessTimeout(timespec_t now) {
     SEntry *entries[reqmap_.size()];
     for (auto &p : reqmap_) {
         if ((p.second->start_at_ + TIMEOUT_DURATION) < now) {
-            TRACE("request {} start at {} got timeout ({}) {} {}", p.first, p.second->start_at_, now,
-                  iothr_->RemoteAddress(), (void *)this);
+            TRACE("request {} start at {} got timeout ({})", p.first, p.second->start_at_, now);
             entries[n_erased] = p.second;
             erased[n_erased++] = p.first;
         }

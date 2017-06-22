@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using Google.Protobuf;
 #if !MTKSV
@@ -227,6 +229,10 @@ namespace Mtk {
         }
         public class Client : Conn {
 			public unsafe delegate void NotifyReceiver(byte* bytes, uint len);
+            public class SendResult<REP> {
+                public REP Reply;
+                public IError Error;
+            }
 			public interface IEventHandler {
 				ulong OnStart(out byte[] payload);
 				bool OnConnect(ulong cid, byte[] payload);
@@ -288,6 +294,27 @@ namespace Mtk {
 					});
 				}
 			}
+#if !MTK_DISABLE_ASYNC
+            public async Task<SendResult<REP>> Send<REP, ERR>(uint t, Google.Protobuf.IMessage req)
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : IError, new() {
+                var pctx =  SynchronizationContext.Current;
+                try {
+                    SynchronizationContext.SetSynchronizationContext(IServerLogic.SyncCtx);
+                    var tcs = new TaskCompletionSource<SendResult<REP>>();
+                    Send<REP,ERR>(t, req, delegate (REP rep, ERR err) {
+                        if (rep != null) {
+                            tcs.TrySetResult(new SendResult<REP>{Reply = rep});
+                        } else {
+                            tcs.TrySetResult(new SendResult<REP>{Error = err});
+                        }
+                    });
+                    return await tcs.Task;
+                } finally {
+                    SynchronizationContext.SetSynchronizationContext(pctx);
+                }
+            }
+#endif
 			public delegate void Notifier<N>(N n);
 			public void RegisterNotifier<N>(uint t, Notifier<N> notifier) where N : IMessage, new() {
 				unsafe {
