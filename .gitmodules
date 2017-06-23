@@ -2,9 +2,6 @@
 	path = ext/grpc
 	url = https://github.com/umegaya/grpc
 	branch = umegaya/remote_peer_close
-[submodule "ext/Catch"]
-	path = ext/Catch
-	url = https://github.com/philsquared/Catch
 [submodule "ext/spdlog"]
 	path = ext/spdlog
 	url = https://github.com/gabime/spdlog
