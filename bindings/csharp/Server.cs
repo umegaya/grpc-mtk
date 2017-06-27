@@ -377,8 +377,14 @@ namespace Mtk {
                 byte[] repdata;
                 if (Codec.Unpack(data, ref req) >= 0) {
                     try {
-                        res = await hd(cid, setter, req);
-                        err = res.Error;
+                        var pctx =  SynchronizationContext.Current;
+                        try {
+                            SynchronizationContext.SetSynchronizationContext(Mtk.Core.IServerLogic.SyncCtx);
+                            res = await hd(cid, setter, req).ConfigureAwait(false);
+                            err = res.Error;
+                        } finally {
+                            SynchronizationContext.SetSynchronizationContext(pctx);                                
+                        }
                     } catch (System.Exception e) {
                         err = new ERR();
                         err.Set(e);
@@ -414,8 +420,14 @@ namespace Mtk {
                     HandleResult res = null;
                     IError err;
                     try {
-                        res = await hd(c, req);
-                        err = res.Error;
+                        var pctx = SynchronizationContext.Current;
+                        try {
+                            SynchronizationContext.SetSynchronizationContext(Mtk.Core.IServerLogic.SyncCtx);
+                            res = await hd(c, req).ConfigureAwait(false);
+                            err = res.Error;
+                        } finally {
+                            SynchronizationContext.SetSynchronizationContext(pctx);                                
+                        }
                     } catch (System.Exception e) {
                         err = new ERR();
                         err.Set(e);

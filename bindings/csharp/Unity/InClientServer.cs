@@ -43,7 +43,7 @@ namespace Mtk.Unity {
 		}
 		protected void FixedUpdate() {
 			unsafe {
-				if (sv_ != null) {
+				if (sv_ != null && logic_ != null) {
 					sv_.Process(logic_);
 				}
 			}
