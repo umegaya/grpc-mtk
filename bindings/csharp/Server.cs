@@ -222,9 +222,9 @@ namespace Mtk {
             }
             //TODO: allow non use queue mode
 #if !MTKSV
-            public Server Build() {
+            internal Server Build() {
 #else
-            public System.IntPtr Build() {
+            internal System.IntPtr Build() {
 #endif
                 Address[] addr = MakeAddress();
                 ServerConfig conf = new ServerConfig { 
