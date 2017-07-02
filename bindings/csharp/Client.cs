@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
+#if !MTK_DISABLE_ASYNC
 using System.Threading.Tasks;
+#endif
 using System.Runtime.InteropServices;
 using Google.Protobuf;
 #if !MTKSV
@@ -45,9 +47,9 @@ namespace Mtk {
             public ulong ReconnectWait {
                 get { unsafe { return mtk_conn_reconnect_wait(conn_); } }
             }
-            #if !MTKSV
+#if !MTKSV
             [MonoPInvokeCallback(typeof(Core.ClientReadyCB))]
-            #endif
+#endif
             static unsafe void RecvCB(System.IntPtr arg, int type, byte *bytes, uint len) {
                 GCHandle gch = GCHandle.FromIntPtr(arg);
                 ((RPCResultCB)gch.Target)(type, bytes, len);
@@ -326,39 +328,39 @@ namespace Mtk {
 			static CallbackCollection ToCallbacks(System.IntPtr arg) {
 				return (CallbackCollection)GCHandle.FromIntPtr(arg).Target;
 			}
-		    #if !MTKSV
+#if !MTKSV
 			[MonoPInvokeCallback(typeof(Core.ClientConnectCB))]
-			#endif
+#endif
 			static internal unsafe bool OnConnect(System.IntPtr arg, ulong cid, byte *bytes, uint len) {
 				byte[] arr = new byte[len];
 				Marshal.Copy((System.IntPtr)bytes, arr, 0, (int)len);
 				ToCallbacks(arg).Handler.OnConnect(cid, arr);
 				return true;
 			}
-		    #if !MTKSV
+#if !MTKSV
 			[MonoPInvokeCallback(typeof(Core.ClientCloseCB))]
-			#endif
+#endif
 			static internal ulong OnClose(System.IntPtr arg, ulong cid, int connect_attempts) {
 				return ToCallbacks(arg).Handler.OnClose(cid, connect_attempts);
 			}
-		    #if !MTKSV
+#if !MTKSV
 			[MonoPInvokeCallback(typeof(Core.ClientReadyCB))]
-			#endif
+#endif
 			static internal bool OnReady(System.IntPtr arg) {
 				return ToCallbacks(arg).Handler.OnReady();
 			}
-		    #if !MTKSV
+#if !MTKSV
 			[MonoPInvokeCallback(typeof(Core.ClientStartCB))]
-			#endif
+#endif
 			static internal ulong OnStart(System.IntPtr arg, System.IntPtr slice) {
 				byte[] payload;
 				var cid = ToCallbacks(arg).Handler.OnStart(out payload);
 				Mtk.Core.PutSlice(slice, payload);
 				return cid;
 			}
-		    #if !MTKSV
+#if !MTKSV
 			[MonoPInvokeCallback(typeof(Core.ClientRecvCB))]
-			#endif
+#endif
 			static internal unsafe void OnNotify(System.IntPtr arg, int type, byte *bytes, uint len) {
 				NotifyReceiver n;
 				if (ToCallbacks(arg).Notifiers.TryGetValue((uint)type, out n)) {

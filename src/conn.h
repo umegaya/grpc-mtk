@@ -315,6 +315,7 @@ namespace mtk {
         inline void InternalClose() {
             status_ = CLOSE;
         }
+        inline Worker *AttachedWorker() { return worker_; }
         inline void *UserCtxPtr() { return stream_->UserCtxPtr(); }
         inline void SetUserCtx(void *ud, void (*dtor)(void *) = nullptr) { stream_->SetUserCtx(ud, dtor); }
         template <class W> inline void Rep(mtk_msgid_t msgid, const W &w) {

@@ -299,6 +299,7 @@ void RPCStream::ProcessReply() {
             if (it != reqmap_.end()) {
                 SEntry *ent = (*it).second;
                 reqmap_.erase(rep->msgid());
+                //TRACE("msgid = {} removed", rep->msgid());
                 reqmtx_.unlock();
                 if (rep->has_error()) {
                     (*ent)(nullptr, rep->mutable_error());

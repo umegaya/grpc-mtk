@@ -2,7 +2,6 @@ using System.Data;
 using SimpleMigrations;
 using FluentMigrator.Builders.Alter;
 using FluentMigrator.Builders.Create;
-using FluentMigrator.Builders.IfDatabase;
 using FluentMigrator.Builders.Insert;
 using FluentMigrator.Builders.Rename;
 using FluentMigrator.Builders.Schema;
@@ -89,10 +88,12 @@ namespace Mtk {
 	                try {
 	                	Mtk.Log.Info("ExecuteWith:" + expression.GetType());
 	                	expression.ExecuteWith(Processor);
+	                	Mtk.Log.Info("end ExecuteWith:" + expression.GetType());
 	                } catch (System.Exception e) {
 	                	Mtk.Log.Error("ev:migration error,msg:" + e.Message);
 	                }
 	            }
+	        	Mtk.Log.Info("ApplyChanges:" + Context.Expressions.Count + " expression finishedd");
 	        }
 	        private IMigrationContext Context { get; set; }
 	        private IMigrationProcessor Processor { get; set; }

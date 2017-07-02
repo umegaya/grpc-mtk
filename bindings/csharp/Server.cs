@@ -294,24 +294,26 @@ namespace Mtk {
                 IServerLogic.SyncCtx.Update(); //resume pending continuation (awaited tasks)
             }
             //typical accept and recv handlers (sync)
-            public delegate ERR AcceptHandler<REQ, REP, ERR>(ref ulong cid, Core.IContextSetter setter, REQ req, ref REP rep);
+            public delegate AcceptResult AcceptHandler<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, REQ req);
             static public void OnAccept<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AcceptHandler<REQ, REP, ERR> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : IError, new() {
                 var req = new REQ();
                 IError err = null;
+                AcceptResult res = null;
                 byte[] repdata;
                 if (Codec.Unpack(data, ref req) >= 0) {
-                    var rep = new REP();
                     try {
-                        err = hd(ref cid, setter, req, ref rep);
+                        res = hd(cid, setter, req);
+                        err = res.Error;
+                        cid = res.Cid;
                     } catch (System.Exception e) {
                         err = new ERR();
                         err.Set(e);
                     }
                     if (err == null) {
-                        if (Codec.Pack(rep, out repdata) >= 0) {
+                        if (Codec.Pack(res.Reply, out repdata) >= 0) {
                             (setter as DeferredSVConn).FinishLogin(cid, repdata);
                             return;
                         }
@@ -332,24 +334,25 @@ namespace Mtk {
                 return;
             }
 
-            public delegate ERR Handler<REQ, REP, ERR>(Core.ISVConn c, REQ req, ref REP rep);
+            public delegate HandleResult Handler<REQ, REP, ERR>(Core.ISVConn c, REQ req);
             static public int Handle<REQ, REP, ERR>(Core.ISVConn c, byte[] data, Handler<REQ, REP, ERR> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : IError, new() {
                 //Mtk.Log.Info("Handle received:" + typeof(REQ));
                 var req = new REQ();
+                HandleResult res = null;
                 if (Codec.Unpack(data, ref req) >= 0) {
-                    REP rep = new REP();
-                    ERR err = default(ERR);
+                    IError err = null;
                     try {
-                        err = hd(c, req, ref rep);
+                        res = hd(c, req);
+                        err = res.Error;
                     } catch (System.Exception e) {
                         err = new ERR();
                         err.Set(e);
                     }
                     if (err == null) {
-                        if (!c.Reply(c.Msgid, rep)) {
+                        if (!c.Reply(c.Msgid, res.Reply)) {
                             err = new ERR();
                             err.Set(Core.SystemErrorCode.PayloadPackFail);
                             c.Throw(c.Msgid, err);

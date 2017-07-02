@@ -2,8 +2,10 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+#if !MTK_DISABLE_ASYNC
 using System.Threading.Tasks;
-using Continuation = System.Tuple<System.Threading.SendOrPostCallback, object>;
+#endif
+using Continuation = System.Collections.Generic.KeyValuePair<System.Threading.SendOrPostCallback, object>;
 
 namespace Mtk {
     public partial class Core {
@@ -29,7 +31,7 @@ namespace Mtk {
         //synchronization context to 
         public class ManualPumpingSynchronizationContext : SynchronizationContext
 		{
-			ConcurrentQueue<Continuation> conts_ = new ConcurrentQueue<Continuation>();
+			Queue<Continuation> conts_ = new Queue<Continuation>();
 
 			public override void Post(SendOrPostCallback d, object state)
 			{
@@ -39,9 +41,14 @@ namespace Mtk {
 			public void Update()
 			{
 				Continuation cont;
-				while(conts_.TryDequeue(out cont))
+				while(true)
 				{
-					cont.Item1(cont.Item2);
+					try {
+						cont = conts_.Dequeue();
+						cont.Key(cont.Value);
+					} catch (System.InvalidOperationException e) {
+						break;
+					}
 				}
 			}
 		}

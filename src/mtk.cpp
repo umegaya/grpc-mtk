@@ -278,7 +278,9 @@ void mtk_svconn_close(mtk_svconn_t conn) {
 	((Conn *)conn)->InternalClose();
 }
 void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor) {
-	((Conn *)conn)->SetUserCtx(ctx, dtor);
+	Conn *c = (Conn *)conn;
+	//TRACE("id = {} ctx = {} put into {}", c->Id(), ctx, (void *)c->AttachedWorker()->Server());
+	c->SetUserCtx(ctx, dtor);
 }
 void *mtk_svconn_getctx(mtk_svconn_t conn) {
 	return ((Conn *)conn)->UserCtxPtr();
@@ -322,7 +324,10 @@ void mtk_cid_close(mtk_server_t sv, mtk_cid_t cid) {
 }
 void *mtk_cid_getctx(mtk_server_t sv, mtk_cid_t cid) {
 	Conn::Stream s = Conn::Get((IServer *)sv, cid);
-	if (s == nullptr) { return nullptr; }
+	if (s == nullptr) { 
+		TRACE("id = {} cannot found in {}", cid, (void *)sv);
+		return nullptr; 
+	}
 	return s->UserCtxPtr();
 }
 mtk_cid_t mtk_conn_cid(mtk_conn_t c) {
