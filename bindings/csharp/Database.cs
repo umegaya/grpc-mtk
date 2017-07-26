@@ -1,6 +1,7 @@
 using System.Data;
 #if MTKSV
 using MySql.Data;
+using MySql.Data.MySqlClient;
 #else
 using Mono.Data.Sqlite;
 #endif
@@ -18,32 +19,34 @@ namespace Mtk
 {
     public partial class Database
     {
-        static public IDbConnection Open(string url)
+        static public IDbConnection Open(string url, Assembly mig_assembly = null)
         {
 #if MTKSV
 			var c = new MySqlConnection(url);
 #else
             var c = new SqliteConnection(url);
 #endif
-            Migrate(c);
+            Migrate(c, mig_assembly);
             return c;
         }
         static public void Close(IDbConnection c)
         {
             c.Close();
         }
-        static protected void Migrate(System.Data.Common.DbConnection c)
+        static protected void Migrate(System.Data.Common.DbConnection c, Assembly mig_assembly)
         {
             c.Open();
-            var migrationsAssembly = typeof(Database).Assembly;
             IDatabaseProvider<System.Data.Common.DbConnection> prov;
+            if (mig_assembly == null) {
+                mig_assembly = typeof(Database).Assembly;
+            }
 #if MTKSV
 			prov = new SimpleMigrations.DatabaseProvider.MysqlDatabaseProvider(c);
 #else
             prov = new SimpleMigrations.DatabaseProvider.SqliteDatabaseProvider(c);
 #endif
             Migration.BackendConnection = c;
-            var mig = new SimpleMigrator(migrationsAssembly, prov);
+            var mig = new SimpleMigrator(mig_assembly, prov);
             mig.Load();
             mig.MigrateToLatest();
         }

@@ -39,7 +39,7 @@ namespace Mtk {
 	        	migrator_ = m;
 	        }
 			protected override void Process(string sql) {
-				Mtk.Log.Info("mysql:Process:sql = " + sql);
+				//Mtk.Log.Info("mysql:Process:sql = " + sql);
 				migrator_.ExecSql(sql, Options.Timeout);				
 			}
 		}
@@ -50,7 +50,7 @@ namespace Mtk {
 	        	migrator_ = m;
 	        }
 			protected override void Process(string sql) {
-				Mtk.Log.Info("sqlite:Process:sql = " + sql);
+				//Mtk.Log.Info("sqlite:Process:sql = " + sql);
 				migrator_.ExecSql(sql, Options.Timeout);
 			}
 		}
@@ -83,17 +83,13 @@ namespace Mtk {
 	        	ApplyChanges();
 	        }
 	        private void ApplyChanges() {
-	        	Mtk.Log.Info("ApplyChanges:" + Context.Expressions.Count + " expression generated");
-				foreach (var expression in Context.Expressions) {
+	        	foreach (var expression in Context.Expressions) {
 	                try {
-	                	Mtk.Log.Info("ExecuteWith:" + expression.GetType());
 	                	expression.ExecuteWith(Processor);
-	                	Mtk.Log.Info("end ExecuteWith:" + expression.GetType());
 	                } catch (System.Exception e) {
 	                	Mtk.Log.Error("ev:migration error,msg:" + e.Message);
 	                }
 	            }
-	        	Mtk.Log.Info("ApplyChanges:" + Context.Expressions.Count + " expression finishedd");
 	        }
 	        private IMigrationContext Context { get; set; }
 	        private IMigrationProcessor Processor { get; set; }
