@@ -62,6 +62,19 @@ void IOThread::Stop() {
         if (owner_.IsConnecting() || owner_.IsConnected()) {
             TRACE("Stop: send shutdown request");
             owner_.SendShutdownRequest(); //otherwise, unprocessed request appeared in completion queue, then crash
+            auto th = std::thread([this]() {
+                int cnt = 0;
+                while (cnt < 20 && alive_) { //2sec wait 
+                    clock::sleep(clock::msec(100));
+                    cnt++;
+                }
+                TRACE("Stop: shutdown timeout force do now");
+                if (alive_) {
+                    cq_.Shutdown();
+                    alive_ = false;
+                }
+            });
+            th.join();
         } else {
             TRACE("Stop: directly shutdown completion queue");
             cq_.Shutdown();

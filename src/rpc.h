@@ -161,7 +161,7 @@ namespace mtk {
         std::map<mtk_msgid_t, SEntry*> reqmap_;
         SEntry::Callback notifier_;
         bool restarting_;
-        timespec_t last_checked_, reconnect_when_, default_timeout_;
+        timespec_t reconnect_when_, default_timeout_;
         ATOMIC_INT msgid_seed_;
         int reconnect_attempt_;
         NetworkStatus status_;
@@ -170,7 +170,7 @@ namespace mtk {
     public:
         RPCStream(IClientDelegate *d) : delegate_(d),
             replys_(), requests_(), reqmtx_(), reqmap_(), notifier_(), 
-            restarting_(false), last_checked_(0), reconnect_when_(0), default_timeout_(TIMEOUT_DURATION), 
+            restarting_(false), reconnect_when_(0), default_timeout_(TIMEOUT_DURATION), 
             msgid_seed_(0), reconnect_attempt_(0), 
             status_(NetworkStatus::DISCONNECT), iothr_(new IOThread(*this)), dump_(false) {
         };
