@@ -19,21 +19,25 @@ namespace Mtk
 {
     public partial class Database
     {
-        static public IDbConnection Open(string url, Assembly mig_assembly = null)
+        string ConnectUrl;
+        public Database(string url, Assembly mig_assembly = null)
         {
+            ConnectUrl = url;
+            using (var c = Open(url)) {
+                Migrate(c, mig_assembly);
+            }
+        }
+        internal IDbConnection NewConn() {
+            return Open(ConnectUrl);   
+        }
+        static internal System.Data.Common.DbConnection Open(string url) {
 #if MTKSV
-			var c = new MySqlConnection(url);
+            return new MySqlConnection(url);
 #else
-            var c = new SqliteConnection(url);
+			return new SqliteConnection(url);
 #endif
-            Migrate(c, mig_assembly);
-            return c;
         }
-        static public void Close(IDbConnection c)
-        {
-            c.Close();
-        }
-        static protected void Migrate(System.Data.Common.DbConnection c, Assembly mig_assembly)
+        static internal void Migrate(System.Data.Common.DbConnection c, Assembly mig_assembly)
         {
             c.Open();
             IDatabaseProvider<System.Data.Common.DbConnection> prov;
@@ -50,14 +54,121 @@ namespace Mtk
             mig.Load();
             mig.MigrateToLatest();
         }
+#if MTK_DISABLE_ASYNC
+        public static void AllowUInt64PrimeryKeyForNet35() { 
+            DatabaseExtension.Impl.InsertAdaptor = new DatabaseExtension.SQLiteAdapter(); 
+        }
+#else
+		public async Task<Mtk.Core.AcceptResult> TxnAsync<ERR>(System.Func<Database.Conn, Task<Mtk.Core.AcceptResult>> hd)
+			where ERR : Core.IError, new()
+		{
+			var c = new Conn(this);
+			try
+			{
+				var r = await hd(c);
+				if (r.Error == null)
+				{
+					c.Commit();
+				}
+				else
+				{
+					c.Rollback();
+				}
+				return r;
+			}
+			catch (System.Exception e)
+			{
+				c.Rollback();
+				var err = new ERR();
+				err.Set(e);
+				return new Mtk.Core.AcceptResult { Cid = 0, Error = err };
+			}
+		}
+		public async Task<Mtk.Core.HandleResult> TxnAsync<ERR>(System.Func<Database.Conn, Task<Mtk.Core.HandleResult>> hd)
+			where ERR : Core.IError, new()
+		{
+			var c = new Conn(this);
+			try
+			{
+				var r = await hd(c);
+				if (r.Error == null)
+				{
+					c.Commit();
+				}
+				else
+				{
+					c.Rollback();
+				}
+				return r;
+			}
+			catch (System.Exception e)
+			{
+				c.Rollback();
+				var err = new ERR();
+				err.Set(e);
+				return new Mtk.Core.HandleResult { Error = err };
+			}
+		}
+#endif
+        public Mtk.Core.AcceptResult Txn<ERR>(System.Func<Database.Conn, Mtk.Core.AcceptResult> hd)
+			where ERR : Core.IError, new()
+		{
+			var c = new Conn(this);
+			try
+			{
+				var r = hd(c);
+				if (r.Error == null)
+				{
+					c.Commit();
+				}
+				else
+				{
+					c.Rollback();
+				}
+				return r;
+			}
+			catch (System.Exception e)
+			{
+				c.Rollback();
+				var err = new ERR();
+				err.Set(e);
+				return new Mtk.Core.AcceptResult { Cid = 0, Error = err };
+			}
+		}
+		public Mtk.Core.HandleResult Txn<ERR>(System.Func<Database.Conn, Mtk.Core.HandleResult> hd)
+			where ERR : Core.IError, new()
+		{
+			var c = new Conn(this);
+			try
+			{
+				var r = hd(c);
+				if (r.Error == null)
+				{
+					c.Commit();
+				}
+				else
+				{
+					c.Rollback();
+				}
+				return r;
+			}
+			catch (System.Exception e)
+			{
+				c.Rollback();
+				var err = new ERR();
+				err.Set(e);
+				return new Mtk.Core.HandleResult { Error = err };
+			}
+		}
         public class Conn
         {
             public IDbConnection Raw;
             public IDbTransaction TxHandle;
-            internal Conn(IDbConnection raw)
+            internal Conn(Database db)
             {
-                Raw = raw;
-                TxHandle = raw.BeginTransaction();
+                Raw = db.NewConn();
+                Raw.Open();
+                TxHandle = Raw.BeginTransaction();
             }
             internal void Commit() { TxHandle.Commit(); }
             internal void Rollback() { TxHandle.Rollback(); }
@@ -212,45 +323,6 @@ namespace Mtk
                 TypeTableNameMap[type.TypeHandle] = name;
                 return name;
             }
-#if MTK_DISABLE_ASYNC
-	        public static void AllowUInt64PrimeryKeyForNet35() { InsertAdaptor = new SQLiteAdapter(); }
-#endif
-            public static Mtk.Core.AcceptResult Txn<ERR>(this IDbConnection cnn, System.Func<Database.Conn, Mtk.Core.AcceptResult> hd) 
-				where ERR : Core.IError, new() {
-				var c = new Database.Conn(cnn);
-				try {
-				    var r = hd(c);
-					if (r.Error == null) {
-						c.Commit();
-					} else {
-						c.Rollback();
-					}
-					return r;
-				} catch (System.Exception e) {
-					c.Rollback();
-					var err = new ERR();
-					err.Set(e);
-					return new Mtk.Core.AcceptResult{ Cid = 0, Error = err };
-				}
-			}
-			public static Mtk.Core.HandleResult Txn<ERR>(this IDbConnection cnn, System.Func<Database.Conn, Mtk.Core.HandleResult> hd) 
-				where ERR : Core.IError, new() {
-				var c = new Database.Conn(cnn);
-				try {
-				    var r = hd(c);
-					if (r.Error == null) {
-						c.Commit();
-					} else {
-						c.Rollback();
-					}
-					return r;
-				} catch (System.Exception e) {
-					c.Rollback();
-					var err = new ERR();
-					err.Set(e);
-					return new Mtk.Core.HandleResult{ Error = err };
-				}
-			}
 			public static T Select<T>(IDbConnection connection, string where_clause, 
 													object param = null, 
 													IDbTransaction transaction = null, 
@@ -277,42 +349,6 @@ namespace Mtk
                 return connection.Query<T>(sql, param, transaction, true, commandTimeout, commandType);
 	        }
 #if !MTK_DISABLE_ASYNC
-			public static async Task<Mtk.Core.AcceptResult> TxnAsync<ERR>(this IDbConnection cnn, System.Func<Database.Conn, Task<Mtk.Core.AcceptResult>> hd) 
-				where ERR : Core.IError, new() {
-				var c = new Database.Conn(cnn);
-				try {
-				    var r = await hd(c);
-					if (r.Error == null) {
-						c.Commit();
-					} else {
-						c.Rollback();
-					}
-					return r;
-				} catch (System.Exception e) {
-					c.Rollback();
-					var err = new ERR();
-					err.Set(e);
-					return new Mtk.Core.AcceptResult{ Cid = 0, Error = err };
-				}
-			}
-			public static async Task<Mtk.Core.HandleResult> TxnAsync<ERR>(this IDbConnection cnn, System.Func<Database.Conn, Task<Mtk.Core.HandleResult>> hd) 
-				where ERR : Core.IError, new() {
-				var c = new Database.Conn(cnn);
-				try {
-				    var r = await hd(c);
-					if (r.Error == null) {
-						c.Commit();
-					} else {
-						c.Rollback();
-					}
-					return r;
-				} catch (System.Exception e) {
-					c.Rollback();
-					var err = new ERR();
-					err.Set(e);
-					return new Mtk.Core.HandleResult{ Error = err };
-				}
-			}
 			public static Task<T> SelectAsync<T>(IDbConnection connection, string where_clause, 
 													object param = null, 
 													IDbTransaction transaction = null, 

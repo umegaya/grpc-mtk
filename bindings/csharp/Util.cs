@@ -46,7 +46,7 @@ namespace Mtk {
 					try {
 						cont = conts_.Dequeue();
 						cont.Key(cont.Value);
-					} catch (System.InvalidOperationException e) {
+					} catch (System.InvalidOperationException) {
 						break;
 					}
 				}
