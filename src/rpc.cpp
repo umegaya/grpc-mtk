@@ -19,7 +19,7 @@ Request *IOThread::ESTABLISH_REQUEST = reinterpret_cast<Request*>(0x2);
 Reply *RPCStream::DISCONNECT_EVENT = IOThread::DISCONNECT_EVENT;
 Reply *RPCStream::ESTABLISHED_EVENT = IOThread::ESTABLISHED_EVENT;
 Request *RPCStream::ESTABLISH_REQUEST = IOThread::ESTABLISH_REQUEST;
-Error *RPCStream::TIMEOUT_ERROR = nullptr;
+Error *RPCStream::TIMEOUT_ERROR = nullptr, *RPCStream::BROKEN_PAYLOAD_ERROR = nullptr, *RPCStream::NOT_CONNECT_ERROR = nullptr;
 
 /* holding reference to grpc library, to prevent repeated grpc_init/shutdown on the fly */
 static grpc::internal::GrpcLibraryInitializer g_gli_initializer;
@@ -192,6 +192,16 @@ int RPCStream::Initialize(const char *addr, CredOptions *options) {
         auto err = new Error();
         err->set_error_code(MTK_TIMEOUT);
         TIMEOUT_ERROR = err;
+    }
+    if (NOT_CONNECT_ERROR == nullptr) {
+        auto err = new Error();
+        err->set_error_code(MTK_NOT_CONNECT);
+        NOT_CONNECT_ERROR = err;
+    }
+    if (BROKEN_PAYLOAD_ERROR == nullptr) {
+        auto err = new Error();
+        err->set_error_code(MTK_BROKEN_PAYLOAD);
+        BROKEN_PAYLOAD_ERROR = err;
     }
     reqmtx_.unlock();
     return 0;

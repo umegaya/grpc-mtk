@@ -126,6 +126,8 @@ typedef enum {
 	MTK_TIMEOUT = -2,
 	MTK_ACCEPT_DENY = -3,
 	MTK_FIN = -4,
+	MTK_NOT_CONNECT = -5,
+	MTK_BROKEN_PAYLOAD = -6,
 } mtk_error_t;
 typedef void (*mtk_ctx_free_t)(void *);
 

@@ -135,7 +135,7 @@ namespace mtk {
         static Request *ESTABLISH_REQUEST;
         static constexpr timespec_t TIMEOUT_DURATION = clock::sec(30); //30sec
         static constexpr timespec_t USE_DEFAULT = clock::sec(0);
-        static Error *TIMEOUT_ERROR;
+        static Error *TIMEOUT_ERROR, *BROKEN_PAYLOAD_ERROR, *NOT_CONNECT_ERROR;
         typedef grpc::SslCredentialsOptions CredOptions;
         struct SEntry {
             typedef std::function<void (mtk_result_t, const char *, size_t)> Callback;
@@ -143,10 +143,13 @@ namespace mtk {
             Callback cb_;
             SEntry(Callback cb) : cb_(cb) { start_at_ = clock::now(); }
             inline void operator () (const Reply *rep, const Error *err) {
+                Respond(cb_, rep, err);
+            }
+            static inline void Respond(Callback cb, const Reply *rep, const Error *err) {
                 if (err != nullptr) {
-                    cb_(err->error_code(), err->payload().c_str(), err->payload().length());                
+                    cb(err->error_code(), err->payload().c_str(), err->payload().length());                
                 } else {
-                    cb_(rep->type(), rep->payload().c_str(), rep->payload().length());
+                    cb(rep->type(), rep->payload().c_str(), rep->payload().length());
                 }
             }
         };
@@ -236,6 +239,7 @@ namespace mtk {
                   SEntry::Callback cb,
                   timespec_t timeout_msec) {
             if (status_ < NetworkStatus::ESTABLISHED) {
+                SEntry::Respond(cb, nullptr, NOT_CONNECT_ERROR);
                 ASSERT(false);
                 return;
             }
@@ -252,6 +256,7 @@ namespace mtk {
             char buffer[spl.ByteSize()];
             if (Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize()) < 0) {
                 ASSERT(false);
+                SEntry::Respond(cb, nullptr, BROKEN_PAYLOAD_ERROR);
                 return;
             }
             Request *msg = new Request();
