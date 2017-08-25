@@ -142,7 +142,7 @@ namespace Mtk {
             	}
             	Mtk.Log.Info("clientbuilder: connect to:" + at + " => " + resolved);
                 base.ListenAt(resolved, cert, key, ca);
-                return this;            
+                return this;
             }
             //for building client these function will be called from same thread as Unity's main thread
             public ClientBuilder Handler(Client.IEventHandler h) {

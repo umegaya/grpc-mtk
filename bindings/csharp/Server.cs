@@ -420,6 +420,7 @@ namespace Mtk {
                 //Mtk.Log.Info("Handle received:" + typeof(REQ));
                 var req = new REQ();
                 if (Codec.Unpack(data, ref req) >= 0) {
+                    var msgid = c.Msgid; //stored current msgid to local variable because blockin at await below may change msgid 
                     HandleResult res = null;
                     IError err;
                     try {
@@ -436,14 +437,14 @@ namespace Mtk {
                         err.Set(e);
                     }
                     if (err == null) {
-                        if (!(res.Reply is REP) || !c.Reply(c.Msgid, res.Reply)) {
+                        if (!(res.Reply is REP) || !c.Reply(msgid, res.Reply)) {
                             err = new ERR();
                             err.Set(Core.SystemErrorCode.PayloadPackFail);
-                            c.Throw(c.Msgid, err);
+                            c.Throw(msgid, err);
                         }
                     } else if (!err.Pending) {
                         Mtk.Log.Error("ev:handler fail,emsg:" + err.Message);
-                        c.Throw(c.Msgid, err);
+                        c.Throw(msgid, err);
                     }
                     return;
                 } 

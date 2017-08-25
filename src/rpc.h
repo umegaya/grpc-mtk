@@ -240,7 +240,6 @@ namespace mtk {
                   timespec_t timeout_msec) {
             if (status_ < NetworkStatus::ESTABLISHED) {
                 SEntry::Respond(cb, nullptr, NOT_CONNECT_ERROR);
-                ASSERT(false);
                 return;
             }
             mtk_msgid_t msgid = NewMsgId();
@@ -255,7 +254,6 @@ namespace mtk {
         void Call(const SYSTEM_PAYLOAD &spl, SEntry::Callback cb) {
             char buffer[spl.ByteSize()];
             if (Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize()) < 0) {
-                ASSERT(false);
                 SEntry::Respond(cb, nullptr, BROKEN_PAYLOAD_ERROR);
                 return;
             }
