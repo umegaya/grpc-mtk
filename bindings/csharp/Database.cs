@@ -20,21 +20,34 @@ namespace Mtk
     public partial class Database
     {
         string ConnectUrl;
+#if !MTKSV
+        System.Data.Common.DbConnection Connection = null;
+#endif
         public Database(string url, Assembly mig_assembly = null)
         {
             ConnectUrl = url;
-            using (var c = Open(url)) {
+            using (var c = Create(url)) {
                 Migrate(c, mig_assembly);
             }
         }
         internal IDbConnection NewConn() {
-            return Open(ConnectUrl);   
+#if MTKSV
+            var c = Create(ConnectUrl);
+            c.Open();
+            return c;
+#else
+            if (Connection == null) {
+                Connection = Create(ConnectUrl);
+                Connection.Open();
+            }
+            return Connection;
+#endif
         }
-        static internal System.Data.Common.DbConnection Open(string url) {
+        static internal System.Data.Common.DbConnection Create(string url) {
 #if MTKSV
             return new MySqlConnection(url);
 #else
-			return new SqliteConnection(url);
+            return new SqliteConnection(url);
 #endif
         }
         static internal void Migrate(System.Data.Common.DbConnection c, Assembly mig_assembly)
@@ -167,7 +180,6 @@ namespace Mtk
             internal Conn(Database db)
             {
                 Raw = db.NewConn();
-                Raw.Open();
                 TxHandle = Raw.BeginTransaction();
             }
             internal void Commit() { TxHandle.Commit(); }
