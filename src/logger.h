@@ -59,6 +59,7 @@ namespace logger {
     inline std::string Format(const char *fmt, fmt::ArgList args) { return fmt::format(fmt, args); }
     FMT_VARIADIC(std::string, Format, const char *);
     inline const char *Format(const char *fmt) { return fmt; }
+    void flush_from_main_thread();
 }
 }
 

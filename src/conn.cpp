@@ -7,6 +7,38 @@ namespace mtk {
 #if defined(REFCNT_CHECK)
     ATOMIC_INT SVStream::stream_cnt_(0);
 #endif
+#if defined(__MTK_OSX__)
+    struct UserCtxGarbage {
+        void *ctx;
+        SVStream::UserCtxDtor dtor;
+    };
+    static moodycamel::ConcurrentQueue<UserCtxGarbage> s_garbages;
+    void SVStream::DestroyUserCtx() {
+        if (user_ctx_ != nullptr) {
+            if (user_ctx_dtor_ != nullptr) {
+                UserCtxGarbage g = { user_ctx_, user_ctx_dtor_ };
+                s_garbages.enqueue(g);
+            }
+        }
+    }
+    void SVStream::SweepUserCtx() {
+        UserCtxGarbage g;
+        while (s_garbages.try_dequeue(g)) {
+            ASSERT(g.ctx != nullptr && g.dtor != nullptr);
+            g.dtor(g.ctx);
+        }
+    }
+#else
+    void SVStream::DestroyUserCtx() {
+        if (user_ctx_ != nullptr) {
+            if (user_ctx_dtor_ != nullptr) {
+                user_ctx_dtor_(user_ctx_);
+            }
+        }
+    }
+    void SVStream::SweepUserCtx() {
+    }
+#endif
     SVStream::~SVStream() {
         Request *t;
         while (Tasks().try_dequeue(t)) {

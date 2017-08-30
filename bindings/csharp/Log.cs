@@ -35,6 +35,9 @@ namespace Mtk {
             mtk_log((int)lv, str);
 #endif
         }
+        public static void LogFlush() {
+            mtk_log_flush();
+        }
         public static void Assert(bool expr) {
             if (!expr) {
                 var st = new  System.Diagnostics.StackTrace(1, true);
@@ -61,6 +64,9 @@ namespace Mtk {
         }
         public static void Report(string str) {
             Core.Log(Core.LogLevel.Report, str);
+        }
+        public static void Flush() {
+            Core.LogFlush();
         }
     }
 }

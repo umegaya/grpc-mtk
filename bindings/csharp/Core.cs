@@ -89,6 +89,8 @@ namespace Mtk {
         private static extern void mtk_log(int lv, [MarshalAs(UnmanagedType.LPStr)]string str);
         [DllImport (DllName)]
         private static extern void mtk_log_config([MarshalAs(UnmanagedType.LPStr)]string name, LogWriteCB writer);
+        [DllImport (DllName)]
+        private static extern void mtk_log_flush(); //only enable for osx build
 
         //listener
         [DllImport (DllName)]
@@ -119,6 +121,8 @@ namespace Mtk {
         private static extern unsafe void mtk_svconn_close(System.IntPtr conn);
         [DllImport (DllName)]
         private static extern unsafe void mtk_svconn_putctx(System.IntPtr conn, System.IntPtr ctx, DestroyPointerCB dtor);
+        [DllImport (DllName)]
+        private static extern void mtk_svconn_sweep_ctx();
         [DllImport (DllName)]
         private static extern unsafe System.IntPtr mtk_svconn_getctx(System.IntPtr conn);
         [DllImport (DllName)]
@@ -178,6 +182,11 @@ namespace Mtk {
         public static void Ref() { unsafe { mtk_lib_ref(); } }
         public static void Unref() { unsafe { mtk_lib_unref(); } }
         Core() {}
+
+        public static void Sweep() {
+            LogFlush();
+            mtk_svconn_sweep_ctx();
+        }
     }
 }
 

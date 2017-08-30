@@ -282,6 +282,9 @@ void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor) {
 	//TRACE("id = {} ctx = {} put into {}", c->Id(), ctx, (void *)c->AttachedWorker()->Server());
 	c->SetUserCtx(ctx, dtor);
 }
+void mtk_svconn_sweep_ctx() {
+	SVStream::SweepUserCtx();
+}
 void *mtk_svconn_getctx(mtk_svconn_t conn) {
 	return ((Conn *)conn)->UserCtxPtr();
 }
@@ -499,6 +502,10 @@ void mtk_log_config(const char *svname, mtk_logger_cb_t cb) {
 void mtk_log(mtk_loglevel_t lv, const char *str) {
 	logger::log_no_arg((logger::level::def)lv, str);
 }
+void mtk_log_flush() {
+	logger::flush_from_main_thread();
+}
+
 
 mtk_closure_t mtk_closure_nop = { nullptr, { nullptr } };
 

@@ -60,6 +60,7 @@ namespace mtk {
     class SVStream : public IJob {
     public:
         typedef moodycamel::ConcurrentQueue<Request*> TaskQueue;
+        typedef void (*UserCtxDtor)(void *);
     protected:
         friend class Conn;
         ServerContext ctx_;
@@ -69,7 +70,7 @@ namespace mtk {
         moodycamel::ConcurrentQueue<Request*> tasks_;
         bool is_sending_;
         void *user_ctx_;
-        void (*user_ctx_dtor_)(void *);
+        UserCtxDtor user_ctx_dtor_;
         ATOMIC_INT refc_;
 #if defined(REFCNT_CHECK)
     public:
@@ -108,7 +109,7 @@ namespace mtk {
         template <class CTX> inline CTX &UserCtx() { return *(CTX *)user_ctx_; }
         template <class CTX> inline const CTX &UserCtx() const { return *(const CTX *)user_ctx_; }
         inline void *UserCtxPtr() { return user_ctx_; }
-        inline void SetUserCtx(void *ud, void (*dtor)(void *) = nullptr) { 
+        inline void SetUserCtx(void *ud, UserCtxDtor dtor = nullptr) { 
             user_ctx_ = ud; 
             user_ctx_dtor_ = dtor;
         }
@@ -169,14 +170,11 @@ namespace mtk {
             SystemPayload::Close c;
             SysTask(Request::Close, c);
         }
+
+        static void SweepUserCtx();
     protected:
-        inline void DestroyUserCtx() {
-            if (user_ctx_ != nullptr) {
-                if (user_ctx_dtor_ != nullptr) {
-                    user_ctx_dtor_(user_ctx_);
-                }
-            }
-        }
+        void DestroyUserCtx();
+
         inline void Finish(IJob *tag) {
             io_.Finish(Status::CANCELLED, tag);
         }
@@ -317,7 +315,7 @@ namespace mtk {
         }
         inline Worker *AttachedWorker() { return worker_; }
         inline void *UserCtxPtr() { return stream_->UserCtxPtr(); }
-        inline void SetUserCtx(void *ud, void (*dtor)(void *) = nullptr) { stream_->SetUserCtx(ud, dtor); }
+        inline void SetUserCtx(void *ud, SVStream::UserCtxDtor dtor = nullptr) { stream_->SetUserCtx(ud, dtor); }
         template <class W> inline void Rep(mtk_msgid_t msgid, const W &w) {
             stream_->Rep(msgid, w); 
         }

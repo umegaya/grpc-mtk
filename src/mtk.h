@@ -83,6 +83,7 @@ extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
 /* log */
 extern void mtk_log_config(const char *svname, mtk_logger_cb_t cb);
 extern void mtk_log(mtk_loglevel_t lv, const char *str);
+extern void mtk_log_flush(); //OSX only
 /* event queue */
 extern mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor);
 extern void mtk_queue_destroy(mtk_queue_t q);
@@ -149,6 +150,7 @@ extern void mtk_svconn_task(mtk_svconn_t conn, uint32_t type, const char *data, 
 extern void mtk_svconn_close(mtk_svconn_t conn);
 extern void mtk_svconn_putctx(mtk_svconn_t conn, void *ctx, mtk_ctx_free_t dtor);
 extern void *mtk_svconn_getctx(mtk_svconn_t conn);
+extern void mtk_svconn_sweep_ctx(); //OSX only
 //mtk_cid_* is callable anywhere. but you need cid which obtained by mtk_svconn_cid, and sv which cid belongs to
 extern void mtk_cid_send(mtk_server_t sv, mtk_cid_t cid, mtk_msgid_t msgid, const char *data, mtk_size_t datalen);
 extern void mtk_cid_notify(mtk_server_t sv, mtk_cid_t cid, uint32_t type, const char *data, mtk_size_t datalen);

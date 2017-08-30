@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace Mtk {
     public partial class Core {
+
     	//interface
         public partial interface ISVConn {
             ulong Id { get; }
@@ -23,6 +24,13 @@ namespace Mtk {
         public partial interface IContextSetter {
             T SetContext<T>(T obj);
         }
+
+        //logic class need to have static methods
+        /*
+        static ServerBuilder Bootstrap(string[]);
+        static IServerLogic Instance();
+        (but no way to force this)
+        */
         public abstract partial class IServerLogic {
             public abstract void OnAccept(ulong cid, IContextSetter setter, byte[] data);
             public abstract int OnRecv(ISVConn c, int type, byte[] data);
@@ -58,13 +66,6 @@ namespace Mtk {
                 return new AcceptResult{ Reply = null, Error = error };
             }
         }
-        //logic class need to have static methods
-        /*
-        static ServerBuilder Bootstrap(string[]);
-        static IServerLogic Instance();
-        (but no way to force this)
-        */
-
 
         //classes
         public partial class DeferredSVConn : IContextSetter {
@@ -137,6 +138,7 @@ namespace Mtk {
             [MonoPInvokeCallback(typeof(Core.DestroyPointerCB))]
             #endif
             static void DestroyContext(System.IntPtr ptr) {
+                Mtk.Log.Info("ev:DestroyContext");
                 GCHandle.FromIntPtr(ptr).Free();
             }
             static public T CreateContext<T>(System.IntPtr conn, T obj) {
@@ -149,7 +151,6 @@ namespace Mtk {
             static public ulong IdFromPtr(System.IntPtr c) {
                 unsafe { return mtk_svconn_cid(c); }
             }
-
         }
         public partial class CidConn : ISVConn {
             ulong cid_;
