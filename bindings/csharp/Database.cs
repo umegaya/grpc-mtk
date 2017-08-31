@@ -29,6 +29,11 @@ namespace Mtk
             using (var c = Create(url)) {
                 Migrate(c, mig_assembly);
             }
+#if MTKSV
+            Conn.QueryTrait = new DatabaseExtension.Impl.MySqlQueryTrait();
+#else
+            Conn.QueryTrait = new DatabaseExtension.Impl.SqliteQueryTrait();
+#endif
         }
         internal IDbConnection NewConn() {
 #if MTKSV
@@ -67,11 +72,7 @@ namespace Mtk
             mig.Load();
             mig.MigrateToLatest();
         }
-#if MTK_DISABLE_ASYNC
-        public static void AllowUInt64PrimeryKeyForNet35() { 
-            DatabaseExtension.Impl.InsertAdaptor = new DatabaseExtension.SQLiteAdapter(); 
-        }
-#else
+#if !MTK_DISABLE_ASYNC
 		public async Task<Mtk.Core.AcceptResult> TxnAsync<ERR>(System.Func<Database.Conn, Task<Mtk.Core.AcceptResult>> hd)
 			where ERR : Core.IError, new()
 		{
@@ -123,6 +124,24 @@ namespace Mtk
 			}
 		}
 #endif
+        public ERR Txn<ERR>(System.Action<Database.Conn> hd)
+            where ERR : Core.IError, new()
+        {
+            var c = new Conn(this);
+            try
+            {
+                hd(c);
+                c.Commit();
+                return default(ERR);
+            }
+            catch (System.Exception e)
+            {
+                c.Rollback();
+                var err = new ERR();
+                err.Set(e);
+                return err;
+            }
+        }
         public Mtk.Core.AcceptResult Txn<ERR>(System.Func<Database.Conn, Mtk.Core.AcceptResult> hd)
 			where ERR : Core.IError, new()
 		{
@@ -177,6 +196,7 @@ namespace Mtk
         {
             public IDbConnection Raw;
             public IDbTransaction TxHandle;
+            public static DatabaseExtension.Impl.IQueryTrait QueryTrait;
             internal Conn(Database db)
             {
                 Raw = db.NewConn();
@@ -209,32 +229,25 @@ namespace Mtk
             {
                 return DatabaseExtension.Impl.Select<T>(Raw, where_clause, param, transaction ?? TxHandle, commandTimeout, commandType);
             }
-            public long Insert<T>(T entityToInsert,
+            public bool Insert<T>(T entityToInsert,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
-#if MTK_DISABLE_ASYNC
-				return Raw.Insert<T>(entityToInsert, transaction ?? TxHandle, commandTimeout, DatabaseExtension.Impl.InsertAdaptor);
-#else
-                return Raw.Insert<T>(entityToInsert, transaction ?? TxHandle, commandTimeout);
-#endif
+                return DatabaseExtension.Impl.Insert<T,ulong>(Raw, entityToInsert, QueryTrait, transaction ?? TxHandle, commandTimeout);
             }
-            public bool Update<T>(T entityToUpdate,
+            public int Update<T>(T entityToUpdate,
+                                                string where_clause = null,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
-#if MTK_DISABLE_ASYNC
-				return Raw.Update<T>(entityToUpdate, transaction ?? TxHandle, commandTimeout);				
-#else
-                return Raw.Update<T>(entityToUpdate, transaction ?? TxHandle, commandTimeout);
-#endif
+				return DatabaseExtension.Impl.Update<T>(Raw, entityToUpdate, where_clause, transaction ?? TxHandle, commandTimeout);				
             }
-            public bool Delete<T>(T entityToDelete,
+            /*public bool Delete<T>(T entityToDelete,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
                 return Raw.Delete<T>(entityToDelete, transaction ?? TxHandle, commandTimeout);
-            }
+            }*/
 #if !MTK_DISABLE_ASYNC
             //caution: you specify correct table name by yourself
             public Task<int> ExecuteAsync(string sql,
@@ -261,55 +274,26 @@ namespace Mtk
             {
                 return DatabaseExtension.Impl.SelectAsync<T>(Raw, where_clause, param, transaction ?? TxHandle, commandTimeout, commandType);
             }
-            public Task<int> InsertAsync<T>(T entityToInsert,
-                                                IDbTransaction transaction = null,
-                                                int? commandTimeout = null,
-                                                ISqlAdapter sqlAdapter = null) where T : class
-            {
-                return Raw.InsertAsync<T>(entityToInsert, transaction ?? TxHandle, commandTimeout, sqlAdapter);
-            }
-            public Task<bool> UpdateAsync<T>(T entityToUpdate,
+            public Task<bool> InsertAsync<T>(T entityToInsert,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
-                return Raw.UpdateAsync<T>(entityToUpdate, transaction ?? TxHandle, commandTimeout);
+                return DatabaseExtension.Impl.InsertAsync<T,ulong>(Raw, entityToInsert, QueryTrait, transaction ?? TxHandle, commandTimeout);
             }
-            public Task<bool> DeleteAsync<T>(T entityToDelete,
+            public Task<int> UpdateAsync<T>(T entityToUpdate,
+                                                string where_clause = null,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
-                return Raw.DeleteAsync<T>(entityToDelete, transaction ?? TxHandle, commandTimeout);
+                return DatabaseExtension.Impl.UpdateAsync<T>(Raw, entityToUpdate, where_clause, transaction ?? TxHandle, commandTimeout);
             }
 #endif
         }
     }
     namespace DatabaseExtension
     {
-#if MTK_DISABLE_ASYNC
-		public partial class SQLiteAdapter : ISqlAdapter {
-			public long Insert(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, string tableName, 
-								string columnList, string parameterList, IEnumerable<PropertyInfo> keyProperties, object entityToInsert) {
-				var cmd = string.Format("insert into {0} ({1}) values ({2})", tableName, columnList, parameterList);
-
-				connection.Execute(cmd, entityToInsert, transaction, commandTimeout, null);
-
-				var r = connection.Query("select last_insert_rowid() id", null, transaction, true, commandTimeout, null);
-				var id = (long)r.First()["id"];
-				var propertyInfos = keyProperties as PropertyInfo[] ?? keyProperties.ToArray();
-				if (propertyInfos.Any()) {
-					if (propertyInfos.First().PropertyType == typeof(ulong)) {
-					    propertyInfos.First().SetValue(entityToInsert, (ulong)id, null);
-					} else {
-					    propertyInfos.First().SetValue(entityToInsert, id, null);						
-					}
-				}
-				return id;
-			}
-		}
-#endif
         public static class Impl
         {
-            public static ISqlAdapter InsertAdaptor { get; set; }
             private static readonly ConcurrentDictionary<System.RuntimeTypeHandle, string> TypeTableNameMap = new ConcurrentDictionary<System.RuntimeTypeHandle, string>();
 
             //because it seems that we cannot access private method in other partial implementation...
@@ -335,14 +319,35 @@ namespace Mtk
                 TypeTableNameMap[type.TypeHandle] = name;
                 return name;
             }
+
+            //database dependent primary key querier
+            public interface IQueryTrait {
+                string LastInsertId { get; }
+            }
+            public class SqliteQueryTrait : IQueryTrait {
+                public string LastInsertId {
+                    get { return "select last_insert_rowid() id"; }
+                }
+            }
+            public class MySqlQueryTrait : IQueryTrait {
+                public string LastInsertId {
+                    get { return "select last_insert_id() as id"; }
+                }
+            }
+
+            //select
+            private static string SelectStmt<T>(string where_clause) {
+                var type = typeof(T);
+                var name = GetOrCacheTableName(type);
+                var sql = "SELECT * FROM " + name + " WHERE " + where_clause;
+                return sql;
+            }
 			public static T Select<T>(IDbConnection connection, string where_clause, 
 													object param = null, 
 													IDbTransaction transaction = null, 
 													int? commandTimeout = null,
 													CommandType? commandType = null) where T : class {
-	            var type = typeof(T);
-	            var name = GetOrCacheTableName(type);
-	            var sql = "SELECT * FROM " + name + " WHERE " + where_clause;
+	            var sql = SelectStmt<T>(where_clause);
 #if MTK_DISABLE_ASYNC
 	            var r = connection.Query<T>(sql, param, transaction, true, commandTimeout, commandType);
 	            return r.FirstOrDefault();
@@ -355,20 +360,99 @@ namespace Mtk
 																	IDbTransaction transaction = null, 
 																	int? commandTimeout = null,
 																	CommandType? commandType = null) where T : class {
-	            var type = typeof(T);
-	            var name = GetOrCacheTableName(type);
-	            var sql = "SELECT * FROM " + name + " WHERE " + where_clause;
+	            var sql = SelectStmt<T>(where_clause);
                 return connection.Query<T>(sql, param, transaction, true, commandTimeout, commandType);
 	        }
+
+            //insert
+            private static string InsertStmt<T>(out Database.ColumnAttribute attr) {
+                var type = typeof(T);
+                var name = GetOrCacheTableName(type);
+                var columns = Database.SelectColumns(type);
+                attr = null;
+                if (columns.Length <= 0) {
+                    return "";
+                }
+                var columnlist = "";
+                var paramlist = "";
+                var prefix = "";
+                var first = true;
+                for (var i = 0; i < columns.Length; i++) { //TODO: somehow skip unchanged columnes
+                    if (columns[i].Name != "Id") {
+                        columnlist += (prefix + columns[i].Name);
+                        paramlist += (prefix + "@" + columns[i].PropName);
+                        if (first) {
+                            prefix = ",";
+                            first = false;
+                        }
+                    } else {
+                        attr = columns[i];
+                    }
+                }
+                var sql = "INSERT INTO " + name + "(" + columnlist + ") VALUES (" + paramlist + ")"; 
+                return sql;
+            }
+            public static bool Insert<T,PKEY>(IDbConnection connection, T entityToInsert,
+                                                IQueryTrait queryTrait, 
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null, 
+                                                CommandType? commandType = null) {
+                Database.ColumnAttribute attr;
+                var sql = InsertStmt<T>(out attr);
+                var cnt = connection.Execute(sql, entityToInsert, transaction, commandTimeout, commandType);
+                if (cnt > 0 && attr != null) {
+                    var r = connection.Query<PKEY>(queryTrait.LastInsertId, null, transaction, true, commandTimeout, null);
+                    var p = Database.SelectProperty(typeof(T), attr.PropName);
+                    if (p != null) {
+                        p.SetValue(entityToInsert, r.First(), null);
+                    }
+                }
+                return cnt > 0;
+            }
+
+            //update
+            private static string UpdateStmt<T>(string where_clause = null) {
+                var type = typeof(T);
+                var name = GetOrCacheTableName(type);
+                var columns = Database.SelectColumns(type);
+                if (columns.Length <= 0) {
+                    return "";
+                }
+                var first = true;
+                var idcolumn = "Id";
+                var updatelist = "";
+                var prefix = "";
+                for (var i = 0; i < columns.Length; i++) { //TODO: somehow skip unchanged columnes
+                    if (columns[i].Name == "Id") {
+                        if (where_clause == null) {
+                             idcolumn = columns[i].PropName;
+                        }
+                    } else {
+                        updatelist += (prefix + columns[i].Name + "=@" + columns[i].PropName);
+                        if (first) {
+                            prefix = ",";
+                            first = false;
+                        }
+                    }
+                }
+                var sql = "UPDATE " + name + " SET " + updatelist + " WHERE " + (where_clause ?? (" Id = @" + idcolumn)); 
+                return sql;
+            }            
+            public static int Update<T>(IDbConnection connection, T entityToUpdate,
+                                                string where_clause = null,
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null, 
+                                                CommandType? commandType = null) {
+                var sql = UpdateStmt<T>(where_clause);
+                return connection.Execute(sql, entityToUpdate, transaction, commandTimeout, commandType);
+            }
 #if !MTK_DISABLE_ASYNC
 			public static Task<T> SelectAsync<T>(IDbConnection connection, string where_clause, 
 													object param = null, 
 													IDbTransaction transaction = null, 
 													int? commandTimeout = null,
 													CommandType? commandType = null) where T : class {
-	            var type = typeof(T);
-	            var name = GetOrCacheTableName(type);
-	            var sql = $"SELECT * FROM {name} WHERE {where_clause}";
+                var sql = SelectStmt<T>(where_clause);
 	            return connection.QuerySingleOrDefaultAsync<T>(sql, param, transaction, commandTimeout, commandType);
 	        }
 			public static Task<IEnumerable<T>> SelectAllAsync<T>(IDbConnection connection, string where_clause, 
@@ -376,11 +460,38 @@ namespace Mtk
 																	IDbTransaction transaction = null, 
 																	int? commandTimeout = null,
 																	CommandType? commandType = null) where T : class {
-	            var type = typeof(T);
-	            var name = GetOrCacheTableName(type);
-	            var sql = $"SELECT * FROM {name} WHERE {where_clause}";
+                var sql = SelectStmt<T>(where_clause);
 	            return connection.QueryAsync<T>(sql, param, transaction, commandTimeout, commandType);
 	        }
+            public static async Task<bool> InsertAsync<T,PKEY>(IDbConnection connection, T entityToInsert,
+                                                IQueryTrait queryTrait, 
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null, 
+                                                CommandType? commandType = null) {
+                Database.ColumnAttribute attr;
+                var sql = InsertStmt<T>(out attr);
+                var cnt = await connection.ExecuteAsync(sql, entityToInsert, transaction, commandTimeout, commandType);
+                    Mtk.Log.Info("result:" + cnt + "|" + (attr != null));
+                if (cnt > 0 && attr != null) {
+                    var r = await connection.QueryAsync<PKEY>(queryTrait.LastInsertId, null, transaction, commandTimeout, null);
+                    Mtk.Log.Info("rfirst:" + r.First());
+                    var p = Database.SelectProperty(typeof(T), attr.Name);
+                    if (p != null) {
+                        p.SetValue(entityToInsert, r.First(), null);
+                    } else {
+                        Mtk.Log.Info("cannot find prop:" + attr.Name);
+                    }
+                }
+                return cnt > 0;
+            }
+            public static Task<int> UpdateAsync<T>(IDbConnection connection, T entityToUpdate,
+                                                string where_clause = null,
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null, 
+                                                CommandType? commandType = null) {
+                var sql = UpdateStmt<T>(where_clause);
+                return connection.ExecuteAsync(sql, entityToUpdate, transaction, commandTimeout, commandType);
+            }
 #endif
 	    }
 	}
