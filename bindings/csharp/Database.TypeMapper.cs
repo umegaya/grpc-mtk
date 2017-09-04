@@ -12,7 +12,6 @@ namespace Mtk
     	const string ColumnAttributeName = "ColumnAttribute";
         public static PropertyInfo SelectProperty(Type type, string columnName)
         {
-        	Mtk.Log.Info("SelectProperty:Type:" + type + "|" + columnName);
             return
                 type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
                     FirstOrDefault(
@@ -60,6 +59,29 @@ namespace Mtk
 #else
 			public ColumnAttribute(string name) {
 				this.Name = name; this.PropName = name;
+			}
+#endif
+		}
+
+		public static void TypeMap(Assembly assembly) {
+			foreach(Type type in assembly.GetTypes()) {
+		        if (type.GetCustomAttributes(typeof(TableAttribute), true).Length > 0) {
+			        Dapper.SqlMapper.SetTypeMap(type, new CustomPropertyTypeMap(type, SelectProperty));	
+		        }
+		    }
+		}
+
+		[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+		public class TableAttribute : Attribute
+		{
+			public string Name { get; set; }
+#if !MTK_DISABLE_ASYNC
+			public TableAttribute([CallerMemberName] string name = null) { 
+				this.Name = name;
+			}
+#else
+			public TableAttribute(string name) {
+				this.Name = name;
 			}
 #endif
 		}

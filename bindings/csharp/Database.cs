@@ -10,7 +10,6 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Linq;
 using Dapper;
-using Dapper.Contrib.Extensions;
 using SimpleMigrations;
 using System.Threading.Tasks;
 using System.Reflection;
@@ -26,6 +25,7 @@ namespace Mtk
         public Database(string url, Assembly mig_assembly = null)
         {
             ConnectUrl = url;
+            TypeMap(mig_assembly);
             using (var c = Create(url)) {
                 Migrate(c, mig_assembly);
             }
@@ -307,11 +307,11 @@ namespace Mtk
                     .GetCustomAttributes(false).SingleOrDefault(attr => attr.GetType().Name == "TableAttribute");
                 if (tableAttr != null)
                 {
-                    name = (tableAttr as TableAttribute).Name;
+                    name = (tableAttr as Mtk.Database.TableAttribute).Name;
                 }
                 else
                 {
-                    name = type.Name + "s";
+                    name = type.Name;
                     if (type.IsInterface && name.StartsWith("I"))
                         name = name.Substring(1);
                 }
@@ -471,10 +471,8 @@ namespace Mtk
                 Database.ColumnAttribute attr;
                 var sql = InsertStmt<T>(out attr);
                 var cnt = await connection.ExecuteAsync(sql, entityToInsert, transaction, commandTimeout, commandType);
-                    Mtk.Log.Info("result:" + cnt + "|" + (attr != null));
                 if (cnt > 0 && attr != null) {
                     var r = await connection.QueryAsync<PKEY>(queryTrait.LastInsertId, null, transaction, commandTimeout, null);
-                    Mtk.Log.Info("rfirst:" + r.First());
                     var p = Database.SelectProperty(typeof(T), attr.Name);
                     if (p != null) {
                         p.SetValue(entityToInsert, r.First(), null);
