@@ -129,13 +129,16 @@ namespace Mtk {
                 }
             }
         }
-        public sealed class ClientBuilder : Builder {
-        	Client client_;
-        	bool auto_cleanup_ = true;
-            Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
-            List<GCHandle> cbmems_ = new List<GCHandle>();
-            public ClientBuilder() {}
-            public ClientBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
+        public class ClientBuilderBase : Builder {
+            protected Closure on_connect_, on_close_, on_ready_, on_start_, on_notify_;
+            protected List<GCHandle> cbmems_ = new List<GCHandle>();
+            public ClientBuilderBase() {}
+            internal void SetClosure<CB>(ref Closure cl, CB cb, System.IntPtr arg) {
+                cbmems_.Add(GCHandle.Alloc(cb));
+                cl.arg = arg;
+                cl.cb = Marshal.GetFunctionPointerForDelegate(cb);
+            }
+            internal ClientBuilderBase ConnectTo(string at, string cert = "", string key = "", string ca = "") {
             	string resolved;
             	if (Util.NAT.Instance == null || !Util.NAT.Instance.Resolve(at, out resolved)) {
             		resolved = at;
@@ -144,83 +147,15 @@ namespace Mtk {
                 base.ListenAt(resolved, cert, key, ca);
                 return this;
             }
-            //for building client these function will be called from same thread as Unity's main thread
-            public ClientBuilder Handler(Client.IEventHandler h) {
-            	client_ = new Client(h);
-            	return this;
-            }
-            public ClientBuilder RegisterNotifier<N>(uint t, Client.Notifier<N> notifier) where N : IMessage, new() {
-            	client_.RegisterNotifier<N>(t, notifier);
-            	return this;
-            }
-            public ClientBuilder AutoCleanup(bool yes_or_no) {
-            	auto_cleanup_ = yes_or_no;
-            	return this;
-            }
-            //for building conn. these function will be called from same thread as Unity's main thread
-            public ClientBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
-                cbmems_.Add(GCHandle.Alloc(cb));
-                on_close_.arg = arg;
-                on_close_.cb = Marshal.GetFunctionPointerForDelegate(cb);
-                return this;
-            }
-            public ClientBuilder OnConnect(ClientConnectCB cb, System.IntPtr arg) {
-                cbmems_.Add(GCHandle.Alloc(cb));
-                on_connect_.arg = arg;
-                on_connect_.cb = Marshal.GetFunctionPointerForDelegate(cb);
-                return this;
-            }
-            public ClientBuilder OnReady(ClientReadyCB cb, System.IntPtr arg) {
-                cbmems_.Add(GCHandle.Alloc(cb));
-                on_ready_.arg = arg;
-                on_ready_.cb = Marshal.GetFunctionPointerForDelegate(cb);
-                return this;
-            }
-            public ClientBuilder OnNotify(ClientRecvCB cb, System.IntPtr arg) {
-                cbmems_.Add(GCHandle.Alloc(cb));
-                on_notify_.arg = arg;
-                on_notify_.cb = Marshal.GetFunctionPointerForDelegate(cb);
-                return this;
-            }
-            public ClientBuilder OnStart(ClientStartCB cb, System.IntPtr arg) {
-                cbmems_.Add(GCHandle.Alloc(cb));
-                on_start_.arg = arg;
-                on_start_.cb = Marshal.GetFunctionPointerForDelegate(cb);
-                return this;                
-            }
-            ClientConfig MakeConfig() {
+            internal ClientConfig MakeConfig() {
             	return new ClientConfig { 
                     on_connect = on_connect_, on_close = on_close_, 
                     on_start = on_start_, on_ready = on_ready_,
                 };
             }
-            public Client Build() {
-            	if (client_ == null) {
-            		Mtk.Log.Error("do not use OnXXXX to create Client. use Handler instead");
-            		return null;
-            	}            	
-            	var c = client_;
-            	var ptr = c.CallbacksPtr;
-                unsafe {
-    				OnConnect(Client.OnConnect, ptr)
-    					.OnClose(Client.OnClose, ptr)
-    					.OnReady(Client.OnReady, ptr)
-    					.OnStart(Client.OnStart, ptr)
-    					.OnNotify(Client.OnNotify, ptr);
-
-                    Address[] addrs = MakeAddress();
-                    ClientConfig conf = MakeConfig();
-    				c.Start(addrs[0], conf, cbmems_, auto_cleanup_);
-    				c.Watch(on_notify_);
-    				DestroyAddress();
-                }
-				return c;				    	
-            }
+        }
+        public sealed class ConnBuilder : ClientBuilderBase {
             public Conn BuildConn() {
-            	if (client_ != null) {
-            		Mtk.Log.Error("cannot use handler to build conn");
-            		return null;
-            	}
                 Address[] addrs = MakeAddress();
                 ClientConfig conf = MakeConfig();
                 var conn = new Conn(mtk_connect(ref addrs[0], ref conf), cbmems_);
@@ -228,9 +163,96 @@ namespace Mtk {
                 DestroyAddress();
                 return conn;
             }
+            public ConnBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
+                base.ConnectTo(at, cert, key, ca);
+                return this;
+            }
+            public ConnBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
+                SetClosure(ref on_close_, cb, arg);
+                return this;
+            }
+            public ConnBuilder OnConnect(ClientConnectCB cb, System.IntPtr arg) {
+                SetClosure(ref on_connect_, cb, arg);
+                return this;
+            }
+            public ConnBuilder OnReady(ClientReadyCB cb, System.IntPtr arg) {
+                SetClosure(ref on_ready_, cb, arg);
+                return this;
+            }
+            public ConnBuilder OnNotify(ClientRecvCB cb, System.IntPtr arg) {
+                SetClosure(ref on_notify_, cb, arg);
+                return this;
+            }
+            public ConnBuilder OnStart(ClientStartCB cb, System.IntPtr arg) {
+                SetClosure(ref on_start_, cb, arg);
+                return this;
+            }
+        }
+        public sealed class ClientBuilder : ClientBuilderBase {
+            Client client_;
+            bool auto_cleanup_ = true;
+            //for building conn. on editor, these function will be called from main thread
+            public ClientBuilder Handler(Client.IEventHandler h) {
+                client_ = new Client(h);
+                return this;
+            }
+            public ClientBuilder RegisterNotifier<N>(uint t, Client.Notifier<N> notifier) where N : IMessage, new() {
+                client_.RegisterNotifier<N>(t, notifier);
+                return this;
+            }
+            public ClientBuilder AutoCleanup(bool yes_or_no) {
+#if UNITY_EDITOR
+                auto_cleanup_ = yes_or_no;
+#else
+                Mtk.Log.Warn("ev:auto cleanup only enable for Unity Editor");
+#endif
+                return this;
+            }
+            public Client Build() {
+                var c = client_;
+                var ptr = c.CallbacksPtr;
+                unsafe {
+                    OnConnect(Client.OnConnect, ptr)
+                        .OnClose(Client.OnClose, ptr)
+                        .OnReady(Client.OnReady, ptr)
+                        .OnStart(Client.OnStart, ptr)
+                        .OnNotify(Client.OnNotify, ptr);
+
+                    Address[] addrs = MakeAddress();
+                    ClientConfig conf = MakeConfig();
+                    c.Start(addrs[0], conf, cbmems_, auto_cleanup_);
+                    c.Watch(on_notify_);
+                    DestroyAddress();
+                }
+                return c;                       
+            }
+            public ClientBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
+                base.ConnectTo(at, cert, key, ca);
+                return this;
+            }
+            public ClientBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
+                SetClosure(ref on_close_, cb, arg);
+                return this;
+            }
+            public ClientBuilder OnConnect(ClientConnectCB cb, System.IntPtr arg) {
+                SetClosure(ref on_connect_, cb, arg);
+                return this;
+            }
+            public ClientBuilder OnReady(ClientReadyCB cb, System.IntPtr arg) {
+                SetClosure(ref on_ready_, cb, arg);
+                return this;
+            }
+            public ClientBuilder OnNotify(ClientRecvCB cb, System.IntPtr arg) {
+                SetClosure(ref on_notify_, cb, arg);
+                return this;
+            }
+            public ClientBuilder OnStart(ClientStartCB cb, System.IntPtr arg) {
+                SetClosure(ref on_start_, cb, arg);
+                return this;
+            }
         }
         public class Client : Conn {
-			public unsafe delegate void NotifyReceiver(byte* bytes, uint len);
+            //public methods
             public class SendResult<REP> {
                 public REP Reply;
                 public IError Error;
@@ -241,13 +263,76 @@ namespace Mtk {
 				ulong OnClose(ulong cid, int connect_attempts);
 				bool OnReady();
 			};
-			class CallbackCollection {
+            public void Stop() {
+                base.Destroy();
+                if (CallbacksPtr != System.IntPtr.Zero) {
+                    GCHandle.FromIntPtr(CallbacksPtr).Free();
+                }
+            }
+            public delegate void Receiver<REP, ERR>(REP rep, ERR err);
+            public void Send<REP,ERR>(uint t, IMessage req, Receiver<REP,ERR> cb) 
+                where REP : IMessage, new()
+                where ERR : IMessage, new() {
+                byte[] payload;
+                if (Mtk.Codec.Pack(req, out payload) < 0) {
+                    return;
+                }
+                unsafe {
+                    Send((uint)t, payload, delegate (int type, byte *bytes, uint len) {
+                        if (type >= 0) {
+                            REP rep = new REP();
+                            if (Mtk.Codec.Unpack(bytes, len, ref rep) < 0) {
+                                return;
+                            }
+                            cb(rep, default(ERR));
+                        } else {
+                            ERR err = new ERR();
+                            if (Mtk.Codec.Unpack(bytes, len, ref err) < 0) {
+                                return;
+                            }
+                            cb(default(REP), err);
+                        }
+                    });
+                }
+            }
+#if !MTK_DISABLE_ASMYNC
+            public async Task<SendResult<REP>> Send<REP, ERR>(uint t, Google.Protobuf.IMessage req)
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : IError, new() {
+                var tcs = new TaskCompletionSource<SendResult<REP>>();
+                Send<REP,ERR>(t, req, delegate (REP rep, ERR err) {
+                    if (rep != null) {
+                        tcs.TrySetResult(new SendResult<REP>{Reply = rep});
+                    } else {
+                        tcs.TrySetResult(new SendResult<REP>{Error = err});
+                    }
+                });
+                return await tcs.Task.ConfigureAwait(false);
+            }
+#endif
+            public delegate void Notifier<N>(N n);
+            public void RegisterNotifier<N>(uint t, Notifier<N> notifier) where N : IMessage, new() {
+                unsafe {
+                    ToCallbacks(CallbacksPtr).Notifiers[t] = delegate (byte *bytes, uint len) {
+                        N payload = new N();
+                        if (Mtk.Codec.Unpack(bytes, len, ref payload) < 0) {
+                            return;
+                        }
+                        notifier(payload);
+                    };
+                }
+            }
+
+
+            //internal methods
+            internal unsafe delegate void NotifyReceiver(byte* bytes, uint len);
+			internal class CallbackCollection {
 				public Dictionary<uint, NotifyReceiver> Notifiers { get; set; }
 				public IEventHandler Handler { get; set; }
 			}
 
         	internal System.IntPtr CallbacksPtr { get; set; }
-        	public Client(IEventHandler handler) : base() {
+        	internal Client(IEventHandler handler) : base() {
 				var cc = GCHandle.Alloc(new CallbackCollection {
 					Handler = handler,
 					Notifiers = new Dictionary<uint, NotifyReceiver>(),
@@ -263,69 +348,10 @@ namespace Mtk {
 				}
 #endif
 			}
-			public void Stop() {
-				base.Destroy();
-				if (CallbacksPtr != System.IntPtr.Zero) {
-					GCHandle.FromIntPtr(CallbacksPtr).Free();
-				}
-			}
 
-			public delegate void Receiver<REP, ERR>(REP rep, ERR err);
-			public void Send<REP,ERR>(uint t, IMessage req, Receiver<REP,ERR> cb) 
-				where REP : IMessage, new()
-				where ERR : IMessage, new() {
-				byte[] payload;
-				if (Mtk.Codec.Pack(req, out payload) < 0) {
-					return;
-				}
-				unsafe {
-					Send((uint)t, payload, delegate (int type, byte *bytes, uint len) {
-						if (type >= 0) {
-							REP rep = new REP();
-							if (Mtk.Codec.Unpack(bytes, len, ref rep) < 0) {
-								return;
-							}
-							cb(rep, default(ERR));
-						} else {
-							ERR err = new ERR();
-							if (Mtk.Codec.Unpack(bytes, len, ref err) < 0) {
-								return;
-							}
-							cb(default(REP), err);
-						}
-					});
-				}
-			}
-#if !MTK_DISABLE_ASYNC
-            public async Task<SendResult<REP>> Send<REP, ERR>(uint t, Google.Protobuf.IMessage req)
-                where REP : Google.Protobuf.IMessage, new()
-                where ERR : IError, new() {
-                var tcs = new TaskCompletionSource<SendResult<REP>>();
-                Send<REP,ERR>(t, req, delegate (REP rep, ERR err) {
-                    if (rep != null) {
-                        tcs.TrySetResult(new SendResult<REP>{Reply = rep});
-                    } else {
-                        tcs.TrySetResult(new SendResult<REP>{Error = err});
-                    }
-                });
-                return await tcs.Task.ConfigureAwait(false);
-            }
-#endif
-			public delegate void Notifier<N>(N n);
-			public void RegisterNotifier<N>(uint t, Notifier<N> notifier) where N : IMessage, new() {
-				unsafe {
-					ToCallbacks(CallbacksPtr).Notifiers[t] = delegate (byte *bytes, uint len) {
-						N payload = new N();
-						if (Mtk.Codec.Unpack(bytes, len, ref payload) < 0) {
-							return;
-						}
-						notifier(payload);
-					};
-				}
-			}
 
 			//callbacks
-			static CallbackCollection ToCallbacks(System.IntPtr arg) {
+			static internal CallbackCollection ToCallbacks(System.IntPtr arg) {
 				return (CallbackCollection)GCHandle.FromIntPtr(arg).Target;
 			}
 #if !MTKSV
