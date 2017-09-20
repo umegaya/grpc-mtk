@@ -2,9 +2,6 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
-#if !MTK_DISABLE_ASYNC
-using System.Threading.Tasks;
-#endif
 using Continuation = System.Collections.Generic.KeyValuePair<System.Threading.SendOrPostCallback, object>;
 
 namespace Mtk {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
-#if !MTK_DISABLE_ASYNC
+#if !MTK_USE35
 using System.Threading.Tasks;
 #endif
 using System.Runtime.InteropServices;
@@ -262,7 +262,7 @@ namespace Mtk {
 				bool OnConnect(ulong cid, byte[] payload);
 				ulong OnClose(ulong cid, int connect_attempts);
 				bool OnReady();
-			};
+			}
             public void Stop() {
                 base.Destroy();
                 if (CallbacksPtr != System.IntPtr.Zero) {
@@ -295,8 +295,14 @@ namespace Mtk {
                     });
                 }
             }
-#if !MTK_DISABLE_ASMYNC
-            public async Task<SendResult<REP>> Send<REP, ERR>(uint t, Google.Protobuf.IMessage req)
+#if MTK_USE35
+            public SendResult<REP> Send<REP, ERR>(uint t, IMessage req)
+                where REP : Google.Protobuf.IMessage, new()
+                where ERR : IError, new() {
+                    throw new System.NotImplementedException("task/inumerator style RPC is not supported when MTK_USE35 is enabled");
+            }
+#else
+            public async Task<SendResult<REP>> Send<REP, ERR>(uint t, IMessage req)
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : IError, new() {
                 var tcs = new TaskCompletionSource<SendResult<REP>>();

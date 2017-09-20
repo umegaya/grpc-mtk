@@ -11,7 +11,9 @@ using System.Threading;
 using System.Linq;
 using Dapper;
 using SimpleMigrations;
+#if !MTK_USE35
 using System.Threading.Tasks;
+#endif
 using System.Reflection;
 
 namespace Mtk
@@ -72,8 +74,8 @@ namespace Mtk
             mig.Load();
             mig.MigrateToLatest();
         }
-#if !MTK_DISABLE_ASYNC
-		public async Task<Mtk.Core.AcceptResult> TxnAsync<ERR>(System.Func<Database.Conn, Task<Mtk.Core.AcceptResult>> hd)
+#if !MTK_USE35
+		public async Task<Mtk.Core.AcceptResult> Txn<ERR>(System.Func<Database.Conn, Task<Mtk.Core.AcceptResult>> hd)
 			where ERR : Core.IError, new()
 		{
 			var c = new Conn(this);
@@ -98,7 +100,7 @@ namespace Mtk
 				return new Mtk.Core.AcceptResult { Cid = 0, Error = err };
 			}
 		}
-		public async Task<Mtk.Core.HandleResult> TxnAsync<ERR>(System.Func<Database.Conn, Task<Mtk.Core.HandleResult>> hd)
+		public async Task<Mtk.Core.HandleResult> Txn<ERR>(System.Func<Database.Conn, Task<Mtk.Core.HandleResult>> hd)
 			where ERR : Core.IError, new()
 		{
 			var c = new Conn(this);
@@ -204,6 +206,7 @@ namespace Mtk
             }
             internal void Commit() { TxHandle.Commit(); }
             internal void Rollback() { TxHandle.Rollback(); }
+#if MTK_USE35
             //caution: you specify correct table name by yourself
             public int Execute(string sql,
                                             object param = null,
@@ -242,15 +245,14 @@ namespace Mtk
             {
 				return DatabaseExtension.Impl.Update<T>(Raw, entityToUpdate, where_clause, transaction ?? TxHandle, commandTimeout);				
             }
-            /*public bool Delete<T>(T entityToDelete,
+            public int Delete<T>(T entityToDelete,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
-                return Raw.Delete<T>(entityToDelete, transaction ?? TxHandle, commandTimeout);
-            }*/
-#if !MTK_DISABLE_ASYNC
-            //caution: you specify correct table name by yourself
-            public Task<int> ExecuteAsync(string sql,
+                return DatabaseExtension.Impl.Delete<T>(Raw, entityToDelete, transaction ?? TxHandle, commandTimeout);
+            }
+#else
+            public Task<int> Execute(string sql,
                                             object param = null,
                                             IDbTransaction transaction = null,
                                             int? commandTimeout = null,
@@ -258,7 +260,7 @@ namespace Mtk
             {
                 return Raw.ExecuteAsync(sql, param, transaction ?? TxHandle, commandTimeout, commandType);
             }
-            public Task<IEnumerable<T>> SelectAllAsync<T>(string where_clause,
+            public Task<IEnumerable<T>> SelectAll<T>(string where_clause,
                                                         object param = null,
                                                         IDbTransaction transaction = null,
                                                         int? commandTimeout = null,
@@ -266,7 +268,7 @@ namespace Mtk
             {
                 return DatabaseExtension.Impl.SelectAllAsync<T>(Raw, where_clause, param, transaction ?? TxHandle, commandTimeout, commandType);
             }
-            public Task<T> SelectAsync<T>(string where_clause,
+            public Task<T> Select<T>(string where_clause,
                                             object param = null,
                                             IDbTransaction transaction = null,
                                             int? commandTimeout = null,
@@ -274,18 +276,24 @@ namespace Mtk
             {
                 return DatabaseExtension.Impl.SelectAsync<T>(Raw, where_clause, param, transaction ?? TxHandle, commandTimeout, commandType);
             }
-            public Task<bool> InsertAsync<T>(T entityToInsert,
+            public Task<bool> Insert<T>(T entityToInsert,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
                 return DatabaseExtension.Impl.InsertAsync<T,ulong>(Raw, entityToInsert, QueryTrait, transaction ?? TxHandle, commandTimeout);
             }
-            public Task<int> UpdateAsync<T>(T entityToUpdate,
+            public Task<int> Update<T>(T entityToUpdate,
                                                 string where_clause = null,
                                                 IDbTransaction transaction = null,
                                                 int? commandTimeout = null) where T : class
             {
                 return DatabaseExtension.Impl.UpdateAsync<T>(Raw, entityToUpdate, where_clause, transaction ?? TxHandle, commandTimeout);
+            }
+            public Task<int> Delete<T>(T entityToDelete,
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null) where T : class
+            {
+                return DatabaseExtension.Impl.DeleteAsync<T>(Raw, entityToDelete, transaction ?? TxHandle, commandTimeout);
             }
 #endif
         }
@@ -348,7 +356,7 @@ namespace Mtk
 													int? commandTimeout = null,
 													CommandType? commandType = null) where T : class {
 	            var sql = SelectStmt<T>(where_clause);
-#if MTK_DISABLE_ASYNC
+#if MTK_USE35
 	            var r = connection.Query<T>(sql, param, transaction, true, commandTimeout, commandType);
 	            return r.FirstOrDefault();
 #else
@@ -402,9 +410,11 @@ namespace Mtk
                 var cnt = connection.Execute(sql, entityToInsert, transaction, commandTimeout, commandType);
                 if (cnt > 0 && attr != null) {
                     var r = connection.Query<PKEY>(queryTrait.LastInsertId, null, transaction, true, commandTimeout, null);
-                    var p = Database.SelectProperty(typeof(T), attr.PropName);
+                    var p = Database.SelectProperty(typeof(T), attr.Name);
                     if (p != null) {
                         p.SetValue(entityToInsert, r.First(), null);
+                    } else {
+                        Mtk.Log.Info("ev:cannot find property for primary key,name:" + attr.Name);
                     }
                 }
                 return cnt > 0;
@@ -435,7 +445,7 @@ namespace Mtk
                         }
                     }
                 }
-                var sql = "UPDATE " + name + " SET " + updatelist + " WHERE " + (where_clause ?? (" Id = @" + idcolumn)); 
+                var sql = "UPDATE " + name + " SET " + updatelist + " WHERE " + (where_clause ?? ("Id = @" + idcolumn)); 
                 return sql;
             }            
             public static int Update<T>(IDbConnection connection, T entityToUpdate,
@@ -446,7 +456,39 @@ namespace Mtk
                 var sql = UpdateStmt<T>(where_clause);
                 return connection.Execute(sql, entityToUpdate, transaction, commandTimeout, commandType);
             }
-#if !MTK_DISABLE_ASYNC
+
+            //delete
+            private static string DeleteStmt<T>(string where_clause = null) {
+                var type = typeof(T);
+                var name = GetOrCacheTableName(type);
+                var columns = Database.SelectColumns(type);
+                if (columns.Length <= 0) {
+                    return "";
+                }
+                if (where_clause == null) {
+                    var idcolumn = "Id";
+                    var updatelist = "";
+                    var prefix = "";
+                    for (var i = 0; i < columns.Length; i++) { //TODO: somehow skip unchanged columnes
+                        if (columns[i].Name == "Id") {
+                            if (where_clause == null) {
+                                 idcolumn = columns[i].PropName;
+                            }
+                        }
+                    }
+                    return "DELETE FROM " + name + " WHERE Id = @" + idcolumn; 
+                } else {
+                    return "DELETE FROM " + name + " WHERE " + where_clause; 
+                }
+            }            
+            public static int Delete<T>(IDbConnection connection, T entityToDelete,
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null, 
+                                                CommandType? commandType = null) where T : class {
+                var sql = UpdateStmt<T>(null);
+                return connection.Execute(sql, entityToDelete, transaction, commandTimeout, commandType);
+            }
+#if !MTK_USE35
 			public static Task<T> SelectAsync<T>(IDbConnection connection, string where_clause, 
 													object param = null, 
 													IDbTransaction transaction = null, 
@@ -477,7 +519,7 @@ namespace Mtk
                     if (p != null) {
                         p.SetValue(entityToInsert, r.First(), null);
                     } else {
-                        Mtk.Log.Info("cannot find prop:" + attr.Name);
+                        Mtk.Log.Info("ev:cannot find property for primary key,name:" + attr.Name);
                     }
                 }
                 return cnt > 0;
@@ -489,6 +531,13 @@ namespace Mtk
                                                 CommandType? commandType = null) {
                 var sql = UpdateStmt<T>(where_clause);
                 return connection.ExecuteAsync(sql, entityToUpdate, transaction, commandTimeout, commandType);
+            }
+            public static Task<int> DeleteAsync<T>(IDbConnection connection, T entityToDelete,
+                                                IDbTransaction transaction = null,
+                                                int? commandTimeout = null, 
+                                                CommandType? commandType = null) where T : class {
+                var sql = DeleteStmt<T>(null);
+                return connection.ExecuteAsync(sql, entityToDelete, transaction, commandTimeout, commandType);
             }
 #endif
 	    }

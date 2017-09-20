@@ -52,7 +52,7 @@ namespace Mtk
 		{
 			public string Name { get; set; }
 			public string PropName { get; set; }
-#if !MTK_DISABLE_ASYNC
+#if !MTK_USE35
 			public ColumnAttribute([CallerMemberName] string prop_name = null) { 
 				this.Name = prop_name; this.PropName = prop_name; 
 			}
@@ -75,7 +75,7 @@ namespace Mtk
 		public class TableAttribute : Attribute
 		{
 			public string Name { get; set; }
-#if !MTK_DISABLE_ASYNC
+#if !MTK_USE35
 			public TableAttribute([CallerMemberName] string name = null) { 
 				this.Name = name;
 			}

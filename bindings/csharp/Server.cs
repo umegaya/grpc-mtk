@@ -3,7 +3,7 @@ using System.Threading;
 #if !MTKSV
 using AOT;
 #endif
-#if !MTK_DISABLE_ASYNC
+#if !MTK_USE35
 using System.Threading.Tasks;
 #endif
 
@@ -41,9 +41,12 @@ namespace Mtk {
             System.IntPtr server_;
             [System.ThreadStatic]
             static internal Core.ManualPumpingSynchronizationContext sync_;
-            static public Core.ManualPumpingSynchronizationContext SyncCtx { get { return sync_; } }
+            static internal Core.ManualPumpingSynchronizationContext SyncCtx { get { return sync_; } }
             public CidConn NewConn(ulong cid, uint msgid) {
                 return new CidConn(cid, msgid, server_);
+            }
+            public void CloseById(ulong cid) {
+                unsafe { mtk_cid_close(server_, cid); }
             }
             internal void SetServerDescriptor(System.IntPtr sv) {
                 server_  = sv;
@@ -368,10 +371,9 @@ namespace Mtk {
                 return -1;
             }
 
-#if !MTK_DISABLE_ASYNC
-            //typical accept and recv handlers (async)
+#if !MTK_USE35
             public delegate Task<AcceptResult> AsyncAcceptHandler<REQ, REP>(ulong cid, Core.IContextSetter setter, REQ req);
-            static public async void OnAcceptAsync<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AsyncAcceptHandler<REQ, REP> hd) 
+            static public async void OnAccept<REQ, REP, ERR>(ulong cid, Core.IContextSetter setter, byte[] data, AsyncAcceptHandler<REQ, REP> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : IError, new() {
@@ -414,7 +416,7 @@ namespace Mtk {
             }
 
             public delegate Task<HandleResult> AsyncHandler<REQ, REP>(Core.ISVConn c, REQ req);
-            static public async void HandleAsync<REQ, REP, ERR>(Core.ISVConn c, byte[] data, AsyncHandler<REQ, REP> hd) 
+            static public async void Handle<REQ, REP, ERR>(Core.ISVConn c, byte[] data, AsyncHandler<REQ, REP> hd) 
                 where REQ : Google.Protobuf.IMessage, new() 
                 where REP : Google.Protobuf.IMessage, new()
                 where ERR : IError, new() {
@@ -452,7 +454,7 @@ namespace Mtk {
                 Mtk.Log.Error("ev:invalid request payload,id:" + c.Id);
                 return;
             }
-#endif // !MTK_DISABLE_ASYNC
+#endif
         }
     }
 #if MTKSV
