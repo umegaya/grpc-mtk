@@ -47,7 +47,7 @@ namespace mtk {
             gpr_mu_lock(g_polling_mu);
             pollent_ = grpc_polling_entity_create_from_pollset(g_pollset);
             gpr_mu_unlock(g_polling_mu);
-            grpc_closure_init(&closure_, _RequestContext::tranpoline, this, grpc_schedule_on_exec_ctx);
+            GRPC_CLOSURE_INIT(&closure_, _RequestContext::tranpoline, this, grpc_schedule_on_exec_ctx);
             memset(&response_, 0, sizeof(response_));
             cb_ = cb;
             
@@ -73,7 +73,7 @@ namespace mtk {
             grpc_resource_quota_unref_internal(&g_exec_ctx, resource_quota);
         }
         void Fin() {
-            grpc_httpcli_context_destroy(&context_);
+            //grpc_httpcli_context_destroy(&context_);
             grpc_http_response_destroy(&response_);
             GRPC_LOG_IF_ERROR(
                 "pollset_kick",
@@ -105,12 +105,12 @@ namespace mtk {
         }
     }
     static void destroy_pollset(grpc_exec_ctx *exec_ctx, void *p, grpc_error *e) {
-        grpc_pollset_destroy((grpc_pollset *)p);
+        //grpc_pollset_destroy((grpc_pollset *)p);
     }
     void HttpClient::Fin() {
         if (g_pollset != nullptr) {
             grpc_closure destroy_closure;
-            grpc_closure_init(&destroy_closure, destroy_pollset, g_pollset, grpc_schedule_on_exec_ctx);
+            GRPC_CLOSURE_INIT(&destroy_closure, destroy_pollset, g_pollset, grpc_schedule_on_exec_ctx);
             grpc_pollset_shutdown(&g_exec_ctx,
                                   g_pollset,
                                   &destroy_closure);
@@ -667,8 +667,8 @@ namespace mtk {
         typedef HttpFSM::result_code result_code;
     public:
         HttpServContext(grpc_endpoint *sock, HttpServer::Callback cb) : sock_(sock), cb_(cb), fsm_() {
-            grpc_closure_init(&on_read_, _OnRead, this, grpc_schedule_on_exec_ctx);
-            grpc_closure_init(&on_write_, _OnWrite, this, grpc_schedule_on_exec_ctx);
+            GRPC_CLOSURE_INIT(&on_read_, _OnRead, this, grpc_schedule_on_exec_ctx);
+            GRPC_CLOSURE_INIT(&on_write_, _OnWrite, this, grpc_schedule_on_exec_ctx);
             gpr_slice_buffer_init(&buffer_);
             gpr_slice_buffer_init(&body_);
             FSM().reset(512);
@@ -788,7 +788,7 @@ namespace mtk {
         grpc_init();
         pollset_ = (grpc_pollset *)malloc(grpc_pollset_size());
         grpc_pollset_init(pollset_, &polling_mu_);
-        grpc_closure_init(&on_destroy_, &HttpServer::_OnDestroy, this, grpc_schedule_on_exec_ctx);
+        GRPC_CLOSURE_INIT(&on_destroy_, &HttpServer::_OnDestroy, this, grpc_schedule_on_exec_ctx);
         return true;
     }
     void HttpServer::Fin() {

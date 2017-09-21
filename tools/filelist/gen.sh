@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "set(grpc_core_src `cat - | sed -e 's|src/core|ext/grpc/src/core|g' | sed -e 's|third_party/|ext/grpc/third_party/|g'`)" > $1
+echo "set($1 `cat - | sed -e 's|src/core|ext/grpc/src/core|g' | sed -e 's|src/cpp|ext/grpc/src/cpp|g' | sed -e 's|src/boringssl|ext/grpc/src/boringssl|g' | sed -e 's|third_party/|ext/grpc/third_party/|g'`)" > $2

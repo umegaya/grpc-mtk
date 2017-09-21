@@ -1,4 +1,5 @@
 PROTO_ROOT=./src/proto
+COMMON_PROTO_ROOT=./ext/grpc/third_party/protobuf/src/google/protobuf
 PROTO_SRC_PATH=$(PROTO_ROOT)/src
 GRPC_ROOT=./ext/grpc
 GRPC_PROTO_ROOT=$(GRPC_ROOT)/src/proto
@@ -6,25 +7,29 @@ GRPC_CPP_PLUGIN=grpc_cpp_plugin
 GRPC_BIN_PATH=/usr/local/bin/grpc_cpp_plugin
 DOCKER_IMAGE=mtktool/builder
 GRPC_COMMIT=$(shell bash ./tools/builder/hash.sh)
+GRPC_PROTO_SRCS=$(shell find $(GRPC_PROTO_ROOT)/grpc/[^t]* -name *.proto)
 # project root from build directory
 PROJECT_ROOT=../..
 BUILD_SETTING_PATH=$(PROJECT_ROOT)/tools/cmake
 FILELIST_TOOL_PATH=./tools/filelist
 
 define call_protoc
-docker run --rm -v `pwd`:/mtk $(DOCKER_IMAGE) bash -c "cd /mtk && protoc -I$(PROTO_ROOT) $1"
+docker run --rm -v `pwd`:/mtk $(DOCKER_IMAGE) bash -c "cd /mtk && protoc -I$(PROTO_ROOT) -I$(COMMON_PROTO_ROOT) $1"
 endef
 
 $(PROTO_SRC_PATH)/%.pb.cc $(PROTO_SRC_PATH)/%.pb.h: $(PROTO_ROOT)/%.proto
 	$(call call_protoc,--cpp_out=$(PROTO_SRC_PATH) $<)
 $(PROTO_SRC_PATH)/%.grpc.pb.cc $(PROTO_SRC_PATH)/%.grpc.pb.h: $(PROTO_ROOT)/%.proto
 	$(call call_protoc,--grpc_out=$(PROTO_SRC_PATH) --plugin=protoc-gen-grpc=$(GRPC_BIN_PATH) $<)
-$(FILELIST_TOOL_PATH)/lists.cmake: $(GRPC_ROOT)/Makefile
-	make -C $(FILELIST_TOOL_PATH) list 2>/dev/null | bash $(FILELIST_TOOL_PATH)/gen.sh $@
+$(GRPC_PROTO_ROOT)/grpc/%.pb.cc $(GRPC_PROTO_ROOT)/grpc/%.pb.h: $(GRPC_PROTO_ROOT)/grpc/%.proto 
+	$(call call_protoc,-I. --cpp_out=. $<)
+$(FILELIST_TOOL_PATH)/%.cmake: $(GRPC_ROOT)/Makefile $(FILELIST_TOOL_PATH)/makefile
+	make -C $(FILELIST_TOOL_PATH) $(basename $(notdir $@)) 2>/dev/null | bash $(FILELIST_TOOL_PATH)/gen.sh grpc_src_$(basename $(notdir $@)) $@
 
-proto: $(PROTO_SRC_PATH)/mtk.pb.cc $(PROTO_SRC_PATH)/mtk.pb.h $(PROTO_SRC_PATH)/mtk.grpc.pb.cc $(PROTO_SRC_PATH)/mtk.grpc.pb.h
+proto: grpc_proto $(PROTO_SRC_PATH)/mtk.pb.cc $(PROTO_SRC_PATH)/mtk.pb.h $(PROTO_SRC_PATH)/mtk.grpc.pb.cc $(PROTO_SRC_PATH)/mtk.grpc.pb.h
+grpc_proto: $(GRPC_PROTO_SRCS:.proto=.pb.cc)
 
-filelist: $(FILELIST_TOOL_PATH)/lists.cmake
+filelist: $(FILELIST_TOOL_PATH)/list.cmake $(FILELIST_TOOL_PATH)/zlist.cmake $(FILELIST_TOOL_PATH)/ssllist.cmake $(FILELIST_TOOL_PATH)/areslist.cmake 
 
 linux: proto filelist
 	- mkdir -p build/linux
@@ -76,7 +81,7 @@ clean:
 	rm -r build
 
 builder:
-	docker build --build-arg GRPC_COMMIT=$(GRPC_COMMIT) -t mtktools/builder .
+	docker build --build-arg GRPC_COMMIT=$(GRPC_COMMIT) -t mtktool/builder .
 
 
 
