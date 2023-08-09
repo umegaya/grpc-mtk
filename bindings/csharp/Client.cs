@@ -138,7 +138,7 @@ namespace Mtk {
                 cl.arg = arg;
                 cl.cb = Marshal.GetFunctionPointerForDelegate(cb);
             }
-            internal ClientBuilderBase ConnectTo(string at, string cert = "", string key = "", string ca = "") {
+            internal ClientBuilderBase SetConnectTo(string at, string cert = "", string key = "", string ca = "") {
             	string resolved;
             	if (Util.NAT.Instance == null || !Util.NAT.Instance.Resolve(at, out resolved)) {
             		resolved = at;
@@ -163,8 +163,8 @@ namespace Mtk {
                 DestroyAddress();
                 return conn;
             }
-            public ConnBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
-                base.ConnectTo(at, cert, key, ca);
+            public new ConnBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
+                base.SetConnectTo(at, cert, key, ca);
                 return this;
             }
             public ConnBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
@@ -204,7 +204,7 @@ namespace Mtk {
 #if UNITY_EDITOR
                 auto_cleanup_ = yes_or_no;
 #else
-                Mtk.Log.Warn("ev:auto cleanup only enable for Unity Editor");
+                Mtk.Log.Info("ev:auto cleanup only enable for Unity Editor");
 #endif
                 return this;
             }
@@ -227,7 +227,7 @@ namespace Mtk {
                 return c;                       
             }
             public ClientBuilder ConnectTo(string at, string cert = "", string key = "", string ca = "") {
-                base.ConnectTo(at, cert, key, ca);
+                base.SetConnectTo(at, cert, key, ca);
                 return this;
             }
             public ClientBuilder OnClose(ClientCloseCB cb, System.IntPtr arg) {
