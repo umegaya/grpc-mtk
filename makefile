@@ -5,7 +5,6 @@ GRPC_PROTO_ROOT=$(GRPC_ROOT)/src/proto
 GRPC_CPP_PLUGIN=grpc_cpp_plugin
 GRPC_BIN_PATH=/usr/local/bin/grpc_cpp_plugin
 DOCKER_IMAGE=mtktool/builder
-GRPC_COMMIT=$(shell bash ./tools/builder/hash.sh)
 # project root from build directory
 PROJECT_ROOT=../..
 BUILD_SETTING_PATH=$(PROJECT_ROOT)/tools/cmake
@@ -76,7 +75,4 @@ clean:
 	rm -r build
 
 builder:
-	docker build --build-arg GRPC_COMMIT=$(GRPC_COMMIT) -t mtktools/builder .
-
-
-
+	docker build -t $(DOCKER_IMAGE) .

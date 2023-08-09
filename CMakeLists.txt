@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 set(DEBUG false CACHE BOOL "do debug build")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DHAVE_PTHREAD")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -DHAVE_PTHREAD")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -DOPENSSL_NO_ASM -DPB_NO_PACKED_STRUCTS")
-include_directories(src src/proto/src ext/grpc ext/grpc/third_party/zlib)
+include_directories(src src/proto/src ext/grpc ext/grpc/third_party/zlib ext/grpc/third_party/abseil-cpp ext/grpc/third_party/upb ext/grpc/src/core/ext/upb-generated)
 include_directories(SYSTEM ext ext/spdlog/include ext/grpc/include ext/grpc/third_party/boringssl/include ext/grpc/third_party/protobuf/src)
 if (DEBUG)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -DDEBUG")
@@ -17,11 +17,11 @@ file(GLOB_RECURSE libsrc [
 	"src/*.cpp" 
 	"src/*.cc" 
 	# dependency source
-	"ext/grpc/src/cpp/*.cc"
-	"ext/grpc/src/boringssl/*.c"
-	"ext/grpc/third_party/boringssl/ssl/*.c"
-	"ext/grpc/third_party/boringssl/crypto/*.c"
-	"ext/grpc/third_party/protobuf/src/google/*.cc"
+	# "ext/grpc/src/cpp/*.cc"
+	# "ext/grpc/src/boringssl/*.c"
+	# "ext/grpc/third_party/boringssl/ssl/*.c"
+	# "ext/grpc/third_party/boringssl/crypto/*.c"
+	# "ext/grpc/third_party/protobuf/src/google/*.cc"
 ])
 include(${CMAKE_CURRENT_SOURCE_DIR}/tools/filelist/lists.cmake)
 set(src ${libsrc} ${grpc_core_src})
