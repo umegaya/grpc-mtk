@@ -18,7 +18,6 @@ namespace {
     using grpc::ClientContext;
     using grpc::CompletionQueue;
     using grpc::Status;
-    using grpc::GrpcLibraryCodegen;
     using moodycamel::ConcurrentQueue;
 }
 
@@ -252,13 +251,13 @@ namespace mtk {
         }
         template <class SYSTEM_PAYLOAD>
         void Call(const SYSTEM_PAYLOAD &spl, SEntry::Callback cb) {
-            char buffer[spl.ByteSize()];
-            if (Codec::Pack(spl, (uint8_t *)buffer, spl.ByteSize()) < 0) {
+            uint8_t buffer[spl.ByteSizeLong()];
+            if (Codec::Pack(spl, buffer, spl.ByteSizeLong()) < 0) {
                 SEntry::Respond(cb, nullptr, BROKEN_PAYLOAD_ERROR);
                 return;
             }
             Request *msg = new Request();
-            msg->set_payload(buffer, spl.ByteSize());
+            msg->set_payload(reinterpret_cast<char *>(buffer), spl.ByteSizeLong());
             SetSystemPayloadKind<SYSTEM_PAYLOAD>(*msg);
             Call(msg, cb, TIMEOUT_DURATION);
         }

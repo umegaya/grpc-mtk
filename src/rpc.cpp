@@ -5,9 +5,7 @@
 #include <chrono>
 #include <grpc++/impl/grpc_library.h>
 
-extern "C" {
 #include "src/core/lib/surface/completion_queue.h"
-}
 
 namespace mtk {
 extern std::string cl_ca;
@@ -21,22 +19,24 @@ Reply *RPCStream::ESTABLISHED_EVENT = IOThread::ESTABLISHED_EVENT;
 Request *RPCStream::ESTABLISH_REQUEST = IOThread::ESTABLISH_REQUEST;
 Error *RPCStream::TIMEOUT_ERROR = nullptr, *RPCStream::BROKEN_PAYLOAD_ERROR = nullptr, *RPCStream::NOT_CONNECT_ERROR = nullptr;
 
-/* holding reference to grpc library, to prevent repeated grpc_init/shutdown on the fly */
-static grpc::internal::GrpcLibraryInitializer g_gli_initializer;
-static GrpcLibraryCodegen *g_libpin = nullptr;
+/* holding reference to grpc library, to prevent repeated grpc_init/shutdown on the fly 
+ => now seems problem solved.
+*/
+// static grpc::internal::GrpcLibraryInitializer g_gli_initializer;
+// static GrpcLibraryCodegen *g_libpin = nullptr;
 void PinLibrary() {
-    g_libpin = new GrpcLibraryCodegen();
+//     g_libpin = new GrpcLibraryCodegen();
 }
 void UnpinLibrary() {
-    if (g_libpin != nullptr) {
-        delete g_libpin;
-        g_libpin = nullptr;
-    }
+//     if (g_libpin != nullptr) {
+//         delete g_libpin;
+//         g_libpin = nullptr;
+//     }
 }
 
 /* IOThread */
 void IOThread::Initialize(const char *addr, CredOptions *options) {
-    g_gli_initializer.summon();
+    // g_gli_initializer.summon();
     if (options != nullptr) {
         stub_ = std::unique_ptr<Stub>(new Stream::Stub(grpc::CreateChannel(addr, grpc::SslCredentials(*options))));
     } else {

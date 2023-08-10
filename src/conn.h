@@ -188,34 +188,34 @@ namespace mtk {
         }
         template <class W>
         static inline bool SetupPayload(Reply &rep, const W &w) {
-            uint8_t buffer[w.ByteSize()];
-            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+            uint8_t buffer[w.ByteSizeLong()];
+            if (Codec::Pack(w, buffer, w.ByteSizeLong()) < 0) {
                 ASSERT(false);
                 return false;
             }
-            rep.set_payload(buffer, w.ByteSize());
+            rep.set_payload(reinterpret_cast<char *>(buffer), w.ByteSizeLong());
             return true;
         }
         template <class W>
         static inline bool SetupRequest(Request &req, MessageType type, const W &w) {
-            uint8_t buffer[w.ByteSize()];
-            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+            uint8_t buffer[w.ByteSizeLong()];
+            if (Codec::Pack(w, buffer, w.ByteSizeLong()) < 0) {
                 ASSERT(false);
                 return false;
             }
             req.set_type(type);
-            req.set_payload(buffer, w.ByteSize());
+            req.set_payload(reinterpret_cast<char *>(buffer), w.ByteSizeLong());
             return true;
         }
         template <class W>
         static inline bool SetupSysTask(Request &req, Request::Kind k, const W &w) {
-            uint8_t buffer[w.ByteSize()];
-            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+            uint8_t buffer[w.ByteSizeLong()];
+            if (Codec::Pack(w, buffer, w.ByteSizeLong()) < 0) {
                 ASSERT(false);
                 return false;
             }
             req.set_kind(k);
-            req.set_payload(buffer, w.ByteSize());
+            req.set_payload(reinterpret_cast<char *>(buffer), w.ByteSizeLong());
             return true;
         }
         template <class W>
@@ -233,13 +233,13 @@ namespace mtk {
         }
         template <class W>
         static inline bool SetupSystemReply(Reply &rep, mtk_msgid_t msgid, const W &w) {
-            uint8_t buffer[w.ByteSize()];
-            if (Codec::Pack(w, buffer, w.ByteSize()) < 0) {
+            uint8_t buffer[w.ByteSizeLong()];
+            if (Codec::Pack(w, buffer, w.ByteSizeLong()) < 0) {
                 ASSERT(false);
                 return false;
             }
             rep.set_msgid(msgid);
-            rep.set_payload(buffer, w.ByteSize());
+            rep.set_payload(reinterpret_cast<char *>(buffer), w.ByteSizeLong());
             return true;
         }
         static inline void SetupThrow(Reply &rep, mtk_msgid_t msgid, Error *e) {
