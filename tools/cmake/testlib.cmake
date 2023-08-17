@@ -1,2 +1,2 @@
-add_compile_options(-D_TEST)
 set(DEBUG True)
+add_compile_options(-D__MTK_LINUX__ -D_TEST)
