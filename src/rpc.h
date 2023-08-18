@@ -42,7 +42,6 @@ namespace mtk {
         std::unique_ptr<Stub> stub_;
         std::unique_ptr<ClientAsyncReaderWriter<Request, Reply>> io_;
         CompletionQueue cq_;
-        ClientAsyncReaderWriter<Request, Reply> *prev_io_;
         ClientContext *context_;
         std::unique_ptr<Reply> reply_work_;
         Status last_status_;
@@ -50,7 +49,7 @@ namespace mtk {
         bool is_sending_, alive_, sending_shutdown_;
     public:
         IOThread(RPCStream &s) : owner_(s), thr_(), stub_(), io_(), cq_(), 
-            prev_io_(nullptr), context_(nullptr), reply_work_(), last_status_(), 
+            context_(nullptr), reply_work_(), last_status_(), 
             connect_sequence_num_(0), is_sending_(false), alive_(true), sending_shutdown_(false) {}
         void Initialize(const char *addr, CredOptions *options);
         void Finalize();
@@ -86,12 +85,13 @@ namespace mtk {
     protected:
         //stream open/close
         void Close() {
-            if (io_ != nullptr) {
-                ASSERT(prev_io_ == nullptr);
-                //here, still old rpc result that not appeared in completion queue, may exist. 
-                //so delete io here may cause crash. after new connection established, prev_io_ will be removed.
-                prev_io_ = io_.release();
-            }
+            // recent grpc does not need this kind of hack anymore
+            // if (io_ != nullptr) {
+            //     ASSERT(prev_io_ == nullptr);
+            //     //here, still old rpc result that not appeared in completion queue, may exist. 
+            //     //so delete io here may cause crash. after new connection established, prev_io_ will be removed.
+            //     prev_io_ = io_.release();
+            // }
             if (context_ != nullptr) {
                 delete context_;
             }

@@ -47,9 +47,6 @@ void IOThread::Finalize() {
     if (context_ != nullptr) {
         delete context_;
     }
-    if (prev_io_ != nullptr) {
-        delete prev_io_;
-    }
 }
 void IOThread::Start() {
     if (!thr_.joinable()) {
@@ -147,12 +144,6 @@ void IOThread::HandleEvent(bool ok, void *tag) {
             }
             owner_.DrainRequestQueue();
             ASSERT(connect_sequence_num_ >= seq);
-            //here, previous connection closed or current connection closed.
-            //anyway we can remove previous one.
-            if (prev_io_ != nullptr) {
-                delete prev_io_;
-                prev_io_ = nullptr;
-            }
             if (connect_sequence_num_ == seq) {
                 //push event pointer to indicate connection closed
                 owner_.PushReply(DISCONNECT_EVENT);
@@ -165,10 +156,6 @@ void IOThread::HandleEvent(bool ok, void *tag) {
                 }
             } else {
                 //call establishment
-                if (prev_io_ != nullptr) {
-                    delete prev_io_;
-                    prev_io_ = nullptr;
-                }
                 owner_.PushReply(ESTABLISHED_EVENT);
             }
             reply_work_.reset(new Reply());
