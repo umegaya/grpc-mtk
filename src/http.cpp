@@ -81,21 +81,21 @@ namespace mtk {
 
             cb_ = cb;
 
-            // auto cred = ssl ? grpc_core::CreateHttpRequestSSLCredentials() : 
-            //     grpc_core::RefCountedPtr<grpc_channel_credentials>(grpc_insecure_credentials_create());
+            auto cred = ssl ? grpc_core::CreateHttpRequestSSLCredentials() : 
+                 grpc_core::RefCountedPtr<grpc_channel_credentials>(grpc_insecure_credentials_create());
             
             auto deadline = grpc_core::Timestamp::Now() + grpc_core::Duration::Milliseconds(timeout_msec);
 
             if (body != nullptr) {
                 request_ = grpc_core::HttpRequest::Post(uri, NULL, &pollent_, &req, 
-                            deadline, &closure_, &response_,
-                            grpc_core::CreateHttpRequestSSLCredentials());
+                            deadline, &closure_, &response_, cred);
             } else {
                 request_ = grpc_core::HttpRequest::Get(uri, NULL, &pollent_, &req, 
-                            deadline, &closure_, &response_,
-                            grpc_core::CreateHttpRequestSSLCredentials());
+                            deadline, &closure_, &response_, cred);
             }
-            return true;           
+            grpc_core::ExecCtx exec_ctx;
+            request_->Start();
+            return true;
         }
         void Fin() {
             grpc_http_response_destroy(&response_);
@@ -119,7 +119,8 @@ namespace mtk {
     } RequestContext;
 
     static grpc_ssl_roots_override_result pemer(char **pem) {
-        *pem = (char *)g_root_cert.c_str();
+        // *pem is freed by caller (see ssl_utils.cc:583 @ b1aaf1 of grpc repository)
+        *pem = strdup(g_root_cert.c_str());
         return GRPC_SSL_ROOTS_OVERRIDE_OK;
     }
     void HttpClient::Init(const std::string &root_cert) {
@@ -143,10 +144,11 @@ namespace mtk {
                 pdc, grpc_schedule_on_exec_ctx
             );
             // previous pollset is cleaned up in destroy closure
+            auto pollset_tmp = g_pollset;
             g_pollset = nullptr;
             g_pollsets.clear();
             // actually shutdown pollset
-            grpc_pollset_shutdown(g_pollset, &pdc->closure);
+            grpc_pollset_shutdown(pollset_tmp, &pdc->closure);
         }
     }
     void HttpClient::Update(int sleep_ms) {
@@ -180,17 +182,15 @@ namespace mtk {
             return true;
         }
         grpc_init();
+        HttpClient::Init(root_cert);
+        g_http_alive = true;
         g_webthr = std::thread([root_cert] {
-            g_http_alive = true;
-            HttpClient::Init(root_cert);
+            grpc_core::ExecCtx exec_ctx;
             while (g_http_alive) {
                 HttpClient::Update();
             }
             HttpClient::Fin();
         });
-        while (HttpClient::Available()) {
-            mtk_sleep(mtk_msec(10));
-        }
         return true;
     }
     void HttpClient::Stop() {
@@ -714,7 +714,7 @@ namespace mtk {
             grpc_endpoint_read(sock_, &buffer_, &on_read_, true, 1);
         }
         void Write() {
-            grpc_endpoint_write(sock_, &buffer_, &on_write_, this, INT_MAX);
+            grpc_endpoint_write(sock_, &buffer_, &on_write_, nullptr, INT_MAX);
         }
         void OnWrite(grpc_error_handle) {
             //write finished.
@@ -857,6 +857,7 @@ namespace mtk {
         return true;
     }
     bool HttpServer::Run(int sleep_ms) {
+        grpc_core::ExecCtx exec_ctx;
         auto channel_args = grpc_core::CoreConfiguration::Get()
                           .channel_args_preconditioning()
                           .PreconditionChannelArgs(nullptr);
@@ -876,6 +877,7 @@ namespace mtk {
         }
         grpc_tcp_server_start(server_, &pollsets_);
         // TODO(iyatomi): if necessary, provide way to run the loop on background
+        // TODO(iyatomi): thread per pollset for performance
         while (alive_) {
             for (size_t i = 0; i < pollsets_.size(); i++) {
                 grpc_pollset_worker *worker = NULL;

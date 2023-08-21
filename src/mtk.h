@@ -82,8 +82,10 @@ extern mtk_time_t mtk_sleep(mtk_time_t d); //ignore EINTR
 extern mtk_time_t mtk_pause(mtk_time_t d); //break with EINTR
 /* log */
 extern void mtk_log_config(const char *svname, mtk_logger_cb_t cb);
-extern void mtk_log(mtk_loglevel_t lv, const char *str);
+extern void mtk_log(mtk_loglevel_t lv, const char *fmt, size_t len, ...);
 extern void mtk_log_flush(); //OSX only
+#define MTK_LOG(lv, fmt, ...) mtk_log(mtk_loglevel_t::lv, fmt, 1024, __VA_ARGS__)
+#define MTK_TRACE(fmt, ...) MTK_LOG(trace, fmt, __VA_ARGS__)
 /* event queue */
 extern mtk_queue_t mtk_queue_create(mtk_queue_elem_free_t dtor);
 extern void mtk_queue_destroy(mtk_queue_t q);

@@ -26,7 +26,7 @@ namespace logger {
     void write(const std::string &body);
 
     template <typename... Args> inline void log(level::def lv, const char *fmt, fmt::ArgList args) {
-    	if (lv <= level::debug) {
+    	if (lv <= level::trace) {
 	        std::string body = fmt::format(fmt, args);
 	        write(body + "\n");
 			return;    		

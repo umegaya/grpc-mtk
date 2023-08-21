@@ -7,8 +7,9 @@ static void echo(void *, mtk_httpsrv_request_t req, mtk_httpsrv_response_t res) 
 	const char *body = mtk_httpsrv_read_body(req, &len);
 	mtk_httpsrv_read_path(req, buff, &bl);
 	if (len > 0) {
+		auto length = std::to_string(len + bl);
 		mtk_http_header_t hds[] = {
-			{ .key=(char *)"Content-Length", .value=(char *)std::to_string(len + bl).c_str() }
+			{ .key=(char *)"Content-Length", .value=(char *)length.c_str() }
 		};
 		mtk_httpsrv_write_header(res, 200, hds, 1);
 		mtk_httpsrv_write_body(res, body, len);

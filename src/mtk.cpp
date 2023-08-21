@@ -504,8 +504,13 @@ mtk_time_t mtk_pause(mtk_time_t d) {
 void mtk_log_config(const char *svname, mtk_logger_cb_t cb) {
 	logger::configure(cb, svname);
 }
-void mtk_log(mtk_loglevel_t lv, const char *str) {
-	logger::log_no_arg((logger::level::def)lv, str);
+void mtk_log(mtk_loglevel_t lv, const char *fmt, size_t len, ...) {
+	char buffer[len + 1];
+	va_list args;
+	va_start(args, len);
+	vsnprintf(buffer, len + 1, fmt, args);
+	va_end(args);
+	logger::log_no_arg((logger::level::def)lv, buffer);
 }
 void mtk_log_flush() {
 	logger::flush_from_main_thread();
