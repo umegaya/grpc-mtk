@@ -182,9 +182,9 @@ extern mtk_closure_t mtk_closure_nop;
 
 /******** http API ********/
 /* common */
-extern void mtk_http_start(const char *root_cert);
+extern bool mtk_http_start(const char *root_cert);
 extern void mtk_http_stop();
-extern bool mtk_http_avail();
+extern bool mtk_http_enabled();
 /* client */
 extern void mtk_httpcli_get(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, mtk_closure_t cb);
 extern void mtk_httpcli_post(const char *host, const char *path, mtk_http_header_t *hds, int n_hds, 

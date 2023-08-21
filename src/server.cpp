@@ -46,7 +46,7 @@ bool IServer::CreateCred(const Address &a, CredOptions &options) {
     };
     return true;
 }
-uint32_t IServer::GetPorts(int ports_index, int *ports_buf, uint32_t n_ports_buf) {
+uint32_t IServer::GetPorts(int, int *, uint32_t) {
     return 0;
 }
 void IServer::Register(Conn *conn) {

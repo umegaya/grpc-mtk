@@ -30,7 +30,7 @@ namespace mtk {
         while (true) {
             switch (cq_->AsyncNext(&tag, &ok, wait)) {
                 case grpc::CompletionQueue::SHUTDOWN:
-                    for (int i = 0; i < connections_.size(); i++) {
+                    for (size_t i = 0; i < connections_.size(); i++) {
                         connections_[i]->Destroy();
                     }
                     handler_->TlsFin(this);
@@ -41,7 +41,7 @@ namespace mtk {
                 case grpc::CompletionQueue::TIMEOUT:
                     break;
             }
-            for (int i = 0; i < connections_.size(); i++) {
+            for (size_t i = 0; i < connections_.size(); i++) {
                 auto c = connections_[i];
                 c->ConsumeTask(n_process);
             }

@@ -236,7 +236,7 @@ namespace mtk {
         }
         inline void Call(Request *msg,
                   SEntry::Callback cb,
-                  timespec_t timeout_msec) {
+                  timespec_t /* timeout_msec */) {
             if (status_ < NetworkStatus::ESTABLISHED) {
                 SEntry::Respond(cb, nullptr, NOT_CONNECT_ERROR);
                 return;
@@ -262,7 +262,7 @@ namespace mtk {
             Call(msg, cb, TIMEOUT_DURATION);
         }
         template <class SYSTEM_PAYLOAD>
-        void SetSystemPayloadKind(Request &req) { ASSERT(false); }
+        void SetSystemPayloadKind(Request &) { ASSERT(false); }
     protected:
         static void NopInternalCallback(::google::protobuf::Message &);
     };
